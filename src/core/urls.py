@@ -18,7 +18,6 @@ urlpatterns = [
     path('carto/', include('apps.carto.urls')),
     path('ideas/', include('apps.ideas.urls')),
     path('pas/', include('apps.pas.urls')),
-    path('kpi/', include('apps.kpi.urls')),
     path('', Index.as_view(), name='index')
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

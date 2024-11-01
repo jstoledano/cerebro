@@ -56,8 +56,9 @@ LOCAL_APPS = [
     'apps.ideas.config.IdeasConfig',
     'apps.carto.config.CartoConfig',
     'apps.pas.config.PasConfig',
-    'apps.kpi.config.KpiConfig',
+    'apps.kpi.apps.KpiConfig',
 ]
+
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
