@@ -1,1 +1,13 @@
-<h1>KPI</h1>
+<h1>{{ title }}</h1>
+
+{% for k in kpi %}
+    <h2>{{ k.name }}</h2>
+    <p>{{ k.description }}</p>
+    {% for period in k.period_set.all %}
+        <h2>{{ period.period }}</h2>
+
+        {% for record in period.record_set.all %}
+            {{ record.date }}: {{ record.value }} - {{ record.cumulative_value }}<br />
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
