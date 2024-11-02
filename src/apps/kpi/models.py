@@ -5,11 +5,11 @@ from apps.pas.models import TrackingFields
 
 User = get_user_model()
 
-KPO = 1
-KPI: int = 2
+KPO_type:int = 1
+KPI_type:int = 2
 TYPE = (
-    (KPO, 'Objetivo'),
-    (KPI, 'Indicador')
+    (KPO_type, 'Objetivo'),
+    (KPI_type, 'Indicador')
 )
 
 # Definition of constant of PERIODS of time
