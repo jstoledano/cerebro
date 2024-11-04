@@ -61,9 +61,9 @@ class PeriodAdmin(admin.ModelAdmin):
 @admin.register(KPI)
 class KPIAdmin(admin.ModelAdmin):
     exclude = ('user',)
-    list_display = ('name', 'type', 'active')
+    list_display = ('name', 'kpi_type', 'active')
     search_fields = ('name', 'description')
-    list_filter = ('type', 'active')
+    list_filter = ('kpi_type', 'active')
     ordering = ('pos',)
     inlines = [PeriodInline]
 

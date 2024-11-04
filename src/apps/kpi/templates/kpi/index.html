@@ -1,7 +1,7 @@
 <h1>{{ title }}</h1>
 
 {% for k in kpi %}
-    <h2>{{ k.name }}</h2>
+    <h2>{{ k.name }} - {{ k.get_kpi_type_display }}</h2>
     <p>{{ k.description }}</p>
     {% for period in k.period_set.all %}
         <h2>{{ period.period }}</h2>
