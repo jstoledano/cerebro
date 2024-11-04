@@ -36,7 +36,7 @@ class KPI(TrackingFields):
     La definición genérica solo incluye el nombre, la descripción y la fórmula de cálculo.
     """
     pos = models.IntegerField('Posición', help_text='Posición u orden del Indicador')
-    type = models.IntegerField('Tipo', choices=TYPE, help_text='Indica si es una Objetivo o un KPI')
+    kpi_type = models.IntegerField('Tipo', choices=TYPE, help_text='Indica si es una Objetivo o un KPI')
     name = models.CharField('Nombre', max_length=255, help_text='Nombre del Objetivo o Indicador')
     description = models.TextField('Descripción', help_text='Descripción detallada del Objetivo o Indicador')
     formula = models.TextField('Fórmula')
@@ -48,7 +48,7 @@ class KPI(TrackingFields):
         verbose_name_plural = 'Indicadores'
 
     def __str__(self) -> str:
-        return f'{self.get_type_display()}: {self.name}'
+        return f'{self.get_kpi_type_display()}: {self.name}'
 
 
 class Period(models.Model):
@@ -79,7 +79,9 @@ class Period(models.Model):
 
     @property
     def percent(self):
-        return self.total / self.nominal * 100 if self.target else 0
+        total: float = self.total
+        nominal: float = self.nominal
+        return total / nominal * 100 if self.target else 0
 
 
 class Record(TrackingFields):
