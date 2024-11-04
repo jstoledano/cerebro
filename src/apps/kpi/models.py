@@ -69,6 +69,7 @@ class Period(models.Model):
         verbose_name = 'Periodo'
         verbose_name_plural = 'Periodos'
         ordering = ('kpi', 'period',)
+        get_latest_by = 'start'
 
     def __str__(self) -> str:
         return f'{self.kpi.name} - {self.period}: {self.target}'
