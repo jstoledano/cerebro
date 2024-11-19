@@ -50,6 +50,16 @@ class KPI(TrackingFields):
     def __str__(self) -> str:
         return f'{self.get_kpi_type_display()}: {self.name}'
 
+    @property
+    def latest_active_period(self):
+        """Devuelve el periodo activo más reciente de este KPI.
+
+        Si no existen periodos activos, devuelve una lista vacía.
+        """
+        # Intentamos obtener el último periodo activo basado en la fecha de inicio
+        period = self.period_set.filter(active=True).order_by('-start').first()
+        return period or []
+
 
 class Period(models.Model):
     """Model to store the periods of the KPI.
