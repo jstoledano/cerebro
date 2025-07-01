@@ -11,6 +11,8 @@ Modelos:
 """
 
 import os.path
+from urllib.parse import urlparse
+from os.path import basename
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.template.defaultfilters import slugify
@@ -173,6 +175,12 @@ class Documento (models.Model):
     def swf(self):
         """Devuelve el archivo sin extensión."""
         return f"{self.revision_set.latest('revision').archivo.url.split('.')[0]}.swf"
+        
+    def name(self) -> str:
+        """
+        Devuelve el nombre del archivo al que apunta el campo `ruta`.
+        """
+        return basename(self.ruta.strip()) if self.ruta else ""
 
 
 def subir_documento(instancia, archivo) -> str:
@@ -239,6 +247,9 @@ class Revision (models.Model):
 {self.documento} rev {self.revision:02d} ({self.f_actualizacion}))
 """
         return respuesta
+        
+    def nombre(self) -> str:
+        return basename(self.archivo.name)
 
 
 class Reporte(models.Model):

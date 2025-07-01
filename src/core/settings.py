@@ -146,7 +146,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_ROOT = APPS_DIR.child('media')
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 CRISPY_TEMPLATE_PACK = 'bootstrap5'

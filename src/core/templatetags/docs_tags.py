@@ -6,6 +6,7 @@
 #       autor: Javier Sanchez Toledano
 #       fecha: lunes, 21 de marzo de 2016
 
+import os
 import re
 from django import template
 
@@ -25,3 +26,9 @@ def current(request, pattern):
 @register.filter
 def disqus_hash(value):
     return value.replace("/", "_")
+
+
+@register.filter
+def basename(value):
+    """Extrae el nombre del archivo de una ruta"""
+    return os.path.basename(value)

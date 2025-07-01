@@ -1,47 +1,44 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load docs_tags %}
 
 {% block header %}
-  <link rel="stylesheet" href="{% static 'docs/estilos.css' %}">
-  <link rel="stylesheet" href="{% static 'docs/colorbox.css' %}" />
+<link rel="stylesheet" href="{% static 'docs/estilos.css' %}">
+<link rel="stylesheet" href="{% static 'docs/colorbox.css' %}" />
 {% endblock header %}
 
 {% block footer %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.js"></script>
-  <link rel="stylesheet" href="{% static 'css/datepicker.css' %}" />
-  <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.colorbox/1.6.4/jquery.colorbox-min.js" integrity="sha512-DAVSi/Ovew9ZRpBgHs6hJ+EMdj1fVKE+csL7mdf9v7tMbzM1i4c/jAvHE8AhcKYazlFl7M8guWuO3lDNzIA48A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/datepicker.css' %}" />
+<script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.colorbox/1.6.4/jquery.colorbox-min.js"
+  integrity="sha512-DAVSi/Ovew9ZRpBgHs6hJ+EMdj1fVKE+csL7mdf9v7tMbzM1i4c/jAvHE8AhcKYazlFl7M8guWuO3lDNzIA48A=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <script type="application/javascript">
-    $(document).ready(function(){
-      $(".iframe").colorbox({iframe:true, width:"80%", height:"80%"});
-      $(".callbacks").colorbox({
-					onOpen:function(){ alert('onOpen: colorbox is about to open'); },
-					onLoad:function(){ alert('onLoad: colorbox has started to load the targeted content'); },
-					onComplete:function(){ alert('onComplete: colorbox has displayed the loaded content'); },
-					onCleanup:function(){ alert('onCleanup: colorbox has begun the close process'); },
-					onClosed:function(){ alert('onClosed: colorbox has completely closed'); }
-				});
-
-        //Example of preserving a JavaScript event for inline calls.
-        $("#click").click(function(){
-          $('#click').css({"background-color":"#f00", "color":"#fff", "cursor":"inherit"}).text("Open this window again and this message will still be here.");
-          return false;
-        });
+<script type="application/javascript">
+  $(document).ready(function () {
+    $(".iframe").colorbox({ iframe: true, width: "80%", height: "80%" });
+    $(".callbacks").colorbox({
+      onOpen: function () { alert('onOpen: colorbox is about to open'); },
+      onLoad: function () { alert('onLoad: colorbox has started to load the targeted content'); },
+      onComplete: function () { alert('onComplete: colorbox has displayed the loaded content'); },
+      onCleanup: function () { alert('onCleanup: colorbox has begun the close process'); },
+      onClosed: function () { alert('onClosed: colorbox has completely closed'); }
     });
 
-    {% if doc.aprobado %}
-      $(document).ready(function() {
-        $('#modal').modal('show');
-      });
-    {% endif %}
+    //Example of preserving a JavaScript event for inline calls.
+    $("#click").click(function () {
+      $('#click').css({ "background-color": "#f00", "color": "#fff", "cursor": "inherit" }).text("Open this window again and this message will still be here.");
+      return false;
+    });
 
-    $('#btn-descarga').on('click', function(){
+    // ✅ CÓDIGO DEL BOTÓN MOVIDO AQUÍ DENTRO
+    $(document).on('click', '#btn-descarga', function () {
       $.confirm({
         title: 'Control de documentos',
-        content: 'La impresión de este documento se considerará una copia no controlada.',
+        content: 'La descarga y/o impresión de este documento se considera una copia no controlada.',
         closeIcon: true,
         closeIconClass: 'fa fa-close',
         backgroundDismiss: true,
@@ -49,150 +46,179 @@
           confirmar: function () {
             window.location = "/media/{{doc.revision_actual.archivo}}";
           },
-          cerrar: function () {}
+          cerrar: function () { }
         }
-      })
-    })
+      });
+    });
 
-  </script>
+    // ✅ CÓDIGO DEL MODAL TAMBIÉN DENTRO DEL MISMO READY
+    {% if doc.aprobado %}
+    $('#modal').modal('show');
+    {% endif %}
+  });
+</script>
+{% if doc.aprobado %}
+<script type="application/javascript">
+  $(document).ready(function () {
+    $('#modal').modal('show');
+  });
+</script>
+{% endif %}
 
-  {% if doc.aprobado %}
-    <div id="modal" class="modal modal-wide fade"  data-keyboard="false" data-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Documento en aprobación</h5>
-          </div>
-          <div class="modal-body">
-            <p>
-              Este documento se revisó y aprobó por el Comité de la Calidad
-              en la entidad. Una vez que sea aprobado por Oficinas Centrales
-              la versión final sustituirá a la presente.
-            </p>
-            <p>
-              Podrá ser utilizado en los procesos del sistema, sin embargo, se
-              recomienda estar atento a las notificaciones de actualización.
-            </p>
-            <p>
-              Cualquier diferencia entre la versión aprobada y la actual será
-              consignada en el área de <em>Historial de actualizaciones</em>.
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-bs-dismiss="modal" aria-hidden="true">Cerrar</button>
-          </div>
-        </div><!-- /.modal-content -->
-      </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
-  {% endif %}
+{% if doc.aprobado %}
+<div id="modal" class="modal modal-wide fade" data-keyboard="false" data-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Documento en aprobación</h5>
+      </div>
+      <div class="modal-body">
+        <p>
+          Este documento se revisó y aprobó por el Comité de la Calidad
+          en la entidad. Una vez que sea aprobado por Oficinas Centrales
+          la versión final sustituirá a la presente.
+        </p>
+        <p>
+          Podrá ser utilizado en los procesos del sistema, sin embargo, se
+          recomienda estar atento a las notificaciones de actualización.
+        </p>
+        <p>
+          Cualquier diferencia entre la versión aprobada y la actual será
+          consignada en el área de <em>Historial de actualizaciones</em>.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-bs-dismiss="modal" aria-hidden="true">Cerrar</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+{% endif %}
 
-  {% if not doc.r_actual %}
-    <!-- Button trigger modal -->
-    <script type="text/javascript">
-        $(function () {
-            $('#addVersionModal').modal('show');
-            $('.dateinput').datepicker({ format: "yyyy/mm/dd" });
-        });
-    </script>
+{% if not doc.r_actual %}
+<!-- Button trigger modal -->
+<script type="text/javascript">
+  $(function () {
+    $('#addVersionModal').modal('show');
+    $('.dateinput').datepicker({ format: "yyyy/mm/dd" });
+  });
+</script>
 
-    <!-- Modal -->
-    <div class="modal modal-xl fade"
-         id="addVersionModal" tabindex="-1"
-         aria-labelledby="addVersionModallabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="addVersionModallabel">Documento sin Revisiones</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <p>Este documento no tiene revisiones todavía, por favor, agregue una nueva revisión.</p>
-            <form method="post" class="form" action="{% url 'docs:rev_add' pk=doc.id %}">
-              {% csrf_token %}
-               <input type="hidden" id="docID" name="documento" value="{{ doc.id }}">
-              {% crispy version %}
-            </form>
-          </div>
-        </div>
+<!-- Modal -->
+<div class="modal modal-xl fade" id="addVersionModal" tabindex="-1" aria-labelledby="addVersionModallabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addVersionModallabel">Documento sin Revisiones</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Este documento no tiene revisiones todavía, por favor, agregue una nueva revisión.</p>
+        <form method="post" class="form" action="{% url 'docs:rev_add' pk=doc.id %}">
+          {% csrf_token %}
+          <input type="hidden" id="docID" name="documento" value="{{ doc.id }}">
+          {% crispy version %}
+        </form>
       </div>
     </div>
-  {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+function descargarArchivo(url, nombre) {
+  fetch(url)
+    .then(response => response.blob())
+    .then(blob => {
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = nombre;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+    })
+    .catch(error => console.error('Error al descargar:', error));
+}
+</script>
 {% endblock footer%}
 
-{% block  head_title %}{{ doc.nombre }}{% endblock %}
+{% block head_title %}{{ doc.nombre }}{% endblock %}
 
 {% block content %}
-  <div class="row" style="padding-top: 65px;">
-    <div class="col"><!-- contenido -->
-      <div class="page-header">
-        <h1 class="display-4">
+<div class="row" style="padding-top: 65px;">
+  <div class="col"><!-- contenido -->
+    <div class="page-header">
+      <h1 class="display-4">
 
-          {% if doc.aprobado %}
-            <span class="text-danger"><i class="fa fa-exclamation-triangle"></i></span>
-          {% endif %}
-          {{ doc.nombre }}
-          <small>
-            {% if doc.proceso.slug != "stn" %}ver. {{ doc.r_actual }}{% endif %}
-            ({{ doc.revision_actual.f_actualizacion }})
-          </small>
-        </h1>
-      </div><!-- ./page-header -->
-        {% if request.user.is_staff %}
-        {% if reportes|length > 0 %}
-        <div class="alert alert-danger" role="alert">
-          El documento tiene <strong>{{ reportes|length }} reportes</strong>. <a href="{% url 'docs:panic_reportes' %}">Ver reportes</a>
-        </div>{% endif %}
+        {% if doc.aprobado %}
+        <span class="text-danger"><i class="fa fa-exclamation-triangle"></i></span>
         {% endif %}
-        <div class="alert alert-secondary" role="alert">
-          La impresión de este documento será considerada una <strong>copia no controlada.</strong>
-        </div>
+        {{ doc.nombre }}
+        <small>
+          {% if doc.proceso.slug != "stn" %}ver. {{ doc.r_actual }}{% endif %}
+        </small>
+      </h1>
+    </div><!-- ./page-header -->
+    {% if request.user.is_staff %}
+    {% if reportes|length > 0 %}
+    <div class="alert alert-danger" role="alert">
+      El documento tiene <strong>{{ reportes|length }} reportes</strong>. <a href="{% url 'docs:panic_reportes' %}">Ver
+        reportes</a>
+    </div>{% endif %}
+    {% endif %}
+    <div class="alert alert-secondary" role="alert">
+      La impresión de este documento será considerada una <strong>copia no controlada.</strong>
     </div>
   </div>
-  <div class="row">
-    <div class="col">
-      {% if doc.proceso.slug == "stn" %}
-      <div class="well">
-        <h4>Resumen de la opinión técnica</h4>
-        {{doc.revision_actual.cambios | safe }}
-      </div>
-      <hr>
-      {% endif %}
+</div>
+<div class="row">
+  <div class="col">
+    {% if doc.proceso.slug == "stn" %}
+    <div class="well">
+      <h4>Resumen de la opinión técnica</h4>
+      {{doc.revision_actual.cambios | safe }}
     </div>
+    <hr>
+    {% endif %}
   </div>
-  <div class="row" id="documento">
-    <div class="col-md-9" id="mostrarPDF">
-      <div class="row">
+</div>
+<div class="row" id="documento">
+  <div class="col-md-9" id="mostrarPDF">
+    <div class="row">
+      <div class="col">
+        {% if doc.ext == 'pdf' %}
         <div class="col">
-          {% if doc.ext == 'pdf' %}
-            <div class="col">
-              <embed src="{{ doc.revision_actual.archivo.url }}#toolbar=0" type="application/pdf" width="100%" height="600px" />
-            </div>
-          {% elif doc.ext == 'doc' or doc.ext == 'docx' or doc.ext == 'xls' or doc.ext == 'xlsx' or doc.ext == 'ppt' or doc.ext == 'pptx' %}
-            <div class="col">
-              <iframe src="https://docs.google.com/gview?url=https://sgctlaxcala.com.mx{{ doc.revision_actual.archivo.url }}&embedded=true" style="width:100%; height:600px;" frameborder="0"></iframe>
-            </div>
-          {% else %}
-            <p>El formato del archivo no es compatible para la visualización en línea.</p>
-          {% endif %}
+          <embed src="{{ doc.revision_actual.archivo.url }}#toolbar=0" type="application/pdf" width="100%"
+            height="600px" />
         </div>
+        {% elif doc.ext == 'doc' or doc.ext == 'docx' or doc.ext == 'xls' or doc.ext == 'xlsx' or doc.ext == 'ppt' or doc.ext == 'pptx' %}
+        <div class="col">
+          <iframe
+            src="https://docs.google.com/gview?url=https://sgctlaxcala.com.mx{{ doc.revision_actual.archivo.url }}&embedded=true"
+            style="width:100%; height:600px;" frameborder="0"></iframe>
+        </div>
+        {% else %}
+        <p>El formato del archivo no es compatible para la visualización en línea.</p>
+        {% endif %}
       </div>
+    </div>
 
-      {% if doc.proceso.slug != "stn" %}
-        <!-- Cambios actuales -->
-        <div class="row">
-          <div class="col">
-            <div class="card bg-light">
-              <div class="card-header">Cambios en esta versión</div>
-              <div class="card-body">
-                {{doc.revision_actual.cambios | safe }}
-              </div>
-            </div>
+    {% if doc.proceso.slug != "stn" %}
+    <!-- Cambios actuales -->
+    <div class="row">
+      <div class="col">
+        <div class="card bg-light">
+          <div class="card-header">Cambios en esta versión</div>
+          <div class="card-body">
+            {{doc.revision_actual.cambios | safe }}
           </div>
         </div>
-        <!-- ./Cambios actuales -->
-      {% endif %}
+      </div>
+    </div>
+    <!-- ./Cambios actuales -->
+    {% endif %}
 
     <p></p>
     {% if doc.aprobado %}
@@ -200,155 +226,161 @@
       <div class="col">
         <div class="alert alert-danger" role="alert">
           <h5>Documento en revisión</h5>
-            <p>
-              Este documento se revisó y aprobó por el Comité de la Calidad
-              en la entidad. Una vez que sea aprobado por Oficinas Centrales
-              la versión final sustituirá a la presente.
-            </p>
-            <p>
-              Podrá ser utilizado en los procesos del sistema, sin embargo, se
-              recomienda estar atento a las notificaciones de actualización.
-            </p>
-            <p>
-              Cualquier diferencia entre la versión aprobada y la actual será
-              consignada en el área de <em>Historial de actualizaciones</em>.
-            </p>
+          <p>
+            Este documento se revisó y aprobó por el Comité de la Calidad
+            en la entidad. Una vez que sea aprobado por Oficinas Centrales
+            la versión final sustituirá a la presente.
+          </p>
+          <p>
+            Podrá ser utilizado en los procesos del sistema, sin embargo, se
+            recomienda estar atento a las notificaciones de actualización.
+          </p>
+          <p>
+            Cualquier diferencia entre la versión aprobada y la actual será
+            consignada en el área de <em>Historial de actualizaciones</em>.
+          </p>
         </div>
       </div>
     </div>
     {% endif %}
 
-      <div class="row">
-        <div class="col">
-          <h4>Historial de actualizaciones</h4>
+    <div class="row">
+      <div class="col">
+        <h4>Historial de actualizaciones</h4>
 
-          <div class="accordion" id="accordionChanges">
-            {% for r in doc.historial %}
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="true" aria-controls="collapseOne">
-                    Revisión &nbsp; <strong>{{ r.revision }}</strong>
-                  </button>
-                </h2>
-                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionChanges">
-                  <div class="card-body p-3">
-                    {{ r.cambios | safe }}
-                    {% if request.user.is_staff %}
-                    <br />
-                    <a href="/media/{{ r.archivo }}" type="button" class="btn btn-success">
-                      Descargar documento histórico
-                    </a>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div><!-- ./#accordionChanges -->
-        </div>
+        <div class="accordion" id="accordionChanges">
+          {% for r in doc.historial %}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="true" aria-controls="collapseOne">
+                Revisión &nbsp; <strong>{{ r.revision }}</strong>
+              </button>
+            </h2>
+            <div id="collapse{{ forloop.counter }}"
+              class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+              aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionChanges">
+
+<div class="card-body p-3">
+  {{ r.cambios | safe }}
+  {% if request.user.is_staff %}
+  <br />
+  <a href="/media/{{ r.archivo }}" 
+     class="btn btn-success" 
+     download="{{ r.nombre }}"
+     target="_self">
+    Descargar documento histórico
+  </a>
+  {% endif %}
+</div>
+
+            </div>
+          </div>
+          {% endfor %}
+        </div><!-- ./#accordionChanges -->
       </div>
-    </div>
-
-    <!-- [[ SIDEBAR ]] -->
-    <div class="col-md-3" id="sidebar">
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-primary">
-              <i class="fa fa-key"></i> Código
-            </div>
-            <div class="card-body py-2">
-              <p class="py-2">{{ doc.clave|upper }}</p>
-            </div>
-          </div>
-        </div>
-      </div><!-- ./row código -->
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-info">
-              <i class="fa fa-cogs"></i> Proceso
-            </div>
-            <div class="card-body">
-              <span><a href="{% url 'docs:proceso' slug=doc.proceso.slug %}">{{ doc.proceso }}</a></span>
-            </div>
-          </div>
-        </div>
-      </div><!-- ./row proceso -->
-
-      <!-- [[ Documento Obsoleto ]]-->
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-success">
-              <i class="fa fa-exclamation-triangle"></i> Documento obsoleto
-            </div>
-            <div class="card-body">
-              <a
-                type="button"
-                class="btn btn-success btn-lg iframe"
-                href="{% url 'docs:panic' pk=doc.id %}">
-                Notificar documento obsoleto
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- [[ /Documento Obsoleto ]] -->
-
-      {% if doc.proceso.slug == "stn" %}
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-success">
-              <i class="fa fa-calendar"></i> Fecha de la opinión
-            </div>
-            <div class="card-body">
-              <span>{{ doc.revision_actual.f_actualizacion }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% else %}
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-warning">
-              <i class="fa fa-calendar"></i> Revisión
-            </div>
-            <div class="card-body">
-              <span>{{ doc.r_actual }} ({{ doc.revision_actual.f_actualizacion }})</span>
-            </div>
-          </div>
-        </div>
-      </div><!-- ./row revisión -->
-      {% endif %}
-
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white bg-danger">
-              <i class="fa fa-cloud-download"></i> Descargar archivo
-            </div>
-            <div class="card-body">
-              <button id="btn-descarga" class="btn btn-outline-danger">Descargar</button>
-            </div>
-          </div>
-        </div>
-      </div><!-- ./cad descargar -->
-
-      {% if request.user.is_staff %}
-      <div class="row">
-        <div class="col">
-          <div class="card">
-            <div class="card-header text-white-50 bg-success"><i class="fa fa-certificate"></i> Agregar nueva revisión</div>
-            <div class="card-body">
-              <a href="{% url 'docs:rev_add' pk=doc.id %}" id="btn-descarga" class="btn btn-success">Agregar</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
     </div>
   </div>
+
+  <!-- [[ SIDEBAR ]] -->
+  <div class="col-md-3" id="sidebar">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-primary">
+            <i class="fa fa-key"></i> Código
+          </div>
+          <div class="card-body py-2">
+            <p class="py-2">{{ doc.clave|upper }}</p>
+          </div>
+        </div>
+      </div>
+    </div><!-- ./row código -->
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-info">
+            <i class="fa fa-cogs"></i> Proceso
+          </div>
+          <div class="card-body">
+            <span><a href="{% url 'docs:proceso' slug=doc.proceso.slug %}">{{ doc.proceso }}</a></span>
+          </div>
+        </div>
+      </div>
+    </div><!-- ./row proceso -->
+
+    <!-- [[ Documento Obsoleto ]]-->
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-success">
+            <i class="fa fa-exclamation-triangle"></i> Documento obsoleto
+          </div>
+          <div class="card-body">
+            <a type="button" class="btn btn-success btn-lg iframe" href="{% url 'docs:panic' pk=doc.id %}">
+              Notificar documento obsoleto
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [[ /Documento Obsoleto ]] -->
+
+    {% if doc.proceso.slug == "stn" %}
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-success">
+            <i class="fa fa-calendar"></i> Fecha de la opinión
+          </div>
+          <div class="card-body">
+            <span>{{ doc.revision_actual.f_actualizacion }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-warning">
+            <i class="fa fa-calendar"></i> Revisión
+          </div>
+          <div class="card-body">
+            <span>{{ doc.r_actual }}</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- ./row revisión -->
+    {% endif %}
+
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white bg-danger">
+            <i class="fa fa-cloud-download"></i> Descargar archivo
+          </div>
+          <div class="card-body">
+            <button id="btn-descarga" class="btn btn-outline-danger">Descargar</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- ./cad descargar -->
+
+    {% if request.user.is_staff %}
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-header text-white-50 bg-success"><i class="fa fa-certificate"></i> Agregar nueva revisión
+          </div>
+          <div class="card-body">
+            <a href="{% url 'docs:rev_add' pk=doc.id %}" id="btn-descarga" class="btn btn-success">Agregar</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
 {% endblock content %}
