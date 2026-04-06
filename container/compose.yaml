@@ -1,25 +1,25 @@
 # ─────────────────────────────────────────────
-# Cerebro — compose.yaml
+# sherpa — compose.yaml
 # Podman rootless compatible
 # Uso: podman-compose up -d
 # ─────────────────────────────────────────────
 
-name: cerebro
+name: sherpa
 
 services:
 
   db:
     image: postgres:16-alpine
-    container_name: cerebro-db
+    container_name: sherpa-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-cerebro}
-      POSTGRES_USER: ${DB_USER:-cerebro}
+      POSTGRES_DB: ${DB_NAME:-sherpa}
+      POSTGRES_USER: ${DB_USER:-sherpa}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - cerebro-pgdata:/var/lib/postgresql/data
+      - sherpa-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cerebro}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sherpa}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,7 +28,7 @@ services:
     build:
       context: ..
       dockerfile: container/Containerfile
-    container_name: cerebro-web
+    container_name: sherpa-web
     restart: unless-stopped
     depends_on:
       db:
@@ -37,16 +37,16 @@ services:
       - .env.container
     volumes:
       # Media persistente (PDFs de revisiones)
-      - cerebro-media:/app/media
+      - sherpa-media:/app/media
       # Static (opcional si nginx sirve desde aquí)
-      - cerebro-static:/app/staticfiles
+      - sherpa-static:/app/staticfiles
     ports:
       - "127.0.0.1:8000:8000"
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              gunicorn core.wsgi:application
-             --name cerebro
+             --name sherpa
              --workers 3
              --bind 0.0.0.0:8000
              --access-logfile -
@@ -54,6 +54,6 @@ services:
              --log-level info"
 
 volumes:
-  cerebro-pgdata:
-  cerebro-media:
-  cerebro-static:
+  sherpa-pgdata:
+  sherpa-media:
+  sherpa-static:

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# Cerebro — Containerfile
+# sherpa — Containerfile
 # Podman rootless, RHEL 10.1
 # ─────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Usuario no-root dentro del contenedor
-RUN useradd --create-home --shell /bin/bash cerebro
+RUN useradd --create-home --shell /bin/bash sherpa
 WORKDIR /app
 
 # Instalar dependencias primero (cache de capas)
@@ -36,16 +36,16 @@ COPY src/ .
 
 # Directorios de runtime
 RUN mkdir -p /app/staticfiles /app/media /app/run \
-    && chown -R cerebro:cerebro /app
+    && chown -R sherpa:sherpa /app
 
-USER cerebro
+USER sherpa
 
 EXPOSE 8000
 
 # Collectstatic en build, luego arrancar gunicorn
 CMD ["gunicorn", \
      "core.wsgi:application", \
-     "--name", "cerebro", \
+     "--name", "sherpa", \
      "--workers", "3", \
      "--bind", "0.0.0.0:8000", \
      "--access-logfile", "-", \
