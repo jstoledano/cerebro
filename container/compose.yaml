@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────
+# Cerebro — compose.yaml
+# Podman rootless compatible
+# Uso: podman-compose up -d
+# ─────────────────────────────────────────────
+
+name: cerebro
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: cerebro-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cerebro}
+      POSTGRES_USER: ${DB_USER:-cerebro}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - cerebro-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cerebro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ..
+      dockerfile: container/Containerfile
+    container_name: cerebro-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.container
+    volumes:
+      # Media persistente (PDFs de revisiones)
+      - cerebro-media:/app/media
+      # Static (opcional si nginx sirve desde aquí)
+      - cerebro-static:/app/staticfiles
+    ports:
+      - "127.0.0.1:8000:8000"
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn core.wsgi:application
+             --name cerebro
+             --workers 3
+             --bind 0.0.0.0:8000
+             --access-logfile -
+             --error-logfile -
+             --log-level info"
+
+volumes:
+  cerebro-pgdata:
+  cerebro-media:
+  cerebro-static:
