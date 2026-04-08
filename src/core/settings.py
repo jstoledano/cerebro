@@ -1,18 +1,22 @@
 """Configuración del proyecto cerebro."""
 
 import sys
-from unipath import Path
 import environ
+from pathlib import Path  # Sustituye a unipath
 from django.contrib.messages import constants as messages
 
 VERSION = "2.0.0"
 
-BASE_DIR = Path(__file__).ancestor(2)
-APPS_DIR = BASE_DIR.child("apps")
+# BASE_DIR apunta a la raíz del proyecto (2 niveles arriba de este archivo)
+BASE_DIR = Path(__file__).resolve().parent.parent
+APPS_DIR = BASE_DIR / "apps"  # Sustituye a BASE_DIR.child("apps")
+
 env = environ.Env(
     DEBUG=(bool, False),
 )
-environ.Env.read_env(BASE_DIR.child(".env"))
+
+# Leer el archivo .env desde la raíz
+environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
 
@@ -37,14 +41,14 @@ THIRD_PARTY_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "crispy_tailwind",
-    "django_extensions",
+    # "django_extensions" ELIMINADO
     "watson",
     "simple_history",
     "guardian",
     "tinymce",
-    "captcha",
+    # "captcha",
     "compressor",
-    "rest_framework",  # added so DRF templates (browsable API) are found
+    "rest_framework",
 ]
 LOCAL_APPS = [
     "core",
@@ -75,9 +79,9 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            APPS_DIR.child("templates"),
-            APPS_DIR.child("kpi", "templates"),
-            "templates",
+            APPS_DIR / "templates",          # Sustituye a APPS_DIR.child("templates")
+            APPS_DIR / "kpi" / "templates",  # Sustituye a APPS_DIR.child("kpi", "templates")
+            BASE_DIR / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -103,30 +107,17 @@ if "test" in sys.argv or "test_coverage" in sys.argv:
 if DEBUG:
     DJANGO_ALLOW_ASYNC_UNSAFE = env("DJANGO_ALLOW_ASYNC_UNSAFE", default=True)
     AUTH_PASSWORD_VALIDATORS = [
-        {
-            "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-        },
-        {
-            "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-        },
+        {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+        {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ]
     SITE_URL = "http://127.0.0.1:8000"
 else:
     AUTH_PASSWORD_VALIDATORS = [
-        {
-            "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-        },
-        {
-            "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        },
-        {
-            "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-        },
-        {
-            "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-        },
+        {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+        {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+        {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+        {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ]
-
 
 LANGUAGE_CODE = env("LOCALE", default="es-mx")
 TIME_ZONE = "America/Mexico_City"
@@ -141,12 +132,11 @@ LOGOUT_REDIRECT_URL = "index"
 
 STATIC_URL = "assets/"
 STATICFILES_DIRS = [
-    APPS_DIR.child("static"),
+    str(APPS_DIR / "static"), # str() asegura compatibilidad con algunas versiones de Django
 ]
-STATIC_ROOT = BASE_DIR.child("staticfiles")
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-
-MEDIA_ROOT = APPS_DIR.child("media")
+MEDIA_ROOT = APPS_DIR / "media"
 MEDIA_URL = "/media/"
 FILE_UPLOAD_PERMISSIONS = 0o644
 
@@ -159,9 +149,6 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
-    # Forzar solo JSON renderer para evitar la dependencia de la plantilla
-    # `rest_framework/api.html` (Browsable API). Si prefieres la browsable API,
-    # instala djangorestframework en el entorno (pip install djangorestframework)
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
 }
 
@@ -173,11 +160,7 @@ MESSAGE_TAGS = {
     messages.ERROR: "alert-danger",
 }
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-    }
-}
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 
 LOGGING = {
     "disable_existing_loggers": False,
@@ -206,21 +189,13 @@ LOGGING = {
 
 INTERNAL_IPS = "127.0.0.1"
 
-NOTEBOOK_ARGUMENTS = [
-    # exposes IP and port
-    "--ip=localhost",
-    "--port=8888",
-    # disables the browser
-    "--no-browser",
-]
+# NOTEBOOK_ARGUMENTS ELIMINADO (Ya no usas Jupyter)
 
-# CMI-1 Configuración de Guardian
 AUTHENTICATION_BACKENDS = (
-    "django.contrib.auth.backends.ModelBackend",  # this is default
+    "django.contrib.auth.backends.ModelBackend",
     "guardian.backends.ObjectPermissionBackend",
 )
 
-# Caso no. 35, Backend para correo (SMTP)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = env("EMAIL_HOST", default="smtp.mailgun.org")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
@@ -234,15 +209,13 @@ EMAIL_TIMEOUT = 15
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
-TINYMCE_DEFAULT_CONFIG = {
-    "height": 300,
-}
-
+TINYMCE_DEFAULT_CONFIG = {"height": 300}
 X_FRAME_OPTIONS = "SAMEORIGIN"
-RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY")
-RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY")
 
-COMPRESS_ROOT = APPS_DIR.child("static")
+RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY", default="")
+RECAPTCHA_PRIVATE_KEY = env("RECAPTCHA_PRIVATE_KEY", default="")
+
+COMPRESS_ROOT = APPS_DIR / "static"
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",

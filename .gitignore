@@ -1,5 +1,6 @@
 # C7erebro
 .env
+container/.env.container
 .env.json
 .idea/
 media/
@@ -118,3 +119,4 @@ ENV/
 
 # mypy
 .mypy_cache/
+container/.env.container
