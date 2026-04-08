@@ -7,6 +7,7 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: sherpa-db
+    network_mode: "slirp4netns"
     restart: unless-stopped
     environment:
       # Inyección directa para asegurar que Postgres siempre arranque
@@ -26,6 +27,7 @@ services:
       context: ..
       dockerfile: Containerfile
     container_name: sherpa-web
+    network_mode: "slirp4netns"
     restart: unless-stopped
     depends_on:
       db:
