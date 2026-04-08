@@ -1,33 +1,30 @@
 # ─────────────────────────────────────────────
-# sherpa — compose.yaml
-# Podman rootless compatible
-# Uso: podman-compose up -d
+# cerebro — compose.yaml optimizado
 # ─────────────────────────────────────────────
-
-name: sherpa
+name: cerebro
 
 services:
-
   db:
     image: postgres:16-alpine
     container_name: sherpa-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-sherpa}
-      POSTGRES_USER: ${DB_USER:-sherpa}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # Inyección directa para asegurar que Postgres siempre arranque
+      - POSTGRES_DB=sherpa
+      - POSTGRES_USER=sherpa
+      - POSTGRES_PASSWORD=el-charro-negro
     volumes:
       - sherpa-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sherpa}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U sherpa"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
   web:
     build:
       context: ..
-      dockerfile: container/Containerfile
+      dockerfile: Containerfile
     container_name: sherpa-web
     restart: unless-stopped
     depends_on:
@@ -36,24 +33,15 @@ services:
     env_file:
       - .env.container
     volumes:
-      # Media persistente (PDFs de revisiones)
-      - sherpa-media:/app/media
-      # Static (opcional si nginx sirve desde aquí)
-      - sherpa-static:/app/staticfiles
+      # Sincronización en tiempo real del código para desarrollo
+      - ../src:/app
     ports:
       - "127.0.0.1:8000:8000"
+    # El comando realiza las tareas de Django antes de iniciar Gunicorn
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn core.wsgi:application
-             --name sherpa
-             --workers 3
-             --bind 0.0.0.0:8000
-             --access-logfile -
-             --error-logfile -
-             --log-level info"
+             gunicorn core.wsgi:application --name sherpa --workers 3 --bind 0.0.0.0:8000"
 
 volumes:
   sherpa-pgdata:
-  sherpa-media:
-  sherpa-static:

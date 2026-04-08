@@ -43,11 +43,5 @@ USER sherpa
 EXPOSE 8000
 
 # Collectstatic en build, luego arrancar gunicorn
-CMD ["gunicorn", \
-     "core.wsgi:application", \
-     "--name", "sherpa", \
-     "--workers", "3", \
-     "--bind", "0.0.0.0:8000", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+# Containerfile - Línea corregida
+CMD ["gunicorn", "core.wsgi:application", "--name", "sherpa", "--workers", "3", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]
