@@ -34,7 +34,7 @@ fi
 
 # 4. Ejecución del Compose
 echo " [*] Levantando servicios..."
-if ! podman-compose -f "$COMPOSE_FILE" up -d; then
+if ! CONTAINER_NETWORK_BACKEND=slirp4netns podman-compose -f "$COMPOSE_FILE" up -d; then
     echo " [!] Error crítico: No se pudieron levantar los servicios."
     exit 1
 fi

@@ -20,6 +20,7 @@ src/staticfiles/
 *#*#
 manifest.js
 data/
+lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
