@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# cerebro — compose.yaml optimizado
+# cerebro — compose.yaml
 # ─────────────────────────────────────────────
 name: cerebro
 
@@ -7,10 +7,9 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: sherpa-db
-    network_mode: "slirp4netns"
+    network_mode: "host"
     restart: unless-stopped
     environment:
-      # Inyección directa para asegurar que Postgres siempre arranque
       - POSTGRES_DB=sherpa
       - POSTGRES_USER=sherpa
       - POSTGRES_PASSWORD=el-charro-negro
@@ -27,7 +26,7 @@ services:
       context: ..
       dockerfile: Containerfile
     container_name: sherpa-web
-    network_mode: "slirp4netns"
+    network_mode: "host"
     restart: unless-stopped
     depends_on:
       db:
@@ -37,9 +36,11 @@ services:
     volumes:
       # Sincronización en tiempo real del código para desarrollo
       - ../src:/app
+      # Usar volumen Docker para staticfiles (sin problemas de permisos en WSL)
+      - sherpa-staticfiles:/app/staticfiles
+      - sherpa-media:/app/media
     ports:
       - "127.0.0.1:8000:8000"
-    # El comando realiza las tareas de Django antes de iniciar Gunicorn
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
@@ -47,3 +48,5 @@ services:
 
 volumes:
   sherpa-pgdata:
+  sherpa-staticfiles:
+  sherpa-media:
