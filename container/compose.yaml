@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# cerebro — compose.yaml optimizado
+# cerebro — compose.yaml (Modo Host para Estabilidad)
 # ─────────────────────────────────────────────
 name: cerebro
 
@@ -7,10 +7,9 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: sherpa-db
-    network_mode: "slirp4netns"
+    network_mode: "host"  # <--- Esto elimina la necesidad de DNS interno
     restart: unless-stopped
     environment:
-      # Inyección directa para asegurar que Postgres siempre arranque
       - POSTGRES_DB=sherpa
       - POSTGRES_USER=sherpa
       - POSTGRES_PASSWORD=el-charro-negro
@@ -27,7 +26,7 @@ services:
       context: ..
       dockerfile: Containerfile
     container_name: sherpa-web
-    network_mode: "slirp4netns"
+    network_mode: "host"  # <--- Ambos comparten la red de AlmaLinux
     restart: unless-stopped
     depends_on:
       db:
@@ -35,11 +34,7 @@ services:
     env_file:
       - .env.container
     volumes:
-      # Sincronización en tiempo real del código para desarrollo
       - ../src:/app
-    ports:
-      - "127.0.0.1:8000:8000"
-    # El comando realiza las tareas de Django antes de iniciar Gunicorn
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
