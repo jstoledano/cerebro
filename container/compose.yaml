@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# cerebro — compose.yaml (Modo Host para Estabilidad)
+# cerebro — compose.yaml
 # ─────────────────────────────────────────────
 name: cerebro
 
@@ -7,7 +7,7 @@ services:
   db:
     image: docker.io/library/postgres:16-alpine
     container_name: sherpa-db
-    network_mode: "host"  # <--- Esto elimina la necesidad de DNS interno
+    network_mode: "host"
     restart: unless-stopped
     environment:
       - POSTGRES_DB=sherpa
@@ -26,7 +26,7 @@ services:
       context: ..
       dockerfile: Containerfile
     container_name: sherpa-web
-    network_mode: "host"  # <--- Ambos comparten la red de AlmaLinux
+    network_mode: "host"
     restart: unless-stopped
     depends_on:
       db:
@@ -34,11 +34,18 @@ services:
     env_file:
       - .env.container
     volumes:
+      # Sincronización en tiempo real del código para desarrollo
       - ../src:/app
+      # Usar volumen Docker para staticfiles (sin problemas de permisos en WSL)
+      - sherpa-staticfiles:/app/staticfiles
+      - sherpa-media:/app/media
+    ports:
+      - "127.0.0.1:8000:8000"
     command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
+      sh -c "python manage.py collectstatic --noinput &&
              gunicorn core.wsgi:application --name sherpa --workers 3 --bind 0.0.0.0:8000"
 
 volumes:
   sherpa-pgdata:
+  sherpa-staticfiles:
+  sherpa-media:
