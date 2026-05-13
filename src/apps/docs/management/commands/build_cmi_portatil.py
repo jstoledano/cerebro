@@ -37,10 +37,10 @@ class Command(BaseCommand):
 
         # 1.1 Copiar Assets (GIFs y Librerías Static)
         # Asumiendo estructura src/apps/docs/static/docs/images/
-        static_docs_dir = settings.APPS_DIR.child("docs", "static", "docs")
-        source_img_dir = os.path.join(static_docs_dir, "images")
-        source_css_dir = os.path.join(static_docs_dir, "css")
-        source_js_dir = os.path.join(static_docs_dir, "js")
+        static_docs_dir = settings.APPS_DIR / "docs" / "static" / "docs"
+        source_img_dir = static_docs_dir / "images"
+        source_css_dir = static_docs_dir / "css"
+        source_js_dir = static_docs_dir / "js"
 
         # Copiar GIFs y Logo
 
