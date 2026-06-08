@@ -1,0 +1,11 @@
+<nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
+  <a class="me-3 py-2 text-dark text-decoration-none" href="{% url 'vnm' %}"><i class="fa fa-map-signs"></i> VNM 2024</a>
+  <a class="me-3 py-2 text-dark text-decoration-none" href="#"><i class="fa fa-wrench"></i> Herramientas</a>   
+  <a class="me-3 py-2 text-dark text-decoration-none" href="{% url 'bgd' %}"><i class="fa fa-university" aria-hidden="true"></i> Administración</a>
+  <a class="me-3 py-2 text-dark text-decoration-none" href="#"><i class="fa fa-cloud-download" aria-hidden="true"></i> Descarga</a>
+  {% if not user.is_authenticated  %}
+  <a class="py-2 text-dark text-decoration-none" href="{% url 'login' %}"><i class="fa fa-key-modern " aria-hidden="true"></i> Ingresar</a>
+  {% else %}
+  <a class="py-2 text-dark text-decoration-none" href="{% url 'logout' %}?next=/"><i class="fa fa-unlock-alt " aria-hidden="true"></i> Salir</a>
+  {% endif %}
+</nav>

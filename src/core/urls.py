@@ -14,7 +14,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("tinymce/", include("tinymce.urls")),
     path("docs/", include("apps.docs.urls")),
-    path("carto/", include("apps.carto.urls")),
+    path("cartografia/", include("apps.pusinex.urls")),
     path("ideas/", include("apps.ideas.urls")),
     path("pas/", include("apps.pas.urls")),
     path("vozmac/", include("apps.vozmac.urls")),

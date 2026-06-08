@@ -1,0 +1,193 @@
+{% extends 'cerebro/base.html' %}
+{% load static %}
+
+{% block title %}Cartografía{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+  .etiqueta-distrito {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #000000;
+      text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      // Se desactiva doubleClickZoom para evitar conflictos con la redirección
+      var map = L.map('map', {
+          doubleClickZoom: false
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 20,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(map);
+
+      var distritosData = {{ distritos_geojson|safe }};
+
+      var capaDistritos = L.geoJSON(distritosData, {
+          style: {
+              color: "#000000",
+              weight: 3,
+              fillOpacity: 0.15
+          },
+          onEachFeature: function (feature, layer) {
+              var numeroDistrito = String(feature.id).padStart(2, '0');
+
+              layer.bindPopup("Distrito: " + numeroDistrito);
+
+              layer.bindTooltip(numeroDistrito, {
+                  permanent: true,
+                  direction: "center",
+                  className: "etiqueta-distrito"
+              });
+
+              // 1. Redirección al hacer doble clic usando la etiqueta de URL de Django
+              layer.on('dblclick', function() {
+                  var url = "{% url 'pusinex:distrito' 0 %}".replace('0', feature.id);
+                  window.location.href = url;
+              });
+          }
+      }).addTo(map);
+
+      map.fitBounds(capaDistritos.getBounds());
+
+      // 2. Control personalizado para centrar el mapa
+      var controlCentrar = L.control({ position: 'topleft' });
+
+      controlCentrar.onAdd = function() {
+          var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+          var button = L.DomUtil.create('a', '', container);
+
+          button.innerHTML = '🎯'; // Ícono del botón
+          button.href = '#';
+          button.title = 'Volver a centrar';
+          button.style.display = 'flex';
+          button.style.alignItems = 'center';
+          button.style.justifyContent = 'center';
+          button.style.textDecoration = 'none';
+
+          // Evento del botón
+          L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.fitBounds(capaDistritos.getBounds());
+          });
+
+          return container;
+      };
+
+      controlCentrar.addTo(map);
+  });
+</script>
+{% endblock scripts %}
+
+{% block content %}
+  <section class="space-y-10">
+
+    <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-4">
+          <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-base-content">Cartografía</h1>
+            <p class="mt-1 max-w-2xl text-sm text-base-content/70">
+              Consulta las estadísticas y planos por Distrito, Distrito Local, Municipio y Sección Electoral
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-col items-stretch gap-3 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <span class="badge badge-outline badge-primary badge-lg">BGD</span>
+            {% now "d/m/Y H:i" as current_timestamp %}
+            <span class="text-sm text-base-content/60">Última actualización · 05/jun/2026</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+  <div class="lg:col-span-8">
+    <div id="map" class="w-full h-[500px] rounded-box border border-base-300 relative z-[1]"></div>
+  </div>
+
+  <div class="lg:col-span-4 flex flex-col gap-6 h-[500px]">
+
+  <div class="card bg-base-100 shadow-md border border-base-200 h-[300px] flex-none">
+    <div class="card-body p-4 flex flex-col overflow-hidden">
+      <h2 class="card-title flex-none">Distritos</h2>
+
+      <ul class="list bg-base-100 rounded-box shadow-md flex-1 flex flex-col overflow-y-auto">
+        <li class="p-4 pb-2 text-xs opacity-60 tracking-wide flex-none">Listado de distritos</li>
+
+        {% for distrito in distritos %}
+        <li class="list-row w-full flex items-center gap-3 flex-none">
+
+          <div class="shrink-0">
+            <div class="size-10 rounded-box bg-base-200 text-base-content flex items-center justify-center font-bold text-lg">
+              {{ distrito.distrito|stringformat:"02d" }}
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold truncate">Distrito {{ distrito.distrito|stringformat:"02d" }}</div>
+            <div class="text-xs uppercase font-semibold opacity-60 truncate">{{ distrito.cabecera|default:"Cabecera no definida" }}</div>
+          </div>
+
+          <button class="btn btn-square btn-ghost shrink-0" title="Ir al distrito" onclick="window.location.href='{% url 'pusinex:distrito' distrito.pk %}'">
+            <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+
+        </li>
+        {% endfor %}
+
+      </ul>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow-md border border-base-200 flex-1">
+    <div class="card-body p-4 justify-center">
+      <h2 class="card-title text-lg">¿Buscas un PUSINEX?</h2>
+
+      <form onsubmit="event.preventDefault(); window.location.href='{% url 'pusinex:seccion' 0 %}'.replace('0', document.getElementById('input-seccion').value);">
+        <div class="form-control mt-4">
+          <input
+            id="input-seccion"
+            type="number"
+            placeholder="Escribe el número de sección"
+            class="input input-bordered w-full"
+            required
+            min="1"
+          />
+        </div>
+        <label class="label">
+          <span class="label-text-alt opacity-70">Presiona Enter para buscar</span>
+        </label>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+  </section>
+{% endblock content %}

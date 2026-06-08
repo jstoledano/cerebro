@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block hero %}
+  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+    <p class="fs-4 text-muted">Municipio</p>
+    <h1 class="display-4 fw-normal">{{ municipio.municipio|stringformat:"03d" }} {{ municipio.nombre }}</h1>
+  </div>
+{% endblock hero %}
+
+{% block site_title %}Municipio: {{ municipio.nombre }}{% endblock %}
+
+{% block content %}
+  <div class="row text-right">
+    <div class="col text-right">
+      <a class="btn btn-primary text-right" href="{% url 'create' %}">
+        <i class="fa fa-plus-square" aria-hidden="true"></i>
+        Agregar PUSINEX</a>
+    </div>
+  </div>
+
+  <table class="table table-striped table-hover">
+    <thead>
+    <tr>
+      <th scope="col">Distrito</th>
+      <th scope="col">Municipio</th>
+      <th scope="col">Sección</th>
+      <th scope="col">Fecha</th>
+      <th scope="col">Hojas</th>
+      <th scope="col">Archivo</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for seccion in secciones %}
+      <tr>
+        <td>{{ seccion.distrito.distrito|stringformat:"02d" }}</td>
+        <td>{{ seccion.municipio }}</td>
+        <td>{{ seccion.seccion|stringformat:"04d" }}</td>
+        {% if seccion.tipo < 4 %}
+        <td>{{ seccion.pusinex_set.latest.f_act }}</td>
+        <td>{{ seccion.pusinex_set.latest.hojas }}</td>
+        <td>{% if seccion.pusinex_set.latest.archivo.url  %}
+          <a href="{{ seccion.pusinex_set.latest.archivo.url }}">Descargar</a>
+          {% endif %}
+        </td>
+        {% else %}
+          <td colspan="3">La sección es Rural. <strong>No hay PUSINEX</strong></td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+{% endblock content %}

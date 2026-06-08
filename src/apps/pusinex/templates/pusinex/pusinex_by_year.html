@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block hero %}
+  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+    <h1 class="display-4 fw-normal"><i class="fa fa-map-signs"></i> Control de PUSINEX</h1>
+    <p class="fs-2 text-muted">PUSINEX actualizados en el año {{ year }}</p>
+  </div>
+{% endblock hero %}
+
+{% block react %}
+    <!-- Se incluye htmx desde la CDN para hacer la tabla reactiva -->
+    <script src="https://unpkg.com/htmx.org/dist/htmx.js"></script>
+{% endblock react %}
+
+{% block site_title %}PUSINEX por año{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block hero %}
+  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+    <p class="fs-4 text-muted">Localidad</p>
+    <h1 class="display-4 fw-normal">{{ localidad.localidad|stringformat:"04d" }} {{ localidad.nombre }}</h1>
+    <p class="fs-5 text-muted">Municipio de
+      <a href="{% url 'municipio' localidad.municipio.id %}">
+        {{ localidad.municipio.municipio|stringformat:"03d" }} {{ localidad.municipio.nombre }}
+      </a>
+    </p>
+  </div>
+{% endblock hero %}
+
+{% block site_title %}PUSINEX en {{ localidad.nombre }}{% endblock %}
+
+{% block content %}
+  <div class="row text-right">
+    <div class="col text-right">
+      <a class="btn btn-primary text-right" href="{% url 'create' %}">
+        <i class="fa fa-plus-square" aria-hidden="true"></i>
+        Agregar PUSINEX</a>
+    </div>
+  </div>
+
+  <table class="table table-striped table-hover">
+  <thead>
+      <tr>
+        <th scope="col">Distrito</th>
+        <th scope="col">Sección</th>
+        <th scope="col">Fecha</th>
+        <th scope="col">Hojas</th>
+        <th scope="col">Archivo</th>
+      </tr>
+  </thead>
+  <tbody>
+    {% for pusinex in localidad.pusinex_set.all %}
+      <tr>
+        <td>{{ pusinex.seccion.distrito.distrito|stringformat:"02d" }}</td>
+        <td>{{ pusinex.seccion.seccion|stringformat:"04d" }}</td>
+        <td>{{ pusinex.revision_set.latest.f_act }}</td>
+        <td>{{ pusinex.revision_set.latest.hojas }}</td>
+        <td><a href="{{ pusinex.revision_set.last.archivo.url }}">Descargar</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+  </table>
+
+{% endblock content %}

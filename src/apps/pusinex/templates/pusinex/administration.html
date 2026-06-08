@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block hero %}
+  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+    <h1 class="display-4 fw-normal">Control de PUSINEX</h1>
+    <p class="fs-5 text-muted">
+      Administración de PUSINEX y Base Geográfica
+    </p>
+  </div>
+{% endblock hero %}
+
+{% block site_title %}Gestión del Sitio{% endblock %}
+
+{% block content %}
+<div class="row"><!-- botones de administación -->
+
+  <div class="card col-md-5 mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Subir PUSINEX</h5>
+      <p class="card-text">
+        PUSINEX creados o actualizados</p>
+      <a href="{% url 'create' %}" class="card-link btn btn-primary">Subir</a>
+    </div>
+  </div>
+
+  <div class="card col-md-5 mb-3 mx-2">
+    <div class="card-body">
+      <h5 class="card-title">Gestión de usuarios</h5>
+      <p class="card-text">
+        ABC de usuarios
+      </p>
+      <a href="#" class="card-link btn btn-primary">Usuarios</a>
+    </div>
+  </div>
+
+  <div class="card col-md-5 mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Gestión de BGD</h5>
+      <p class="card-text">
+        ABC de secciones y localidad
+      </p>
+      <a href="#" class="card-link btn btn-primary">BGD</a>
+    </div>
+  </div>
+
+</div> <!-- ./botones de administación -->
+
+{% endblock content %}
