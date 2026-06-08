@@ -1,11 +1,86 @@
 {% extends 'cerebro/base.html' %}
 {% load static %}
 
-{% block title %}Expendiente Distrito {{ distrito.distrito|stringformat:"02d" }}- Cartografía{% endblock %}
+{% block title %}Expediente Distrito {{ distrito.distrito|stringformat:"02d" }} - Cartografía{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock head %}
 
 {% block content %}
-  <section class="space-y-10">
+<section class="space-y-10">
 
-  </section>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-8">
+      <div id="map" class="w-full h-[600px] rounded-box border border-base-300 relative z-[1]"></div>
+    </div>
+
+    <div class="lg:col-span-4">
+      <div class="card bg-base-100 shadow-md border border-base-200 h-full">
+        <div class="card-body">
+          <h2 class="card-title">Marcador</h2>
+          <p class="text-sm opacity-70">
+            Distrito Local {{ distrito.distrito|stringformat:"02d" }}<br>
+            Cabecera: {{ distrito.cabecera }}
+          </p>
+          </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
 {% endblock content %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      var map = L.map('map');
+
+      // Capa base clara
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 20,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(map);
+
+      // Datos inyectados desde la vista
+      var distritoData = {{ distrito_geojson|safe }};
+      var municipiosData = {{ municipios_geojson|safe }};
+
+      // 1. Dibujar fragmentos municipales (Relleno de color, bordes finos)
+      L.geoJSON(municipiosData, {
+          style: function(feature) {
+              return {
+                  color: "#3b82f6", // Borde azul claro
+                  weight: 1,
+                  fillColor: "#60a5fa", // Relleno azul
+                  fillOpacity: 0.3
+              };
+          },
+          onEachFeature: function (feature, layer) {
+              layer.bindTooltip(feature.properties.nombre, {
+                  permanent: false,
+                  direction: "center",
+                  className: "font-semibold"
+              });
+          }
+      }).addTo(map);
+
+      // 2. Dibujar contorno del Distrito (Sin relleno, borde grueso negro)
+      // Se añade al final para que la línea quede por encima de los municipios
+      var capaDistrito = L.geoJSON(distritoData, {
+          style: {
+              color: "#000000",
+              weight: 4,
+              fillOpacity: 0 // Totalmente transparente por dentro
+          }
+      }).addTo(map);
+
+      // Ajustar la cámara al contorno del distrito
+      map.fitBounds(capaDistrito.getBounds());
+  });
+</script>
+{% endblock scripts %}

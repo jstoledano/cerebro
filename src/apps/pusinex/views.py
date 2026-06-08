@@ -1,9 +1,11 @@
 import os
+import json
 import zipfile
 from pathlib import Path
 
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.gis.db.models import Union
 from django.http import FileResponse
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -48,7 +50,48 @@ class PusinexDetail(DetailView):
 
 class DistritoDetail(DetailView):
     model = Distrito
-    context_object_name = 'distrito'
+    context_object_name = "distrito"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # 1. Capa base: El contorno del Distrito
+        context["distrito_geojson"] = serialize(
+            "geojson",
+            [self.object],
+            geometry_field="geom",
+            fields=("distrito", "cabecera"),
+        )
+
+        # 2. Capa interna: Fusión de Secciones agrupadas por Municipio
+        # Filtramos las secciones activas de este distrito y unimos sus geometrías
+        secciones_por_municipio = (
+            Seccion.objects.filter(distrito=self.object, activa=True)
+            .values("municipio__municipio", "municipio__nombre")
+            .annotate(geom_unida=Union("geom"))
+        )
+
+        features = []
+        for item in secciones_por_municipio:
+            # geom_unida es un objeto GEOSGeometry, geojson devuelve un string que parseamos
+            geometria = json.loads(item["geom_unida"].geojson)
+
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": item["municipio__municipio"],
+                        "nombre": item["municipio__nombre"],
+                    },
+                    "geometry": geometria,
+                }
+            )
+
+        context["municipios_geojson"] = json.dumps(
+            {"type": "FeatureCollection", "features": features}
+        )
+
+        return context
 
 
 class MunicipioDetail(ListView):
