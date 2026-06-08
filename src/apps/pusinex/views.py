@@ -6,6 +6,7 @@ from pathlib import Path
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.gis.db.models import Union
+from django.contrib.gis.geos import MultiPolygon
 from django.http import FileResponse
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -55,7 +56,11 @@ class DistritoDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # 1. Capa base: El contorno del Distrito
+        if self.object.geom:
+            distrito_geom = self.object.geom.clone().buffer(0)
+        else:
+            distrito_geom = None
+
         context["distrito_geojson"] = serialize(
             "geojson",
             [self.object],
@@ -63,36 +68,50 @@ class DistritoDetail(DetailView):
             fields=("distrito", "cabecera"),
         )
 
-        # 2. Capa interna: Fusión de Secciones agrupadas por Municipio
-        # Filtramos las secciones activas de este distrito y unimos sus geometrías
-        secciones_por_municipio = (
-            Seccion.objects.filter(distrito=self.object, activa=True)
-            .values("municipio__municipio", "municipio__nombre")
-            .annotate(geom_unida=Union("geom"))
-        )
+        if not distrito_geom:
+            context["municipios_geojson"] = json.dumps({"type": "FeatureCollection", "features": []})
+            return context
+
+        municipios = Municipio.objects.filter(seccion__distrito=self.object).distinct()
 
         features = []
-        for item in secciones_por_municipio:
-            # geom_unida es un objeto GEOSGeometry, geojson devuelve un string que parseamos
-            geometria = json.loads(item["geom_unida"].geojson)
+        for mun in municipios:
+            if not mun.geom:
+                continue
 
-            features.append(
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "id": item["municipio__municipio"],
-                        "nombre": item["municipio__nombre"],
-                    },
-                    "geometry": geometria,
-                }
-            )
+            mun_geom = mun.geom.buffer(0)
+            fragmento = mun_geom.intersection(distrito_geom)
+
+            if fragmento and not fragmento.empty:
+                if fragmento.geom_type == "GeometryCollection":
+                    poly_list = []
+                    for g in fragmento:
+                        if g.geom_type == "Polygon":
+                            poly_list.append(g)
+                        elif g.geom_type == "MultiPolygon":
+                            poly_list.extend(g)
+
+                    if not poly_list:
+                        continue
+                    fragmento = MultiPolygon(*poly_list, srid=distrito_geom.srid)
+                elif fragmento.geom_type == "Polygon":
+                    fragmento = MultiPolygon(fragmento, srid=distrito_geom.srid)
+
+                if fragmento.geom_type in ("Polygon", "MultiPolygon"):
+                    fragmento.transform(4326)
+                    features.append(
+                        {
+                            "type": "Feature",
+                            "properties": {"id": mun.pk, "nombre": mun.nombre},
+                            "geometry": json.loads(fragmento.geojson),
+                        }
+                    )
 
         context["municipios_geojson"] = json.dumps(
             {"type": "FeatureCollection", "features": features}
         )
 
         return context
-
 
 class MunicipioDetail(ListView):
     context_object_name = 'secciones'

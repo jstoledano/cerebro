@@ -17,14 +17,14 @@
     </div>
 
     <div class="lg:col-span-4">
-      <div class="card bg-base-100 shadow-md border border-base-200 h-full">
+      <div class="card bg-base-100 shadow-md border border-base-200 h-[600px]">
         <div class="card-body">
           <h2 class="card-title">Marcador</h2>
           <p class="text-sm opacity-70">
             Distrito Local {{ distrito.distrito|stringformat:"02d" }}<br>
             Cabecera: {{ distrito.cabecera }}
           </p>
-          </div>
+        </div>
       </div>
     </div>
 
@@ -38,27 +38,24 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-      var map = L.map('map');
+      var map = L.map('map', {
+          doubleClickZoom: false
+      });
 
-      // Capa base clara
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
           maxZoom: 20,
           attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(map);
 
-      // Datos inyectados desde la vista
       var distritoData = {{ distrito_geojson|safe }};
       var municipiosData = {{ municipios_geojson|safe }};
 
-      // 1. Dibujar fragmentos municipales (Relleno de color, bordes finos)
-      L.geoJSON(municipiosData, {
-          style: function(feature) {
-              return {
-                  color: "#3b82f6", // Borde azul claro
-                  weight: 1,
-                  fillColor: "#60a5fa", // Relleno azul
-                  fillOpacity: 0.3
-              };
+      var capaMunicipios = L.geoJSON(municipiosData, {
+          style: {
+              color: "#00008b",
+              weight: 2,
+              fillColor: "#60a5fa",
+              fillOpacity: 0.3
           },
           onEachFeature: function (feature, layer) {
               layer.bindTooltip(feature.properties.nombre, {
@@ -66,21 +63,59 @@
                   direction: "center",
                   className: "font-semibold"
               });
-          }
-      }).addTo(map);
 
-      // 2. Dibujar contorno del Distrito (Sin relleno, borde grueso negro)
-      // Se añade al final para que la línea quede por encima de los municipios
+              // Redirección de navegación Distrito -> Municipio
+              layer.on('dblclick', function() {
+                  var url = "{% url 'pusinex:municipio' 0 %}".replace('0', feature.properties.id);
+                  window.location.href = url;
+              });
+          }
+      });
+
       var capaDistrito = L.geoJSON(distritoData, {
           style: {
               color: "#000000",
               weight: 4,
-              fillOpacity: 0 // Totalmente transparente por dentro
-          }
-      }).addTo(map);
+              fillOpacity: 0
+          },
+          interactive: false
+      });
 
-      // Ajustar la cámara al contorno del distrito
+      capaMunicipios.addTo(map);
+      capaDistrito.addTo(map);
+
+      var overlayMaps = {
+          "Distrito": capaDistrito,
+          "Municipios": capaMunicipios
+      };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+
       map.fitBounds(capaDistrito.getBounds());
+
+      var controlCentrar = L.control({ position: 'topleft' });
+
+      controlCentrar.onAdd = function() {
+          var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+          var button = L.DomUtil.create('a', '', container);
+
+          button.innerHTML = '🎯';
+          button.href = '#';
+          button.title = 'Volver a centrar';
+          button.style.display = 'flex';
+          button.style.alignItems = 'center';
+          button.style.justifyContent = 'center';
+          button.style.textDecoration = 'none';
+
+          L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.fitBounds(capaDistrito.getBounds());
+          });
+
+          return container;
+      };
+
+      controlCentrar.addTo(map);
   });
 </script>
 {% endblock scripts %}
