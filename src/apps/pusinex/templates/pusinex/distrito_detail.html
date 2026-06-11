@@ -19,11 +19,15 @@
     <div class="lg:col-span-4">
       <div class="card bg-base-100 shadow-md border border-base-200 h-[600px]">
         <div class="card-body">
-          <h2 class="card-title">Marcador</h2>
+          <h2 class="card-title">Expediente del distrito {{ distrito.distrito|stringformat:"02d" }}</h2>
           <p class="text-sm opacity-70">
-            Distrito Local {{ distrito.distrito|stringformat:"02d" }}<br>
             Cabecera: {{ distrito.cabecera }}
           </p>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-md border border-base-200 h-[600px]">
+        <div class="card-body">
+          
         </div>
       </div>
     </div>

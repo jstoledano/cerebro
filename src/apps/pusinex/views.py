@@ -56,11 +56,6 @@ class DistritoDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        if self.object.geom:
-            distrito_geom = self.object.geom.clone().buffer(0)
-        else:
-            distrito_geom = None
-
         context["distrito_geojson"] = serialize(
             "geojson",
             [self.object],
@@ -68,42 +63,53 @@ class DistritoDetail(DetailView):
             fields=("distrito", "cabecera"),
         )
 
-        if not distrito_geom:
-            context["municipios_geojson"] = json.dumps({"type": "FeatureCollection", "features": []})
+        if not self.object.geom:
+            context["municipios_geojson"] = json.dumps(
+                {"type": "FeatureCollection", "features": []}
+            )
             return context
 
         municipios = Municipio.objects.filter(seccion__distrito=self.object).distinct()
-
         features = []
+
         for mun in municipios:
             if not mun.geom:
                 continue
 
-            mun_geom = mun.geom.buffer(0)
+            # Clonar geometrías y asegurar concordancia de SRID antes de la intersección en GEOS
+            mun_geom = mun.geom.clone().buffer(0)
+            distrito_geom = self.object.geom.clone().buffer(0)
+
+            if distrito_geom.srid != mun_geom.srid:
+                distrito_geom.transform(mun_geom.srid)
+
             fragmento = mun_geom.intersection(distrito_geom)
 
             if fragmento and not fragmento.empty:
-                if fragmento.geom_type == "GeometryCollection":
-                    poly_list = []
+                poly_list = []
+
+                # Extraer estrictamente componentes bidimensionales (Polígonos)
+                if fragmento.geom_type == "Polygon":
+                    poly_list.append(fragmento)
+                elif fragmento.geom_type == "MultiPolygon":
+                    poly_list.extend(fragmento)
+                elif fragmento.geom_type == "GeometryCollection":
                     for g in fragmento:
                         if g.geom_type == "Polygon":
                             poly_list.append(g)
                         elif g.geom_type == "MultiPolygon":
                             poly_list.extend(g)
 
-                    if not poly_list:
-                        continue
-                    fragmento = MultiPolygon(*poly_list, srid=distrito_geom.srid)
-                elif fragmento.geom_type == "Polygon":
-                    fragmento = MultiPolygon(fragmento, srid=distrito_geom.srid)
+                if poly_list:
+                    # Construir el MultiPolygon garantizando el SRID nativo antes de transformar a WGS84
+                    geom_final = MultiPolygon(*poly_list, srid=mun_geom.srid)
+                    geom_final.transform(4326)
 
-                if fragmento.geom_type in ("Polygon", "MultiPolygon"):
-                    fragmento.transform(4326)
                     features.append(
                         {
                             "type": "Feature",
                             "properties": {"id": mun.pk, "nombre": mun.nombre},
-                            "geometry": json.loads(fragmento.geojson),
+                            "geometry": json.loads(geom_final.geojson),
                         }
                     )
 
@@ -112,6 +118,7 @@ class DistritoDetail(DetailView):
         )
 
         return context
+
 
 class MunicipioDetail(ListView):
     context_object_name = 'secciones'
