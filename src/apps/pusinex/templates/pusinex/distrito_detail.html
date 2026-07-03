@@ -25,14 +25,13 @@
           </p>
         </div>
       </div>
-      <div class="card bg-base-100 shadow-md border border-base-200 h-[600px]">
-        <div class="card-body">
-          
-        </div>
-      </div>
     </div>
 
   </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6"><!-- listaMunicipios -->
+    
+  </div><!-- ./listaMunicipios -->
 
 </section>
 {% endblock content %}
@@ -42,7 +41,7 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-      var map = L.map('map', {
+      const map = L.map('map', {
           doubleClickZoom: false
       });
 
@@ -51,41 +50,43 @@
           attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(map);
 
-      var distritoData = {{ distrito_geojson|safe }};
-      var municipiosData = {{ municipios_geojson|safe }};
+      const distritoData = {{ distrito_geojson|safe }};
+    const municipiosData = {{ municipios_geojson|safe }};
 
-      var capaMunicipios = L.geoJSON(municipiosData, {
-          style: {
-              color: "#00008b",
-              weight: 2,
-              fillColor: "#60a5fa",
-              fillOpacity: 0.3
-          },
-          onEachFeature: function (feature, layer) {
-              layer.bindTooltip(feature.properties.nombre, {
-                  permanent: false,
-                  direction: "center",
-                  className: "font-semibold"
-              });
+    const capaMunicipios = L.geoJSON(municipiosData, {
+      style: {
+        color: "#00008b",
+        weight: 2,
+        fillColor: "#60a5fa",
+        fillOpacity: 0.3
+      },
+      onEachFeature: function (feature, layer) {
+        const datoMunicipio = String(feature.properties.id).padStart(2, '0') + " " + feature.properties.nombre;
+        layer.bindTooltip(datoMunicipio, {
+          permanent: false,
+          direction: "center",
+          className: "font-semibold"
+        });
 
-              // Redirección de navegación Distrito -> Municipio
-              layer.on('dblclick', function() {
-                  var url = "{% url 'pusinex:municipio' 0 %}".replace('0', feature.properties.id);
-                  window.location.href = url;
-              });
-          }
-      });
+        // Redirección de navegación Distrito -> Municipio
+        layer.on('dblclick', function () {
+          const url = "{% url 'pusinex:municipio' 0 %}".replace('0', feature.properties.id);
+          window.location.href = url;
+        });
+      }
+    });
 
-      var capaDistrito = L.geoJSON(distritoData, {
-          style: {
-              color: "#000000",
-              weight: 4,
-              fillOpacity: 0
-          },
-          interactive: false
-      });
 
-      capaMunicipios.addTo(map);
+    const capaDistrito = L.geoJSON(distritoData, {
+      style: {
+        color: "#000000",
+        weight: 4,
+        fillOpacity: 0
+      },
+      interactive: false
+    });
+
+    capaMunicipios.addTo(map);
       capaDistrito.addTo(map);
 
       var overlayMaps = {
@@ -96,13 +97,13 @@
 
       map.fitBounds(capaDistrito.getBounds());
 
-      var controlCentrar = L.control({ position: 'topleft' });
+    let controlCentrar = L.control({position: 'topleft'});
 
-      controlCentrar.onAdd = function() {
-          var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-          var button = L.DomUtil.create('a', '', container);
+    controlCentrar.onAdd = function() {
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+      const button = L.DomUtil.create('a', '', container);
 
-          button.innerHTML = '🎯';
+      button.innerHTML = '🎯';
           button.href = '#';
           button.title = 'Volver a centrar';
           button.style.display = 'flex';
@@ -114,6 +115,35 @@
               L.DomEvent.stopPropagation(e);
               L.DomEvent.preventDefault(e);
               map.fitBounds(capaDistrito.getBounds());
+          });
+
+          return container;
+      };
+
+      controlCentrar.addTo(map);
+
+      map.fitBounds(capaDistritos.getBounds());
+
+      // 2. Control personalizado para centrar el mapa
+    controlCentrar = L.control({position: 'topleft'});
+
+    controlCentrar.onAdd = function() {
+      const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+      const button = L.DomUtil.create('a', '', container);
+
+      button.innerHTML = '🎯'; // Ícono del botón
+          button.href = '#';
+          button.title = 'Volver a centrar';
+          button.style.display = 'flex';
+          button.style.alignItems = 'center';
+          button.style.justifyContent = 'center';
+          button.style.textDecoration = 'none';
+
+          // Evento del botón
+          L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.fitBounds(capaDistritos.getBounds());
           });
 
           return container;

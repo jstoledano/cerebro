@@ -5,7 +5,6 @@ from pathlib import Path
 
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.gis.db.models import Union
 from django.contrib.gis.geos import MultiPolygon
 from django.http import FileResponse
 from django.urls import reverse, reverse_lazy
@@ -108,7 +107,7 @@ class DistritoDetail(DetailView):
                     features.append(
                         {
                             "type": "Feature",
-                            "properties": {"id": mun.pk, "nombre": mun.nombre},
+                            "properties": {"id": mun.municipio, "nombre": mun.nombre},
                             "geometry": json.loads(geom_final.geojson),
                         }
                     )
