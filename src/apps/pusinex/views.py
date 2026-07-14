@@ -3,6 +3,7 @@ import json
 import zipfile
 from pathlib import Path
 
+from django.db.models import Sum
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.gis.geos import MultiPolygon
@@ -12,7 +13,7 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView
 
 from .forms import PUSINEXForm
-from .models import Entidad, Distrito, Municipio, Seccion, Pusinex
+from .models import Entidad, Distrito, Municipio, Seccion, Pusinex, Manzana
 
 TLAXCALA = 29
 
@@ -141,18 +142,22 @@ class DistritoDetail(DetailView):
 
             municipios_geo_dict["features"] = features
 
-        # 3. ARMADO DEL CONTEXTO (Limpio y ordenado)
-        context.update(
-            {
-                "ruta": ruta_url,
-                "distrito_geojson": distrito_geo,
-                "municipios_geojson": json.dumps(municipios_geo_dict),
-                "secciones": secciones_qs,
-                "secciones_conteo": secciones_totales,
-            }
-        )
+            # 3. DECLARACIÓN DEL CONTEXTO
+            # Tomamos padron y lista_nominal directamente del objeto Distrito cargado en memoria, ¡Cero coste de base de datos!
+            context.update(
+                {
+                    "ruta": ruta_url,
+                    "distrito_geojson": distrito_geo,
+                    "municipios_geojson": json.dumps(municipios_geo_dict),
+                    "secciones_conteo": secciones_totales,
+                    "secciones": secciones_qs,
+                    # Variables directas del modelo, súper-rápidas
+                    "padron_total": self.object.pe,
+                    "lista_nominal_total": self.object.ln,
+                }
+            )
 
-        return context
+            return context
 
 class MunicipioDetail(ListView):
     context_object_name = 'secciones'

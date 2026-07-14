@@ -35,6 +35,12 @@ class Entidad(models.Model):
     nombre = models.TextField()
     circunscripcion = models.PositiveSmallIntegerField()
     ubica = models.TextField(help_text="Coordenadas geográficas de la Junta Local", default='')
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -56,6 +62,12 @@ class Distrito(models.Model):
     traslado = models.PositiveIntegerField(
         help_text="Tiempo de traslado al distrito en minutos",
         blank=True, null=True
+    )
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
     )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
@@ -90,6 +102,12 @@ class Municipio(models.Model):
     entidad = models.ForeignKey(Entidad, on_delete=models.CASCADE)
     municipio = models.PositiveSmallIntegerField(primary_key=True)
     nombre = models.TextField()
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -119,6 +137,12 @@ class Seccion(models.Model):
     traslado = models.PositiveIntegerField(
         help_text="Tiempo de traslado a la sección en minutos",
         blank=True, null=True
+    )
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
     )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
@@ -154,3 +178,26 @@ class Pusinex(models.Model):
         m = self.seccion.municipio.municipio
         s = self.seccion.seccion
         return f'29{d:02}{m:02}{s:04}_rev{self.f_act:%Y%m%d}'
+
+
+class Manzana(models.Model):
+    # Relacionamos directamente con la Sección.
+    # Usamos related_name="manzanas" para poder hacer: mi_seccion.manzanas.all()
+    seccion = models.ForeignKey(
+        Seccion, on_delete=models.CASCADE, related_name="manzanas"
+    )
+
+    localidad = models.PositiveSmallIntegerField()
+    manzana = models.PositiveSmallIntegerField()
+    padron = models.PositiveIntegerField(default=0)
+    lista_nominal = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Manzana"
+        verbose_name_plural = "Manzanas"
+        # Esto evita que haya manzanas duplicadas en la misma localidad y sección
+        unique_together = ("seccion", "localidad", "manzana")
+        ordering = ["seccion", "localidad", "manzana"]
+
+    def __str__(self):
+        return f"Sec: {self.seccion_id} | Loc: {self.localidad} | Mz: {self.manzana}"

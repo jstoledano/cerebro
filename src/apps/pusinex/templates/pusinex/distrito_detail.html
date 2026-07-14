@@ -1,5 +1,6 @@
 {% extends 'cerebro/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Expediente Distrito {{ distrito.distrito|stringformat:"02d" }} - Cartografía{% endblock %}
 
@@ -19,25 +20,42 @@
     <!-- Sidebar -->
     <div class="lg:col-span-4">
   <div class="card bg-base-100 card-border shadow-md border border-base-200 h-[600px]">
-    <div class="card-body flex flex-col justify-between">
-      <div>
-        <h2 class="card-title">Expediente del distrito {{ distrito.distrito|stringformat:"02d" }}</h2>
-        <p class="opacity-70 flex-grow-0">
-          Cabecera: {{ distrito.cabecera }}
-        </p>
-        <p class="opacity-70 flex-grow-0">
-          Secciones: {{ secciones_conteo }}
-        </p>
-      </div>
+<div class="card-body flex flex-col justify-between">
+  <div>
 
-      {% if ruta %}
-      <div class="card-actions mt-auto">
-        <button class="btn btn-primary w-full gap-2" onclick="modal_ruta_maps.showModal()">
-          🗺️ Ver Ruta en Google Maps
-        </button>
-      </div>
-      {% endif %}
-    </div>
+    <h1 class="card-title text-primary">Distrito {{ distrito.distrito|stringformat:"02d" }}</h1>
+
+  <div class="stat px-4 py-3">
+    <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Cabecera</div>
+    <div class="stat-value text-xl">{{ distrito.cabecera }}</div>
+  </div>
+
+  <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+    <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Secciones Activas</div>
+    <div class="stat-value text-2xl">{{ secciones_conteo }}</div>
+  </div>
+
+  <div class="stat px-4 py-3 border-t border-base-200">
+    <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Padrón Electoral</div>
+    <div class="stat-value text-2xl text-secondary">{{ padron_total|intcomma }}</div>
+  </div>
+
+  <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+    <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Lista Nominal</div>
+    <div class="stat-value text-2xl text-primary">{{ lista_nominal_total|intcomma }}</div>
+  </div>
+
+</div>
+  </div>
+
+  {% if ruta %}
+  <div class="card-actions mt-6">
+    <button class="btn btn-primary w-full gap-2" onclick="modal_ruta_maps.showModal()">
+      🗺️ Ver Ruta en Google Maps
+    </button>
+  </div>
+  {% endif %}
+</div>
   </div>
 </div>
   <!-- ./Sidebar -->
