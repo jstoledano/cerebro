@@ -16,24 +16,67 @@
       <div id="map" class="w-full h-[600px] rounded-box border border-base-300 relative z-[1]"></div>
     </div>
 
+    <!-- Sidebar -->
     <div class="lg:col-span-4">
-      <div class="card bg-base-100 shadow-md border border-base-200 h-[600px]">
-        <div class="card-body">
-          <h2 class="card-title">Expediente del distrito {{ distrito.distrito|stringformat:"02d" }}</h2>
-          <p class="text-sm opacity-70">
-            Cabecera: {{ distrito.cabecera }}
-          </p>
-        </div>
+  <div class="card bg-base-100 card-border shadow-md border border-base-200 h-[600px]">
+    <div class="card-body flex flex-col justify-between">
+      <div>
+        <h2 class="card-title">Expediente del distrito {{ distrito.distrito|stringformat:"02d" }}</h2>
+        <p class="opacity-70 flex-grow-0">
+          Cabecera: {{ distrito.cabecera }}
+        </p>
+        <p class="opacity-70 flex-grow-0">
+          Secciones: {{ secciones_conteo }}
+        </p>
       </div>
-    </div>
 
+      {% if ruta %}
+      <div class="card-actions mt-auto">
+        <button class="btn btn-primary w-full gap-2" onclick="modal_ruta_maps.showModal()">
+          🗺️ Ver Ruta en Google Maps
+        </button>
+      </div>
+      {% endif %}
+    </div>
   </div>
+</div>
+  <!-- ./Sidebar -->
 
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6"><!-- listaMunicipios -->
-    
+
   </div><!-- ./listaMunicipios -->
 
 </section>
+
+
+  {% if ruta %}
+<dialog id="modal_ruta_maps" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none">
+
+    <div class="flex justify-between items-center mb-2 flex-shrink-0">
+      <h3 class="font-bold text-lg text-primary">Ruta Oficial: Junta Local ➔ JD{{ distrito.distrito|stringformat:"02d" }}</h3>
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300">✕</button>
+      </form>
+    </div>
+
+    <div class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200">
+      <iframe
+        src="{{ ruta }}"
+        class="w-full h-full"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer">
+      </iframe>
+    </div>
+
+  <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm">
+    <button>close</button>
+  </form>
+</dialog>
+{% endif %}
+
 {% endblock content %}
 
 {% block scripts %}

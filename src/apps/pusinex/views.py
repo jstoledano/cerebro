@@ -53,71 +53,106 @@ class DistritoDetail(DetailView):
     context_object_name = "distrito"
 
     def get_context_data(self, **kwargs):
+        # 1. Inicializamos el contexto base
         context = super().get_context_data(**kwargs)
 
-        context["distrito_geojson"] = serialize(
+        # 2. OPERACIONES Y CÁLCULOS
+
+        # Generación de la ruta
+        origen = (
+            self.object.entidad.ubica.strip()
+            if self.object.entidad and self.object.entidad.ubica
+            else ""
+        )
+        destino = self.object.ubica.strip() if self.object.ubica else ""
+
+        # Construcción del enlace para IFRAME usando saddr (origen) y daddr (destino)
+        if origen and destino:
+            ruta_url = f"https://maps.google.com/maps?saddr={origen}&daddr={destino}&output=embed"
+        else:
+            ruta_url = ""
+
+        # Consultas de secciones
+        secciones_qs = self.object.seccion_set.filter(activa=True).order_by(
+            "distrito", "municipio", "seccion"
+        )
+        secciones_totales = secciones_qs.count()
+
+        # Generación de GeoJSON del Distrito
+        distrito_geo = serialize(
             "geojson",
             [self.object],
             geometry_field="geom",
             fields=("distrito", "cabecera"),
         )
 
-        if not self.object.geom:
-            context["municipios_geojson"] = json.dumps(
-                {"type": "FeatureCollection", "features": []}
-            )
-            return context
+        # Generación de GeoJSON de Municipios
+        municipios_geo_dict = {"type": "FeatureCollection", "features": []}
 
-        municipios = Municipio.objects.filter(seccion__distrito=self.object).distinct()
-        features = []
+        if self.object.geom:
+            municipios = Municipio.objects.filter(
+                seccion__distrito=self.object
+            ).distinct()
+            features = []
 
-        for mun in municipios:
-            if not mun.geom:
-                continue
+            for mun in municipios:
+                if not mun.geom:
+                    continue
 
-            # Clonar geometrías y asegurar concordancia de SRID antes de la intersección en GEOS
-            mun_geom = mun.geom.clone().buffer(0)
-            distrito_geom = self.object.geom.clone().buffer(0)
+                # Clonar geometrías y asegurar concordancia de SRID antes de la intersección en GEOS
+                mun_geom = mun.geom.clone().buffer(0)
+                distrito_geom = self.object.geom.clone().buffer(0)
 
-            if distrito_geom.srid != mun_geom.srid:
-                distrito_geom.transform(mun_geom.srid)
+                if distrito_geom.srid != mun_geom.srid:
+                    distrito_geom.transform(mun_geom.srid)
 
-            fragmento = mun_geom.intersection(distrito_geom)
+                fragmento = mun_geom.intersection(distrito_geom)
 
-            if fragmento and not fragmento.empty:
-                poly_list = []
+                if fragmento and not fragmento.empty:
+                    poly_list = []
 
-                # Extraer estrictamente componentes bidimensionales (Polígonos)
-                if fragmento.geom_type == "Polygon":
-                    poly_list.append(fragmento)
-                elif fragmento.geom_type == "MultiPolygon":
-                    poly_list.extend(fragmento)
-                elif fragmento.geom_type == "GeometryCollection":
-                    for g in fragmento:
-                        if g.geom_type == "Polygon":
-                            poly_list.append(g)
-                        elif g.geom_type == "MultiPolygon":
-                            poly_list.extend(g)
+                    # Extraer estrictamente componentes bidimensionales (Polígonos)
+                    if fragmento.geom_type == "Polygon":
+                        poly_list.append(fragmento)
+                    elif fragmento.geom_type == "MultiPolygon":
+                        poly_list.extend(fragmento)
+                    elif fragmento.geom_type == "GeometryCollection":
+                        for g in fragmento:
+                            if g.geom_type == "Polygon":
+                                poly_list.append(g)
+                            elif g.geom_type == "MultiPolygon":
+                                poly_list.extend(g)
 
-                if poly_list:
-                    # Construir el MultiPolygon garantizando el SRID nativo antes de transformar a WGS84
-                    geom_final = MultiPolygon(*poly_list, srid=mun_geom.srid)
-                    geom_final.transform(4326)
+                    if poly_list:
+                        # Construir el MultiPolygon garantizando el SRID nativo antes de transformar a WGS84
+                        geom_final = MultiPolygon(*poly_list, srid=mun_geom.srid)
+                        geom_final.transform(4326)
 
-                    features.append(
-                        {
-                            "type": "Feature",
-                            "properties": {"id": mun.municipio, "nombre": mun.nombre},
-                            "geometry": json.loads(geom_final.geojson),
-                        }
-                    )
+                        features.append(
+                            {
+                                "type": "Feature",
+                                "properties": {
+                                    "id": mun.municipio,
+                                    "nombre": mun.nombre,
+                                },
+                                "geometry": json.loads(geom_final.geojson),
+                            }
+                        )
 
-        context["municipios_geojson"] = json.dumps(
-            {"type": "FeatureCollection", "features": features}
+            municipios_geo_dict["features"] = features
+
+        # 3. ARMADO DEL CONTEXTO (Limpio y ordenado)
+        context.update(
+            {
+                "ruta": ruta_url,
+                "distrito_geojson": distrito_geo,
+                "municipios_geojson": json.dumps(municipios_geo_dict),
+                "secciones": secciones_qs,
+                "secciones_conteo": secciones_totales,
+            }
         )
 
         return context
-
 
 class MunicipioDetail(ListView):
     context_object_name = 'secciones'

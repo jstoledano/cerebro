@@ -34,6 +34,7 @@ class Entidad(models.Model):
     entidad = models.PositiveSmallIntegerField(primary_key=True)
     nombre = models.TextField()
     circunscripcion = models.PositiveSmallIntegerField()
+    ubica = models.TextField(help_text="Coordenadas geográficas de la Junta Local", default='')
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -50,6 +51,12 @@ class Distrito(models.Model):
     distrito = models.PositiveSmallIntegerField(primary_key=True)
     tipo = models.PositiveSmallIntegerField()
     cabecera = models.TextField()
+    ubica = models.TextField(help_text="Coordinadas de la ubicación del distrito", default='')
+    distancia = models.PositiveIntegerField(blank=True, null=True)
+    traslado = models.PositiveIntegerField(
+        help_text="Tiempo de traslado al distrito en minutos",
+        blank=True, null=True
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -105,6 +112,14 @@ class Seccion(models.Model):
     seccion = models.PositiveSmallIntegerField(primary_key=True)
     tipo = models.PositiveSmallIntegerField(choices=CAT_TIPO)
     activa = models.BooleanField(default=True)
+    ubica = models.TextField(
+        help_text="Coordinadas de la ubicación de la sección", default=""
+    )
+    distancia = models.PositiveIntegerField(blank=True, null=True)
+    traslado = models.PositiveIntegerField(
+        help_text="Tiempo de traslado a la sección en minutos",
+        blank=True, null=True
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
