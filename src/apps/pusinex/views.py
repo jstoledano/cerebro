@@ -159,18 +159,50 @@ class DistritoDetail(DetailView):
 
             return context
 
-class MunicipioDetail(ListView):
-    context_object_name = 'secciones'
-    template_name = 'pusinex/municipio_detail.html'
+class MunicipioDetail(DetailView):
+    model = Municipio
+    context_object_name = "municipio"
+    template_name = "pusinex/municipio_detail.html"
 
     def get_context_data(self, **kwargs):
-        context = super(MunicipioDetail, self).get_context_data(**kwargs)
-        context['municipio'] = Municipio.objects.get(pk=self.kwargs.get('pk'))
-        return context
+        # 1. Inicializamos el contexto base
+        context = super().get_context_data(**kwargs)
 
-    def get_queryset(self):
-        qs = Seccion.objects.filter(municipio=self.kwargs.get('pk'), activa=True).order_by('distrito', 'seccion')
-        return qs
+        # 2. OPERACIONES Y CÁLCULOS
+
+        # Consultas de secciones activas correspondientes al municipio
+        secciones_qs = self.object.seccion_set.filter(activa=True).order_by(
+            "distrito", "seccion"
+        )
+        secciones_totales = secciones_qs.count()
+
+        # Generación de GeoJSON del contorno del Municipio
+        municipio_geo = serialize(
+            "geojson",
+            [self.object],
+            geometry_field="geom",
+            fields=("municipio", "nombre"),
+        )
+
+        # Generación de GeoJSON de las Secciones internas (para la capa secundaria del mapa)
+        secciones_geo = serialize(
+            "geojson", secciones_qs, geometry_field="geom", fields=("seccion",)
+        )
+
+        # 3. DECLARACIÓN DEL CONTEXTO
+        # Tomamos padron y lista_nominal directamente del objeto Municipio gracias al ETL
+        context.update(
+            {
+                "municipio_geojson": municipio_geo,
+                "secciones_geojson": secciones_geo,
+                "secciones_conteo": secciones_totales,
+                "secciones": secciones_qs,
+                "padron_total": self.object.pe,
+                "lista_nominal_total": self.object.ln,
+            }
+        )
+
+        return context
 
 
 class CreatePUSINEX(LoginRequiredMixin, CreateView):
