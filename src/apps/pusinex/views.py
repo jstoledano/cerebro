@@ -41,7 +41,67 @@ class Index(ListView):
 
 class SeccionDetail(DetailView):
     model = Seccion
-    context_object_name = 'seccion'
+    context_object_name = "seccion"
+    template_name = "pusinex/seccion_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # 1. RUTAS: De distrito.ubica (origen) a seccion.ubica (destino)
+        origen = (
+            self.object.distrito.ubica.strip()
+            if self.object.distrito and self.object.distrito.ubica
+            else ""
+        )
+        destino = self.object.ubica.strip() if self.object.ubica else ""
+
+        if origen and destino:
+            ruta_url = f"https://maps.google.com/maps?saddr={origen}&daddr={destino}&output=embed"
+        else:
+            ruta_url = ""
+
+        # 2. MAPAS: Generación de GeoJSON
+        seccion_geo = serialize(
+            "geojson", [self.object], geometry_field="geom", fields=("seccion", "tipo")
+        )
+
+        # Traemos el municipio completo para dar contexto visual en el fondo
+        municipio_geo = serialize(
+            "geojson",
+            [self.object.municipio],
+            geometry_field="geom",
+            fields=("municipio", "nombre"),
+        )
+
+        # 3. PUSINEX: Extraer el registro más reciente
+        try:
+            ultimo_pusinex = self.object.pusinex_set.latest()
+        except Pusinex.DoesNotExist:
+            ultimo_pusinex = None
+
+        # --- NUEVA LÓGICA SEGURA PARA EL TIPO DE SECCIÓN ---
+        # Forzamos la conversión a entero con Python puro. Si por alguna
+        # razón la BD tiene basura, asumimos que es rural (99) por seguridad.
+        try:
+            tipo_seccion = int(self.object.tipo)
+        except (ValueError, TypeError):
+            tipo_seccion = 99
+
+        es_urbana = tipo_seccion < 4
+        # ---------------------------------------------------
+
+        # 4. DECLARACIÓN DEL CONTEXTO
+        context.update(
+            {
+                "ruta": ruta_url,
+                "seccion_geojson": seccion_geo,
+                "municipio_geojson": municipio_geo,
+                "ultimo_pusinex": ultimo_pusinex,
+                "es_urbana": es_urbana,  # <--- Pasamos el booleano limpio a la plantilla
+            }
+        )
+
+        return context
 
 
 class PusinexDetail(DetailView):
