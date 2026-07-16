@@ -2,11 +2,11 @@
 {% load sgc %}
 
 {% active request '^/$' as home_active %}
-{% active request '^/(pusinex|kpi|vozmac)/' as indicadores_active %}
-{% active request '^/vozmac/' as vozmac_active %}
-{% active request '^/docs/' as docs_active %}
+{% active request '^/(cecyrd|pusinex|kpi|vozmac)/' as indicadores_active %}
+{% active request '(/docs/|/pmml/)' as docs_active %}
 {% active request '^/pas/' as pas_active %}
 {% active request '^/ideas/' as ideas_active %}
+{% active request '^/cartografia/' as cartografia_active %}
 
 <li>
   <a class="flex items-center gap-2 {{ home_active }} {% if home_active %}is-active{% endif %}" href="{% url 'index' %}" {% if home_active %}aria-current="page" {% endif %}>
@@ -26,35 +26,11 @@
     </summary>
     <ul class="menu menu-sm bg-base-100 rounded-box shadow-lg p-2 mt-2 lg:absolute lg:left-0 lg:top-full lg:mt-2 lg:w-72 lg:z-20">
       <li>
-        <a class="flex items-center gap-2">
+        <a class="flex items-center gap-2" href="#">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-            <path fill-rule="evenodd" d="M1 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V6Zm4 1.5a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm2 3a4 4 0 0 0-3.665 2.395.75.75 0 0 0 .416 1A8.98 8.98 0 0 0 7 14.5a8.98 8.98 0 0 0 3.249-.604.75.75 0 0 0 .416-1.001A4.001 4.001 0 0 0 7 10.5Zm5-3.75a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Zm0 6.5a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Zm.75-4a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" />
+            <path d="M15.98 1.804a1 1 0 00-1.96 0l-.24 1.192a2.5 2.5 0 01-1.984 1.984l-1.192.24a1 1 0 000 1.96l1.192.24a2.5 2.5 0 011.984 1.984l.24 1.192a1 1 0 001.96 0l.24-1.192a2.5 2.5 0 011.984-1.984l1.192-.24a1 1 0 000-1.96l-1.192-.24a2.5 2.5 0 01-1.984-1.984l-.24-1.192zM6.81 3.81a1.5 1.5 0 00-2.82 0l-.88 4.41a3.75 3.75 0 01-2.98 2.98l-4.41.88a1.5 1.5 0 000 2.82l4.41.88a3.75 3.75 0 012.98 2.98l.88 4.41a1.5 1.5 0 002.82 0l.88-4.41a3.75 3.75 0 012.98-2.98l4.41-.88a1.5 1.5 0 000-2.82l-4.41-.88a3.75 3.75 0 01-2.98-2.98l-.88-4.41z" />
           </svg>
-          Actualizacion del Padron
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-            <path fill-rule="evenodd" d="M1 2.75A.75.75 0 0 1 1.75 2h10.5a.75.75 0 0 1 0 1.5H12v13.75a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75v-2.5a.75.75 0 0 0-.75-.75h-2.5a.75.75 0 0 0-.75.75v2.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5H2v-13h-.25A.75.75 0 0 1 1 2.75ZM4 5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1ZM4.5 9a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1ZM8 5.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1ZM8.5 9a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1ZM14.25 6a.75.75 0 0 0-.75.75V17a1 1 0 0 0 1 1h3.75a.75.75 0 0 0 0-1.5H18v-9h.25a.75.75 0 0 0 0-1.5h-4Zm.5 3.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm.5 3.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1Z" clip-rule="evenodd" />
-          </svg>
-          MAC con imagen institucional
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-            <path d="M14.916 2.404a.75.75 0 0 1-.32 1.011l-.596.31V17a1 1 0 0 1-1 1h-2.26a.75.75 0 0 1-.75-.75v-3.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 1-.75.75h-3.5a.75.75 0 0 1 0-1.5H2V9.957a.75.75 0 0 1-.596-1.372L2 8.275V5.75a.75.75 0 0 1 1.5 0v1.745l10.404-5.41a.75.75 0 0 1 1.012.319ZM15.861 8.57a.75.75 0 0 1 .736-.025l1.999 1.04A.75.75 0 0 1 18 10.957V16.5h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1-.75-.75V9.21a.75.75 0 0 1 .361-.64Z" />
-          </svg>
-          Articulo 141
-        </a>
-      </li>
-      <li>
-        <a class="flex items-center gap-2 {{ vozmac_active }} {% if vozmac_active %}is-active{% endif %}" href="{% url 'vozmac:index' %}" {% if vozmac_active %}aria-current="page" {% endif %}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-            <path d="M1 8.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5ZM11 3V1.7c0-.268.14-.526.395-.607A2 2 0 0 1 14 3c0 .995-.182 1.948-.514 2.826-.204.54.166 1.174.744 1.174h2.52c1.243 0 2.261 1.01 2.146 2.247a23.864 23.864 0 0 1-1.341 5.974C17.153 16.323 16.072 17 14.9 17h-3.192a3 3 0 0 1-1.341-.317l-2.734-1.366A3 3 0 0 0 6.292 15H5V8h.963c.685 0 1.258-.483 1.612-1.068a4.011 4.011 0 0 1 2.166-1.73c.432-.143.853-.386 1.011-.814.16-.432.248-.9.248-1.388Z" />
-          </svg>
-          Aprobacion Ciudadana
+          Evaluación de CECyRD
         </a>
       </li>
     </ul>
@@ -66,7 +42,7 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
       </svg>
-      Documentación
+      Docs
     </summary>
     <ul class="menu menu-sm bg-base-100 rounded-box shadow-lg p-2 mt-2 lg:absolute lg:left-0 lg:top-full lg:mt-2 lg:w-56 lg:z-20">
       <li>
@@ -105,10 +81,18 @@
   </a>
 </li>
 <li>
+  <a class="flex items-center gap-2 {{ cartografia_active }} {% if cartografia_active %}is-active{% endif %}" href="{% url 'pusinex:index' %}" {% if cartografia_active %}aria-current="page" {% endif %}>
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+    </svg>
+    Cartografía
+  </a>
+</li>
+<li>
   <a class="flex items-center gap-2 {{ ideas_active }} {% if ideas_active %}is-active{% endif %}" href="{% url 'ideas:index' %}" {% if ideas_active %}aria-current="page" {% endif %}>
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
     </svg>
-    Caja de ideas
+    Ideas
   </a>
 </li>
