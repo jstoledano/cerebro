@@ -164,7 +164,26 @@ MESSAGE_TAGS = {
     messages.ERROR: "alert-danger",
 }
 
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
+# Configuración inteligente de Caché
+if DEBUG:
+    # En desarrollo (tu Windows): Usa la memoria local de la computadora
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "cerebro-dev-cache",
+        }
+    }
+else:
+    # En producción (tu Debian): Usa el servidor Redis que acabamos de instalar
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://127.0.0.1:6379/1",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
+        }
+    }
 
 LOGGING = {
     "disable_existing_loggers": False,

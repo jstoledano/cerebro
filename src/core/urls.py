@@ -20,6 +20,7 @@ urlpatterns = [
     path("vozmac/", include("apps.vozmac.urls")),
     path("profiles/", include("apps.profiles.urls")),
     path("pmml/", include("apps.pmml.urls")),
+    path("cecyrd/", include("apps.cecyrd.urls")),
     path("api/v1/vozmac/", include("apps.vozmac.api.urls")),
     path("api/v1/pas/", include("apps.pas.api.urls")),
     path("api/v1/docs/", include("apps.docs.api.urls")),
