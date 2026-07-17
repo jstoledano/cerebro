@@ -1,6 +1,6 @@
 {% extends 'cerebro/base.html' %}
 
-{% block title %}CECyRD{% endblock %}
+{% block title %}CECyRD - Cuadro de Mando{% endblock %}
 
 {% block content %}
 <section class="space-y-6 p-6">
@@ -13,28 +13,331 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-3xl font-bold text-base-content">Evaluación de CECyRD</h1>
+          <h1 class="text-3xl font-bold text-base-content">Evaluación de desempeño CECyRD</h1>
           <p class="mt-1 max-w-2xl text-sm text-base-content/70">
-            Cuadro de mando del proveedor. Consulta los tiempos de disponibilidad, volumen de producción y cumplimiento.
+            Monitoreo semestral e histórico de los tiempos de entrega, volumen de credenciales y cumplimiento del proveedor.
           </p>
         </div>
       </div>
       <div class="flex flex-col items-stretch gap-3 text-right">
         <div class="flex items-center justify-end gap-2">
           <span class="badge badge-outline badge-primary badge-lg">SGC</span>
-          <span class="text-sm text-base-content/60">Base de datos lista</span>
+          <span class="text-sm text-base-content/60" id="header-status">Consultando datos...</span>
         </div>
-        <a href="{% url 'cecyrd:carga' %}" class="btn btn-primary btn-sm mt-1">
+        <a href="{% url 'cecyrd:carga' %}" class="btn btn-primary btn-sm mt-1 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4 mr-1">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
           </svg>
-          Cargar Trámites
+          Subir archivo de trámites
         </a>
       </div>
     </div>
   </header>
 
-  <div id="dashboard-container" class="mt-8">
+  <div class="tabs tabs-boxed bg-base-200 p-2 rounded-2xl max-w-3xl">
+    <button class="tab tab-active font-semibold" id="tab-global" onclick="cambiarFiltro('global')">Todo el Histórico</button>
+    <button class="tab font-semibold" id="tab-sem1" onclick="cambiarFiltro('sem1')">Revisión Ene-Jun 2026</button>
+    <button class="tab font-semibold hidden" id="tab-sem2" onclick="cambiarFiltro('sem2')">Revisión Jul-Dic 2026</button>
+    <button class="tab font-semibold" id="tab-custom" onclick="cambiarFiltro('custom')">Búsqueda por fechas</button>
+  </div>
+
+  <div class="card border border-base-300 bg-base-100 shadow-md p-4 max-w-3xl hidden" id="custom-filter-panel">
+    <div class="flex flex-wrap items-end gap-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs font-bold">Desde:</span></label>
+        <input type="date" id="filter-start" class="input input-bordered input-sm w-44" value="2026-01-01" />
       </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs font-bold">Hasta:</span></label>
+        <input type="date" id="filter-end" class="input input-bordered input-sm w-44" value="2026-12-31" />
+      </div>
+      <button class="btn btn-primary btn-sm px-6" onclick="ejecutarFiltroPersonalizado()">Consultar periodo</button>
+    </div>
+  </div>
+
+  <div class="grid gap-6 md:grid-cols-3">
+    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+      <div class="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5m-16.5 3.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites analizados</p>
+        <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-total">0</h3>
+      </div>
+    </div>
+
+    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+      <div class="p-3 bg-green-100 text-green-600 rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Cumplimiento de la Meta</p>
+        <h3 class="text-3xl font-black text-success mt-1" id="kpi-pct">0%</h3>
+      </div>
+    </div>
+
+    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+      <div id="kpi-fugas-icon" class="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites en rezago (>10 días)</p>
+        <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-fugas">0</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
+      <h3 class="text-lg font-bold text-base-content mb-1">Tiempos de disponibilidad de credenciales</h3>
+      <p class="text-xs text-base-content/60 mb-4">Promedio de días transcurridos desde el trámite hasta la entrega en MAC.</p>
+      <div class="relative w-full" style="height: 300px;">
+        <canvas id="chartTendencia"></canvas>
+      </div>
+    </div>
+
+    <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
+      <h3 class="text-lg font-bold text-base-content mb-1">Volumen de producción vs Nivel de Cumplimiento</h3>
+      <p class="text-xs text-base-content/60 mb-4">Relación entre la cantidad de credenciales solicitadas y el porcentaje dentro del SLA.</p>
+      <div class="relative w-full" style="height: 300px;">
+        <canvas id="chartEstres"></canvas>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock content %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  let chartTendenciaInstance = null;
+  let chartEstresInstance = null;
+
+  // Al cargar la página, ejecutar consulta inicial del Histórico
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchDashboardData(null, null, 'global');
+  });
+
+  // Manejador del cambio de Pestañas
+  function cambiarFiltro(tipo) {
+    // Gestionar clases activas de los botones de pestañas
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+    document.getElementById(`tab-${tipo}`).classList.add('tab-active');
+
+    const filterPanel = document.getElementById('custom-filter-panel');
+    if (tipo === 'custom') {
+      filterPanel.classList.remove('hidden');
+    } else {
+      filterPanel.classList.add('hidden');
+
+      let start = null;
+      let end = null;
+
+      if (tipo === 'sem1') {
+        start = '2026-01-01';
+        end = '2026-06-30';
+      } else if (tipo === 'sem2') {
+        start = '2026-07-01';
+        end = '2026-12-31';
+      }
+
+      fetchDashboardData(start, end, tipo);
+    }
+  }
+
+  function ejecutarFiltroPersonalizado() {
+    const start = document.getElementById('filter-start').value;
+    const end = document.getElementById('filter-end').value;
+    fetchDashboardData(start, end, 'custom');
+  }
+
+
+// Petición asíncrona al Motor Estadístico de Django
+  async function fetchDashboardData(start, end, tipoTab) {
+    document.getElementById('header-status').innerText = "Masticando millones de filas...";
+
+    let url = "{% url 'cecyrd:api_dashboard' %}";
+    if (start && end) {
+      url += `?start=${start}&end=${end}`;
+    }
+
+    try {
+      const response = await fetch(url);
+      const res = await response.json();
+
+      // LÓGICA DE VISIBILIDAD BIDIRECCIONAL:
+      // Si hay datos en el segundo semestre, muestra la pestaña; si no, la oculta.
+      const tabSem2 = document.getElementById('tab-sem2');
+      const tieneDatosSegundoSemestre = res.labels.some(l =>
+        ["Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].some(m => l.startsWith(m))
+      );
+
+      if (tieneDatosSegundoSemestre) {
+        tabSem2.classList.remove('hidden');
+      } else {
+        tabSem2.classList.add('hidden');
+      }
+
+      // Actualizar Fichas de Indicadores (KPIs)
+      document.getElementById('kpi-total').innerText = res.kpis.total_tramites.toLocaleString();
+      document.getElementById('kpi-pct').innerText = res.kpis.porcentaje_global + '%';
+      document.getElementById('kpi-fugas').innerText = res.kpis.fugas.toLocaleString();
+
+      // Cambiar dinámicamente el color de la tarjeta de fugas si hay alertas rojas
+      const fugasIcon = document.getElementById('kpi-fugas-icon');
+      if (res.kpis.fugas > 0) {
+        fugasIcon.className = "p-3 bg-red-100 text-error rounded-2xl";
+      } else {
+        fugasIcon.className = "p-3 bg-emerald-100 text-emerald-600 rounded-2xl";
+      }
+
+      // Renderizar o actualizar Gráficas
+      if (res.datasets) {
+        renderCharts(res.labels, res.datasets);
+      }
+
+      document.getElementById('header-status').innerText = "Base de datos lista";
+    } catch (err) {
+      console.error("Error al obtener datos:", err);
+      document.getElementById('header-status').innerText = "Error al consultar indicadores.";
+    }
+  }
+
+
+  function renderCharts(labels, datasets) {
+
+    console.log("ETIQUETAS MESES:", labels);
+    console.log("DATOS COMPLETOS:", datasets);
+
+   // --- GRÁFICA 1: TENDENCIA DE TIEMPOS VS SLA DINÁMICO (CORREGIDA) ---
+    if (chartTendenciaInstance) {
+      chartTendenciaInstance.destroy();
+    }
+
+    const ctx1 = document.getElementById('chartTendencia').getContext('2d');
+    chartTendenciaInstance = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Días promedio de disponibilidad',
+            data: datasets.promedios,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 3,
+            tension: 0.2,
+            fill: true
+          },
+          {
+            label: 'Meta SGC',
+            // Aquí usamos 'datasets.metas' que viene del servidor
+            // Si datasets.metas no existe, dibujamos una línea en 9 por defecto
+            data: datasets.metas || Array(labels.length).fill(9),
+            borderColor: '#ef4444',
+            borderWidth: 2,
+            stepped: true, // Esto crea el escalón
+            borderDash: [5, 5],
+            pointRadius: 4,
+            pointBackgroundColor: '#ef4444',
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) { label += ': '; }
+                label += context.parsed.y + ' días';
+
+                if (context.datasetIndex === 1) {
+                  const motivo = datasets.motivos[context.dataIndex];
+                  if (motivo !== "Ordinario") {
+                    label += ` ⚠️ (${motivo})`;
+                  }
+                }
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: {{ sla_ordinario }} + 2,
+            title: { display: true, text: 'Días transcurridos', font: { weight: 'bold' } }
+          }
+        }
+      }
+    });
+
+    // --- GRÁFICA 2: ESTRÉS COMBINADO (VOLUMEN EN BARRAS + % CUMPLIMIENTO EN LINEA) ---
+    if (chartEstresInstance) {
+      chartEstresInstance.destroy();
+    }
+
+    const ctx2 = document.getElementById('chartEstres').getContext('2d');
+    chartEstresInstance = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Volumen de trámites procesados',
+            data: datasets.totales,
+            backgroundColor: 'rgba(156, 163, 175, 0.3)',
+            borderColor: 'rgba(156, 163, 175, 0.5)',
+            borderWidth: 1,
+            yAxisID: 'yVolumen'
+          },
+          {
+            type: 'line',
+            label: '% Trámites dentro de Meta (SLA)',
+            data: datasets.cumplimiento,
+            borderColor: '#10b981',
+            borderWidth: 3,
+            pointBackgroundColor: '#10b981',
+            tension: 0.1,
+            yAxisID: 'yPorcentaje'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          yVolumen: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Credenciales', font: { weight: 'bold' } }
+          },
+          yPorcentaje: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            max: 100,
+            title: { display: true, text: 'Cumplimiento (%)', font: { weight: 'bold' } },
+            grid: { drawOnChartArea: false }
+          }
+        }
+      }
+    });
+  }
+
+
+</script>
+{% endblock scripts %}
