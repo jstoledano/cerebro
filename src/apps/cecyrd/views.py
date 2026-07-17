@@ -1,11 +1,13 @@
-from django.db.models import Count, Avg, Q, Case, When, Value, F, DurationField
+import calendar
+from datetime import datetime, timedelta
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Avg, Case, Count, DurationField, F, Q, Value, When
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from datetime import timedelta, datetime
-from apps.cecyrd.models import Tramite
+
+from .models import Tramite
 
 # === CONFIGURACIÓN DEL SGC ===
 SLA_ORDINARIO = 9
@@ -99,18 +101,20 @@ class DashboardDataView(LoginRequiredMixin, View):
             12: "Dic",
         }
 
-        (
-            labels,
-            totales,
-            analizados_list,
-            en_tiempo_list,
-            rezago_list,
-            cumplimiento,
-            metas,
-            motivos,
-            promedios,
-        ) = [], [], [], [], [], [], [], [], []
-        global_total, global_analizados, global_en_tiempo, global_rezago = 0, 0, 0, 0
+        labels, totales, analizados_list, en_tiempo_list, rezago_list = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
+        cumplimiento, metas, motivos, promedios = [], [], [], []
+        global_total, global_analizados, global_en_tiempo, global_rezago = (
+            0,
+            0,
+            0,
+            0,
+        )
 
         for item in stats:
             if not item["month"]:
@@ -126,13 +130,18 @@ class DashboardDataView(LoginRequiredMixin, View):
 
             mes_es = f"{MESES_ESPANOL.get(mes_dt.month, '')} {mes_dt.year}"
 
+            ultimo_dia = calendar.monthrange(mes_dt.year, mes_dt.month)[1]
+            mes_fin = mes_dt.replace(day=ultimo_dia)
+
             global_total += item["total"]
             global_analizados += item["analizados"]
             global_en_tiempo += item["en_tiempo"]
             global_rezago += item["rezago"]
 
             promedio_val = item.get("promedio")
-            promedio_dias = promedio_val.total_seconds() / 86400 if promedio_val else 0
+            promedio_dias = (
+                promedio_val.total_seconds() / 86400 if promedio_val else 0
+            )
             pct_cumplimiento = (
                 (item["en_tiempo"] / item["analizados"] * 100)
                 if item["analizados"] > 0
@@ -144,10 +153,10 @@ class DashboardDataView(LoginRequiredMixin, View):
             for p in PERIODOS_EXTRAORDINARIOS:
                 inicio_p = datetime.strptime(p["inicio"], "%Y-%m-%d").date()
                 fin_p = datetime.strptime(p["fin"], "%Y-%m-%d").date()
-                if inicio_p <= mes_dt <= fin_p:
+
+                if inicio_p <= mes_fin and fin_p >= mes_dt:
                     meta_mes = p["dias"]
                     motivo_mes = p["motivo"]
-                    break
 
             labels.append(mes_es)
             totales.append(item["total"])
@@ -187,6 +196,7 @@ class DashboardDataView(LoginRequiredMixin, View):
                 },
             }
         )
+
 
 class CargaETLView(TemplateView):
     template_name = "cecyrd/carga.html"
