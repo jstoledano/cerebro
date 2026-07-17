@@ -12,12 +12,17 @@ SLA_ORDINARIO = 9
 
 PERIODOS_EXTRAORDINARIOS = [
     {
-        "inicio": "2026-05-01",
-        "fin": "2026-08-31",
-        "dias": 30,
-        "motivo": "Cambio de impresor nacional"
+        "inicio": "2026-05-22",
+        "fin": "2026-06-10",
+        "dias": 22,
+        "motivo": "correo electrónico 220526-01",
     },
-
+    {
+        "inicio": "2026-06-11",
+        "fin": "2026-12-31",
+        "dias": 20,
+        "motivo": "correo electrónico 100626-01",
+    },
 ]
 
 
@@ -31,20 +36,19 @@ class IndexCecyrd(TemplateView):
         return context
 
 class DashboardDataView(LoginRequiredMixin, View):
-    """API que agrupa millones de registros evaluando SLAs dinámicos a prueba de balas."""
+    """API que agrupa registros evaluando SLAs dinámicos con métricas atómicas del SGC."""
 
     def get(self, request, *args, **kwargs):
         start_date = request.GET.get("start")
         end_date = request.GET.get("end")
 
-        queryset = Tramite.objects.exclude(tramo_disponible__isnull=True)
+        queryset = Tramite.objects.filter(fecha_tramite__isnull=False)
 
         if start_date:
             queryset = queryset.filter(fecha_tramite__gte=start_date)
         if end_date:
             queryset = queryset.filter(fecha_tramite__lte=end_date)
 
-        # 1. Reglas del SLA dinámico para la Base de Datos (PostgreSQL)
         whens = []
         for p in PERIODOS_EXTRAORDINARIOS:
             whens.append(
@@ -61,7 +65,6 @@ class DashboardDataView(LoginRequiredMixin, View):
             output_field=DurationField(),
         )
 
-        # 2. Agregación a nivel Base de Datos
         stats = (
             queryset.annotate(
                 meta_aplicable=meta_dinamica, month=TruncMonth("fecha_tramite")
@@ -69,48 +72,51 @@ class DashboardDataView(LoginRequiredMixin, View):
             .values("month")
             .annotate(
                 total=Count("folio"),
-                promedio=Avg("tramo_disponible"),
-                dentro_meta=Count(
+                analizados=Count("folio", filter=Q(tramo_disponible__isnull=False)),
+                en_tiempo=Count(
                     "folio", filter=Q(tramo_disponible__lte=F("meta_aplicable"))
                 ),
-                fuera_meta=Count(
+                rezago=Count(
                     "folio", filter=Q(tramo_disponible__gt=F("meta_aplicable"))
                 ),
+                promedio=Avg("tramo_disponible"),
             )
             .order_by("month")
         )
 
         MESES_ESPANOL = {
-            "Jan": "Ene",
-            "Feb": "Feb",
-            "Mar": "Mar",
-            "Apr": "Abr",
-            "May": "May",
-            "Jun": "Jun",
-            "Jul": "Jul",
-            "Aug": "Ago",
-            "Sep": "Sep",
-            "Oct": "Oct",
-            "Nov": "Nov",
-            "Dec": "Dic",
+            1: "Ene",
+            2: "Feb",
+            3: "Mar",
+            4: "Abr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Ago",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dic",
         }
 
-        labels, totales, promedios, cumplimiento, metas, motivos = (
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
-        global_total, global_dentro, global_fuera = 0, 0, 0
+        (
+            labels,
+            totales,
+            analizados_list,
+            en_tiempo_list,
+            rezago_list,
+            cumplimiento,
+            metas,
+            motivos,
+            promedios,
+        ) = [], [], [], [], [], [], [], [], []
+        global_total, global_analizados, global_en_tiempo, global_rezago = 0, 0, 0, 0
 
         for item in stats:
             if not item["month"]:
                 continue
-            raw_month = item["month"]
 
-            # EXTRACCIÓN SEGURA DE FECHA: Normalizamos a formato Date puro
+            raw_month = item["month"]
             if isinstance(raw_month, str):
                 mes_dt = datetime.strptime(raw_month[:10], "%Y-%m-%d").date()
             elif hasattr(raw_month, "date"):
@@ -118,62 +124,55 @@ class DashboardDataView(LoginRequiredMixin, View):
             else:
                 mes_dt = raw_month
 
-            # Traducción al español
-            mes_en = mes_dt.strftime("%b %Y")
-            partes = mes_en.split(" ")
-            mes_es = f"{MESES_ESPANOL.get(partes[0], partes[0])} {partes[1]}"
+            mes_es = f"{MESES_ESPANOL.get(mes_dt.month, '')} {mes_dt.year}"
 
-            total = item["total"]
-            dentro = item["dentro_meta"]
+            global_total += item["total"]
+            global_analizados += item["analizados"]
+            global_en_tiempo += item["en_tiempo"]
+            global_rezago += item["rezago"]
 
-            global_total += total
-            global_dentro += dentro
-            global_fuera += item["fuera_meta"]
-
-            promedio_dias = (
-                item["promedio"].total_seconds() / 86400 if item["promedio"] else 0
+            promedio_val = item.get("promedio")
+            promedio_dias = promedio_val.total_seconds() / 86400 if promedio_val else 0
+            pct_cumplimiento = (
+                (item["en_tiempo"] / item["analizados"] * 100)
+                if item["analizados"] > 0
+                else 0
             )
-            pct_cumplimiento = (dentro / total * 100) if total > 0 else 0
 
-            # =========================================================
-            # EVALUACIÓN DE CRISIS: ¿El mes cae en periodo extraordinario?
-            # =========================================================
             meta_mes = SLA_ORDINARIO
             motivo_mes = "Ordinario"
-
             for p in PERIODOS_EXTRAORDINARIOS:
-                inicio_dt = datetime.strptime(p["inicio"], "%Y-%m-%d").date()
-                fin_dt = datetime.strptime(p["fin"], "%Y-%m-%d").date()
-
-                # AGREGA ESTO PARA VER QUÉ ESTÁ PASANDO EN LA TERMINAL
-                print(
-                    f"DEBUG: Comparando mes={mes_dt} vs periodo={inicio_dt} a {fin_dt}"
-                )
-
-                if inicio_dt <= mes_dt <= fin_dt:
-                    print(f"DEBUG: ¡MATCH! Meta para {mes_es} es {p['dias']}")
+                inicio_p = datetime.strptime(p["inicio"], "%Y-%m-%d").date()
+                fin_p = datetime.strptime(p["fin"], "%Y-%m-%d").date()
+                if inicio_p <= mes_dt <= fin_p:
                     meta_mes = p["dias"]
                     motivo_mes = p["motivo"]
                     break
 
-            # Llenamos los arreglos para Chart.js
             labels.append(mes_es)
-            totales.append(total)
+            totales.append(item["total"])
+            analizados_list.append(item["analizados"])
+            en_tiempo_list.append(item["en_tiempo"])
+            rezago_list.append(item["rezago"])
             promedios.append(round(promedio_dias, 2))
             cumplimiento.append(round(pct_cumplimiento, 1))
-            metas.append(meta_mes)  # <--- ESTO ES LO QUE LE FALTABA AL JAVASCRIPT
-            motivos.append(motivo_mes)  # <--- EL MOTIVO PARA EL TOOLTIP
+            metas.append(meta_mes)
+            motivos.append(motivo_mes)
 
         global_pct = (
-            round((global_dentro / global_total * 100), 1) if global_total > 0 else 0
+            round((global_en_tiempo / global_analizados * 100), 1)
+            if global_analizados > 0
+            else 0
         )
 
-        # IMPORTANTE: Aseguramos que 'metas' y 'motivos' vayan en la respuesta JSON
         return JsonResponse(
             {
                 "labels": labels,
                 "datasets": {
                     "totales": totales,
+                    "analizados": analizados_list,
+                    "en_tiempo": en_tiempo_list,
+                    "rezago": rezago_list,
                     "promedios": promedios,
                     "cumplimiento": cumplimiento,
                     "metas": metas,
@@ -181,12 +180,13 @@ class DashboardDataView(LoginRequiredMixin, View):
                 },
                 "kpis": {
                     "total_tramites": global_total,
+                    "analizados": global_analizados,
+                    "en_tiempo": global_en_tiempo,
                     "porcentaje_global": global_pct,
-                    "fugas": global_fuera,
+                    "rezago": global_rezago,
                 },
             }
         )
-
 
 class CargaETLView(TemplateView):
     template_name = "cecyrd/carga.html"

@@ -55,44 +55,77 @@
     </div>
   </div>
 
-  <div class="grid gap-6 md:grid-cols-3">
-    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
-      <div class="p-3 bg-blue-100 text-blue-600 rounded-2xl">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5m-16.5 3.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18" />
-        </svg>
+  <!-- Tarjetas de Estadísticas -->
+    <div class="grid gap-6 md:grid-cols-5">
+      <!-- 4.1 Total de trámites -->
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+        <div class="p-3 bg-slate-100 text-slate-600 rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites totales</p>
+          <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-bruto">0</h3>
+        </div>
       </div>
-      <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites analizados</p>
-        <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-total">0</h3>
+
+      <!-- 4.2 Trámites analizados -->
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+        <div class="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5m-16.5 3.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites analizados</p>
+          <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-total">0</h3>
+        </div>
+      </div>
+
+      <!-- 4.3 Trámites en tiempo -->
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+        <div class="p-3 bg-indigo-100 text-indigo-600 rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites en tiempo</p>
+          <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-en-tiempo">0</h3>
+        </div>
+      </div>
+
+      <!-- 4.4 Cumplimiento de la Meta -->
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+        <div class="p-3 bg-green-100 text-green-600 rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Cumplimiento del SLA</p>
+          <h3 class="text-3xl font-black text-success mt-1" id="kpi-pct">0%</h3>
+        </div>
+      </div>
+
+      <!-- 4.5 Credenciales con rezago -->
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+        <div id="kpi-fugas-icon" class="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Credenciales con rezago</p>
+          <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-fugas">0</h3>
+        </div>
       </div>
     </div>
 
-    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
-      <div class="p-3 bg-green-100 text-green-600 rounded-2xl">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Cumplimiento de la Meta</p>
-        <h3 class="text-3xl font-black text-success mt-1" id="kpi-pct">0%</h3>
-      </div>
-    </div>
+  <!-- ./Tarjetas de Estadísticas -->
 
-    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
-      <div id="kpi-fugas-icon" class="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-        </svg>
-      </div>
-      <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites en rezago (>10 días)</p>
-        <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-fugas">0</h3>
-      </div>
-    </div>
-  </div>
-
+  <!-- Gráficas -->
   <div class="grid gap-6 lg:grid-cols-2">
     <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
       <h3 class="text-lg font-bold text-base-content mb-1">Tiempos de disponibilidad de credenciales</h3>
@@ -110,6 +143,7 @@
       </div>
     </div>
   </div>
+<!-- ./Gráficas -->
 </section>
 {% endblock content %}
 
@@ -186,13 +220,15 @@
       }
 
       // Actualizar Fichas de Indicadores (KPIs)
-      document.getElementById('kpi-total').innerText = res.kpis.total_tramites.toLocaleString();
+      document.getElementById('kpi-bruto').innerText = res.kpis.total_tramites.toLocaleString();
+      document.getElementById('kpi-total').innerText = res.kpis.analizados.toLocaleString();
       document.getElementById('kpi-pct').innerText = res.kpis.porcentaje_global + '%';
-      document.getElementById('kpi-fugas').innerText = res.kpis.fugas.toLocaleString();
+      document.getElementById('kpi-fugas').innerText = res.kpis.rezago.toLocaleString();
+      document.getElementById('kpi-en-tiempo').innerText = res.kpis.en_tiempo.toLocaleString();
 
       // Cambiar dinámicamente el color de la tarjeta de fugas si hay alertas rojas
       const fugasIcon = document.getElementById('kpi-fugas-icon');
-      if (res.kpis.fugas > 0) {
+      if (res.kpis.rezago > 0) {
         fugasIcon.className = "p-3 bg-red-100 text-error rounded-2xl";
       } else {
         fugasIcon.className = "p-3 bg-emerald-100 text-emerald-600 rounded-2xl";
@@ -211,15 +247,9 @@
   }
 
 
-  function renderCharts(labels, datasets) {
-
-    console.log("ETIQUETAS MESES:", labels);
-    console.log("DATOS COMPLETOS:", datasets);
-
-   // --- GRÁFICA 1: TENDENCIA DE TIEMPOS VS SLA DINÁMICO (CORREGIDA) ---
-    if (chartTendenciaInstance) {
-      chartTendenciaInstance.destroy();
-    }
+function renderCharts(labels, datasets) {
+    if (chartTendenciaInstance) chartTendenciaInstance.destroy();
+    if (chartEstresInstance) chartEstresInstance.destroy();
 
     const ctx1 = document.getElementById('chartTendencia').getContext('2d');
     chartTendenciaInstance = new Chart(ctx1, {
@@ -238,12 +268,10 @@
           },
           {
             label: 'Meta SGC',
-            // Aquí usamos 'datasets.metas' que viene del servidor
-            // Si datasets.metas no existe, dibujamos una línea en 9 por defecto
-            data: datasets.metas || Array(labels.length).fill(9),
+            data: datasets.metas,
             borderColor: '#ef4444',
             borderWidth: 2,
-            stepped: true, // Esto crea el escalón
+            stepped: true,
             borderDash: [5, 5],
             pointRadius: 4,
             pointBackgroundColor: '#ef4444',
@@ -261,12 +289,9 @@
                 let label = context.dataset.label || '';
                 if (label) { label += ': '; }
                 label += context.parsed.y + ' días';
-
                 if (context.datasetIndex === 1) {
                   const motivo = datasets.motivos[context.dataIndex];
-                  if (motivo !== "Ordinario") {
-                    label += ` ⚠️ (${motivo})`;
-                  }
+                  if (motivo !== "Ordinario") { label += ` ⚠️ (${motivo})`; }
                 }
                 return label;
               }
@@ -276,17 +301,11 @@
         scales: {
           y: {
             beginAtZero: true,
-            suggestedMax: {{ sla_ordinario }} + 2,
             title: { display: true, text: 'Días transcurridos', font: { weight: 'bold' } }
           }
         }
       }
     });
-
-    // --- GRÁFICA 2: ESTRÉS COMBINADO (VOLUMEN EN BARRAS + % CUMPLIMIENTO EN LINEA) ---
-    if (chartEstresInstance) {
-      chartEstresInstance.destroy();
-    }
 
     const ctx2 = document.getElementById('chartEstres').getContext('2d');
     chartEstresInstance = new Chart(ctx2, {
@@ -295,17 +314,31 @@
         labels: labels,
         datasets: [
           {
-            type: 'bar',
-            label: 'Volumen de trámites procesados',
+            label: 'Trámites totales',
             data: datasets.totales,
-            backgroundColor: 'rgba(156, 163, 175, 0.3)',
-            borderColor: 'rgba(156, 163, 175, 0.5)',
+            backgroundColor: 'rgba(148, 163, 184, 0.4)',
+            borderColor: 'rgba(148, 163, 184, 0.6)',
             borderWidth: 1,
+            stack: 'GrupoTotal',
+            yAxisID: 'yVolumen'
+          },
+          {
+            label: 'En tiempo',
+            data: datasets.en_tiempo,
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            stack: 'GrupoAnalizado',
+            yAxisID: 'yVolumen'
+          },
+          {
+            label: 'Con rezago',
+            data: datasets.rezago,
+            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            stack: 'GrupoAnalizado',
             yAxisID: 'yVolumen'
           },
           {
             type: 'line',
-            label: '% Trámites dentro de Meta (SLA)',
+            label: '% Cumplimiento de Meta',
             data: datasets.cumplimiento,
             borderColor: '#10b981',
             borderWidth: 3,
@@ -323,7 +356,7 @@
             type: 'linear',
             position: 'left',
             beginAtZero: true,
-            title: { display: true, text: 'Credenciales', font: { weight: 'bold' } }
+            title: { display: true, text: 'Volumen de Trámites', font: { weight: 'bold' } }
           },
           yPorcentaje: {
             type: 'linear',
@@ -337,7 +370,6 @@
       }
     });
   }
-
 
 </script>
 {% endblock scripts %}
