@@ -2,11 +2,11 @@
 {% load sgc %}
 
 {% active request '^/$' as home_active %}
-{% active request '^/(cecyrd|pusinex|kpi|vozmac)/' as indicadores_active %}
-{% active request '(/docs/|/pmml/)' as docs_active %}
-{% active request '^/pas/' as pas_active %}
-{% active request '^/ideas/' as ideas_active %}
-{% active request '^/cartografia/' as cartografia_active %}
+{% active request '^/(cecyrd|pusinex|kpi|vozmac)(/|$)' as indicadores_active %}
+{% active request '^/(docs|pmml)(/|$)' as docs_active %}
+{% active request '^/pas(/|$)' as pas_active %}
+{% active request '^/ideas(/|$)' as ideas_active %}
+{% active request '^/cartografia(/|$)' as cartografia_active %}
 
 <li>
   <a class="flex items-center gap-2 {{ home_active }} {% if home_active %}is-active{% endif %}" href="{% url 'index' %}" {% if home_active %}aria-current="page" {% endif %}>
@@ -18,7 +18,7 @@
 </li>
 <li class="lg:relative">
   <details>
-    <summary class="flex items-center gap-2 {% if indicadores_active %}active is-active font-semibold{% endif %}">
+    <summary class="flex items-center gap-2 transition-all {% if indicadores_active %}active is-active bg-gradient-to-r from-primary to-secondary text-primary-content rounded-btn font-semibold shadow-md{% endif %}">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
       </svg>
@@ -26,7 +26,7 @@
     </summary>
     <ul class="menu menu-sm bg-base-100 rounded-box shadow-lg p-2 mt-2 lg:absolute lg:left-0 lg:top-full lg:mt-2 lg:w-72 lg:z-20">
       <li>
-        <a class="flex items-center gap-2" href="#">
+        <a class="flex items-center gap-2" href="{% url 'cecyrd:index' %}">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
             <path d="M15.98 1.804a1 1 0 00-1.96 0l-.24 1.192a2.5 2.5 0 01-1.984 1.984l-1.192.24a1 1 0 000 1.96l1.192.24a2.5 2.5 0 011.984 1.984l.24 1.192a1 1 0 001.96 0l.24-1.192a2.5 2.5 0 011.984-1.984l1.192-.24a1 1 0 000-1.96l-1.192-.24a2.5 2.5 0 01-1.984-1.984l-.24-1.192zM6.81 3.81a1.5 1.5 0 00-2.82 0l-.88 4.41a3.75 3.75 0 01-2.98 2.98l-4.41.88a1.5 1.5 0 000 2.82l4.41.88a3.75 3.75 0 012.98 2.98l.88 4.41a1.5 1.5 0 002.82 0l.88-4.41a3.75 3.75 0 012.98-2.98l4.41-.88a1.5 1.5 0 000-2.82l-4.41-.88a3.75 3.75 0 01-2.98-2.98l-.88-4.41z" />
           </svg>
@@ -38,7 +38,7 @@
 </li>
 <li class="lg:relative">
   <details>
-    <summary class="flex items-center gap-2 {{ docs_active }} {% if docs_active %}is-active{% endif %}">
+    <summary class="flex items-center gap-2 transition-all {% if docs_active %}active is-active bg-gradient-to-r from-primary to-secondary text-primary-content rounded-btn font-semibold shadow-md{% endif %}">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
       </svg>
