@@ -143,6 +143,11 @@
             border-bottom: 1px solid #000;
             margin: 0 auto 8px auto;
         }
+        .footnote {
+            font-size: 0.75rem;       /* Equivalente a letra small / extra small */
+            color: #4b5563;           /* Gris oscuro neutral */
+            margin-bottom: 1rem;      /* Margen inferior equivalente a mb-4 */
+        }
     </style>
 </head>
 <body>
@@ -168,7 +173,7 @@
             </div>
             <div class="kpi-box">
                 <div class="kpi-value">{{ revision.analizados | intcomma }}</div>
-                <div class="kpi-label">Trámites con CPV Disponible</div>
+                <div class="kpi-label">Trámites analizados<sup>1</sup></div>
             </div>
             <div class="kpi-box">
                 <div class="kpi-value">{{ revision.porcentaje_global }}%</div>
@@ -188,6 +193,12 @@
                 <div class="kpi-label">Recibidas con Retraso</div>
             </div>
         </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-row footnote">
+        <sup>1</sup> Trámites con credencial disponible, en tiempo o con retraso.
+      </div>
     </div>
 
     <div class="section-title">2. Evidencia Gráfica de Tendencia y Volumen</div>
