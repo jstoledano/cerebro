@@ -486,7 +486,7 @@
 
       return ctxTrama.createPattern(canvasTrama, 'repeat');
     }
-    const patronRetraso = crearTramaRayada();
+    // const patronRetraso = crearTramaRayada();
 
     const ctx1 = document.getElementById('chartTendencia').getContext('2d');
     chartTendenciaInstance = new Chart(ctx1, {
@@ -544,72 +544,183 @@
       }
     });
 
-    const ctx2 = document.getElementById('chartEstres').getContext('2d');
-    chartEstresInstance = new Chart(ctx2, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Trámites totales',
-            data: datasets.totales,
-            backgroundColor: 'rgba(148, 163, 184, 0.4)',
-            borderColor: 'rgba(148, 163, 184, 0.6)',
-            borderWidth: 1,
-            stack: 'GrupoTotal',
-            yAxisID: 'yVolumen'
-          },
-          {
-            label: 'Recibidas en tiempo',
-            data: datasets.en_tiempo,
-            backgroundColor: '#d1d5db',
-            borderColor: '#9ca3af',
-            borderWidth: 1,
-            stack: 'GrupoAnalizado',
-            yAxisID: 'yVolumen'
-          },
-          {
-            label: 'Recibidas con retraso',
-            data: datasets.rezago,
-            backgroundColor: patronRetraso,
-            borderColor: '#3f3f46',
-            borderWidth: 1,
-            stack: 'GrupoAnalizado',
-            yAxisID: 'yVolumen'
-          },
-          {
-            type: 'line',
-            label: '% Cumplimiento de Meta',
-            data: datasets.cumplimiento,
-            borderColor: '#10b981',
-            borderWidth: 3,
-            pointBackgroundColor: '#10b981',
-            tension: 0.1,
-            yAxisID: 'yPorcentaje'
-          }
-        ]
+    // Patrón rojo para los trámites recibidos con retraso
+function crearTramaRayada() {
+  const canvasTrama = document.createElement('canvas');
+  canvasTrama.width = 12;
+  canvasTrama.height = 12;
+
+  const ctxTrama = canvasTrama.getContext('2d');
+
+  // Fondo rojo claro
+  ctxTrama.fillStyle = '#fee2e2';
+  ctxTrama.fillRect(0, 0, 12, 12);
+
+  // Líneas diagonales rojas
+  ctxTrama.strokeStyle = '#dc2626';
+  ctxTrama.lineWidth = 2;
+
+  ctxTrama.beginPath();
+
+  // Se dibujan varias líneas para que el patrón continúe sin cortes
+  ctxTrama.moveTo(-3, 3);
+  ctxTrama.lineTo(3, -3);
+
+  ctxTrama.moveTo(-3, 15);
+  ctxTrama.lineTo(15, -3);
+
+  ctxTrama.moveTo(9, 15);
+  ctxTrama.lineTo(15, 9);
+
+  ctxTrama.stroke();
+
+  return ctxTrama.createPattern(canvasTrama, 'repeat');
+}
+
+const patronRetraso = crearTramaRayada();
+
+const ctx2 = document
+  .getElementById('chartEstres')
+  .getContext('2d');
+
+chartEstresInstance = new Chart(ctx2, {
+  type: 'bar',
+
+  data: {
+    labels: labels,
+
+    datasets: [
+      {
+        label: 'Trámites totales',
+        data: datasets.totales,
+
+        // Rosa intenso
+        backgroundColor: 'rgba(219, 39, 119, 0.72)',
+        borderColor: '#9d174d',
+        hoverBackgroundColor: 'rgba(219, 39, 119, 0.88)',
+        hoverBorderColor: '#831843',
+
+        borderWidth: 2,
+        borderRadius: 3,
+        borderSkipped: false,
+
+        stack: 'GrupoTotal',
+        yAxisID: 'yVolumen',
+
+        order: 1
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          yVolumen: {
-            type: 'linear',
-            position: 'left',
-            beginAtZero: true,
-            title: { display: true, text: 'Volumen de Trámites', font: { weight: 'bold' } }
-          },
-          yPorcentaje: {
-            type: 'linear',
-            position: 'right',
-            beginAtZero: true,
-            max: 100,
-            title: { display: true, text: 'Cumplimiento (%)', font: { weight: 'bold' } },
-            grid: { drawOnChartArea: false }
+
+      {
+        label: 'Recibidas en tiempo',
+        data: datasets.en_tiempo,
+
+        // Violeta institucional
+        backgroundColor: 'rgba(124, 58, 237, 0.68)',
+        borderColor: '#5b21b6',
+        hoverBackgroundColor: 'rgba(124, 58, 237, 0.85)',
+        hoverBorderColor: '#4c1d95',
+
+        borderWidth: 2,
+        borderRadius: 3,
+        borderSkipped: false,
+
+        stack: 'GrupoAnalizado',
+        yAxisID: 'yVolumen',
+
+        order: 1
+      },
+
+      {
+        label: 'Recibidas con retraso',
+        data: datasets.rezago,
+
+        // Fondo claro con líneas diagonales rojas
+        backgroundColor: patronRetraso,
+        borderColor: '#b91c1c',
+        hoverBorderColor: '#991b1b',
+
+        borderWidth: 2,
+        borderRadius: 3,
+        borderSkipped: false,
+
+        stack: 'GrupoAnalizado',
+        yAxisID: 'yVolumen',
+
+        order: 1
+      },
+
+      {
+        type: 'line',
+        label: '% Cumplimiento de Meta',
+        data: datasets.cumplimiento,
+
+        // Verde reservado para cumplimiento
+        borderColor: '#059669',
+        backgroundColor: '#059669',
+
+        borderWidth: 3,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#059669',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+
+        tension: 0.1,
+        fill: false,
+
+        yAxisID: 'yPorcentaje',
+
+        order: 0
+      }
+    ]
+  },
+
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+
+    scales: {
+      yVolumen: {
+        type: 'linear',
+        position: 'left',
+        beginAtZero: true,
+
+        title: {
+          display: true,
+          text: 'Volumen de Trámites',
+          font: {
+            weight: 'bold'
           }
         }
+      },
+
+      yPorcentaje: {
+        type: 'linear',
+        position: 'right',
+        beginAtZero: true,
+        max: 100,
+
+        title: {
+          display: true,
+          text: 'Cumplimiento (%)',
+          font: {
+            weight: 'bold'
+          }
+        },
+
+        grid: {
+          drawOnChartArea: false
+        }
       }
-    });
+    }
+  }
+});
+
   }
 </script>
 {% endblock scripts %}
