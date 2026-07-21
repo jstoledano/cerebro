@@ -1,64 +1,31 @@
 from django import forms
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Div, HTML, Field, Button
-from crispy_forms.bootstrap import FormActions
-from apps.pusinex.models import Pusinex, Seccion
-import logging
-
-logger = logging.getLogger(__name__)
-
+from apps.pusinex.models import Pusinex, Seccion, Municipio
 
 class PUSINEXForm(forms.ModelForm):
-    municipio = forms.IntegerField(min_value=1, max_value=60,
-                                   widget=forms.Select(attrs={'class': 'select form-select'}))
-    seccion = forms.IntegerField(min_value=1, max_value=645,
-                                 widget=forms.Select(attrs={'class': 'select form-select'}))
-    f_act = forms.DateField(label='Fecha de Actualización', widget=forms.DateInput(attrs={'type': 'date'}))
-    hojas = forms.IntegerField(min_value=1)
-    archivo = forms.FileField()
-    observaciones = forms.CharField(widget=forms.Textarea, required=False)
+    # Campo auxiliar (no pertenece al modelo) para el filtro en cascada
+    municipio_filtro = forms.ModelChoiceField(
+        queryset=Municipio.objects.all(),
+        required=False,
+        label="Municipio",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full', 'id': 'filtro_municipio'})
+    )
 
     class Meta:
-        exclude = ('user', )
         model = Pusinex
-
-    def __init__(self, *args, **kwargs):
-        super(PUSINEXForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout (
-            Div(
-            Field('municipio', wrapper_class='col-5'),
-                Field('seccion', wrapper_class='col-2 mb-4'),
-                css_class='row'
-            ),
-            Div(
-
-                Field('f_act', wrapper_class='col-4'),
-                Field('hojas', wrapper_class='col-3'),
-                css_class='row'
-            ),
-            Div(
-                Field('archivo', wrapper_class='col-10 mb-2'),
-                css_class='row'
-            ),
-            Div(
-                Field('observaciones', wrapper_class='col-md-10', rows='3'),
-                css_class='row'
-            ),
-            Div(
-                HTML('<hr>'),
-                FormActions(
-                    Submit('save', 'Guardar cambios'),
-                    Button('cancel', 'Cancelar')
-                ),
-                css_class='modal-footer'
-            )
-        )
+        exclude = ('user', )
+        widgets = {
+            'seccion': forms.Select(attrs={'class': 'select select-bordered w-full', 'id': 'id_seccion'}),
+            'f_act': forms.DateInput(attrs={'type': 'date', 'class': 'input input-bordered w-full'}),
+            'hojas': forms.NumberInput(attrs={'class': 'input input-bordered w-full', 'min': '1'}),
+            'archivo': forms.FileInput(attrs={'class': 'file-input file-input-bordered file-input-primary w-full'}),
+            'observaciones': forms.Textarea(attrs={'class': 'textarea textarea-bordered w-full', 'rows': '3'}),
+        }
 
     def clean_seccion(self):
-        seccion_id = int(self.cleaned_data['seccion'])
-        try:
-            seccion_instance = Seccion.objects.get(seccion=seccion_id)
-        except Seccion.DoesNotExist:
-            raise forms.ValidationError("La sección especificada no existe")
+        seccion_instance = self.cleaned_data.get('seccion')
+        if seccion_instance:
+            if not seccion_instance.activa:
+                raise forms.ValidationError("No se puede subir un PUSINEX a una sección inactiva (Reseccionada).")
+            if seccion_instance.tipo >= 4:
+                raise forms.ValidationError("Los PUSINEX solo aplican para secciones Urbanas o Mixtas.")
         return seccion_instance

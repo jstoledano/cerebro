@@ -13,7 +13,7 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView
 
 from .forms import PUSINEXForm
-from .models import Entidad, Distrito, Municipio, Seccion, Pusinex, Manzana
+from .models import Entidad, Distrito, Municipio, Seccion, Pusinex
 
 TLAXCALA = 29
 
@@ -29,12 +29,26 @@ class Index(ListView):
         entidad = Entidad.objects.get(entidad=TLAXCALA)
         distritos = Distrito.objects.filter(entidad=entidad)
 
-        context["entidad_geojson"] = serialize(
-            "geojson", [entidad], geometry_field="geom", fields=("entidad", "nombre")
+        # --- CÁLCULO DE ESTADÍSTICAS ESTATALES ---
+        # Sumamos el padrón y lista nominal de todas las secciones activas
+        totales = Seccion.objects.filter(activa=True).aggregate(
+            padron=Sum('pe'),
+            nominal=Sum('ln')
         )
-        context["distritos_geojson"] = serialize(
-            "geojson", distritos, geometry_field="geom", fields=("distrito",)
-        )
+        secciones_conteo = Seccion.objects.filter(activa=True).count()
+
+        context.update({
+            "entidad_geojson": serialize(
+                "geojson", [entidad], geometry_field="geom", fields=("entidad", "nombre")
+            ),
+            "distritos_geojson": serialize(
+                "geojson", distritos, geometry_field="geom", fields=("distrito",)
+            ),
+            # Nuevas variables para la plantilla
+            "secciones_conteo": secciones_conteo,
+            "padron_total": totales['padron'] or 0,
+            "lista_nominal_total": totales['nominal'] or 0,
+        })
 
         return context
 
@@ -219,6 +233,7 @@ class DistritoDetail(DetailView):
 
             return context
 
+
 class MunicipioDetail(DetailView):
     model = Municipio
     context_object_name = "municipio"
@@ -266,23 +281,34 @@ class MunicipioDetail(DetailView):
 
 
 class CreatePUSINEX(LoginRequiredMixin, CreateView):
-    template_name = 'pusinex/pusinex_form.html'
+    template_name = "pusinex/pusinex_form.html"
     form_class = PUSINEXForm
     model = Pusinex
-    login_url = reverse_lazy('login')
-    redirect_field_name = 'next'
+    success_url = reverse_lazy(
+        "pusinex:bgd"
+    )  # Redirige al panel de administración al guardar
 
-    def form_invalid(self, form):
-        return super(CreatePUSINEX, self).form_invalid(form)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # MAGIA: Pre-cargamos la relación Municipio -> Secciones activas y urbanas en un JSON
+        secciones_validas = Seccion.objects.filter(activa=True, tipo__lt=4).values(
+            "municipio_id", "seccion"
+        )
+        diccionario_secciones = {}
+        for s in secciones_validas:
+            m_id = s["municipio_id"]
+            if m_id not in diccionario_secciones:
+                diccionario_secciones[m_id] = []
+            diccionario_secciones[m_id].append(s["seccion"])
+
+        context["secciones_json"] = json.dumps(diccionario_secciones)
+        return context
 
     def form_valid(self, form):
         revision = form.save(commit=False)
         revision.user = self.request.user
         revision.save()
-        return super(CreatePUSINEX, self).form_valid(form)
-
-    def get_success_url(self):
-        return reverse('municipio', kwargs={'pk': self.object.__dict__['municipio'].id})
+        return super().form_valid(form)
 
 
 class Administration(TemplateView):
@@ -351,20 +377,34 @@ class VNMZipView(View):
 
 
 class PUSINEXZip(LoginRequiredMixin, View):
-    @staticmethod
-    def get(request):
-        files = []
-        zip_name = Path('media', 'pusinex', '29_pusinex.zip')
-        zip_archive = zipfile.ZipFile(zip_name, mode='w', compression=zipfile.ZIP_DEFLATED, compresslevel=9)
-        for p in paquete_total:
-            try:
-                files.append(p.pusinex_set.latest().archivo.path)
-            except Pusinex.DoesNotExist:
-                pass
-        with zip_archive as archive:
-            for file in files:
-                archive.write(file, arcname=Path(file).name)
-        return FileResponse(open(zip_name, 'rb'))
+    """Genera un ZIP al vuelo exclusivamente con el PUSINEX más reciente de secciones activas y urbanas."""
+
+    def get(self, request):
+        zip_name = Path("media", "pusinex", "29_pusinex_completo.zip")
+
+        # Aseguramos que la carpeta exista antes de crear el zip
+        os.makedirs(zip_name.parent, exist_ok=True)
+
+        secciones_validas = Seccion.objects.filter(tipo__lt=4, activa=True)
+
+        with zipfile.ZipFile(
+            zip_name, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+        ) as archive:
+            for s in secciones_validas:
+                try:
+                    # Obtenemos solo el último plano subido para esta sección
+                    ultimo_p = s.pusinex_set.latest("f_act")
+                    if ultimo_p.archivo and os.path.exists(ultimo_p.archivo.path):
+                        archive.write(
+                            ultimo_p.archivo.path,
+                            arcname=Path(ultimo_p.archivo.path).name,
+                        )
+                except Pusinex.DoesNotExist:
+                    continue
+
+        return FileResponse(
+            open(zip_name, "rb"), as_attachment=True, filename="29_pusinex_oficial.zip"
+        )
 
 
 YEAR_LATEST_PUSINEX = 2024

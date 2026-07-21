@@ -26,5 +26,8 @@ urlpatterns = [
     path('bgd/', Administration.as_view(), name='bgd'),
     path('paquete/', PUSINEXZip.as_view(), name='paquete'),
     path('latest/', PUSINEXLastUpdate.as_view(), name='latest'),
+    path('gestion/', Administration.as_view(), name='bgd'),
+    path('gestion/nuevo/', CreatePUSINEX.as_view(), name='create'),
+    path('gestion/descargar-paquete/', PUSINEXZip.as_view(), name='paquete'),
     path('', Index.as_view(), name='index')
 ]
