@@ -55,9 +55,7 @@
     </div>
   </div>
 
-  <!-- Tarjetas de Estadísticas -->
-    <div class="grid gap-6 md:grid-cols-5">
-      <!-- 4.1 Total de trámites -->
+  <div class="grid gap-6 md:grid-cols-5">
       <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
         <div class="p-3 bg-slate-100 text-slate-600 rounded-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
@@ -70,7 +68,6 @@
         </div>
       </div>
 
-      <!-- 4.2 Trámites analizados -->
       <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
         <div class="p-3 bg-blue-100 text-blue-600 rounded-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
@@ -78,12 +75,13 @@
           </svg>
         </div>
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámites analizados</p>
+          <div class="tooltip tooltip-bottom tooltip-primary before:text-xs before:max-w-xs" data-tip="Trámites con credencial disponible, en tiempo o con retraso">
+            <p class="text-xs font-bold uppercase tracking-wider text-base-content/50 border-b border-dashed border-base-content/40 cursor-help inline-block pb-0.5">Trámites analizados *</p>
+          </div>
           <h3 class="text-3xl font-black text-base-content mt-1" id="kpi-total">0</h3>
         </div>
       </div>
 
-      <!-- 4.3 Trámites en tiempo -->
       <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
         <div class="p-3 bg-indigo-100 text-indigo-600 rounded-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
@@ -96,7 +94,6 @@
         </div>
       </div>
 
-      <!-- 4.4 Cumplimiento de la Meta -->
       <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
         <div class="p-3 bg-green-100 text-green-600 rounded-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
@@ -109,7 +106,6 @@
         </div>
       </div>
 
-      <!-- 4.5 Credenciales con rezago -->
       <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
         <div id="kpi-fugas-icon" class="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
@@ -122,10 +118,6 @@
         </div>
       </div>
     </div>
-
-  <!-- ./Tarjetas de Estadísticas -->
-
-  <!-- Gráficas -->
   <div class="grid gap-6 lg:grid-cols-2">
     <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
       <h3 class="text-lg font-bold text-base-content mb-1">Tiempos de disponibilidad de credenciales</h3>
@@ -143,7 +135,81 @@
       </div>
     </div>
   </div>
-<!-- ./Gráficas -->
+  <div id="seccion-revision-direccion" class="hidden mt-6 grid gap-6 md:grid-cols-3">
+    <div class="md:col-span-2 space-y-6">
+
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6">
+        <h4 class="font-bold text-lg text-base-content flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-primary"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" /></svg>
+          Conclusiones del Responsable
+        </h4>
+
+        {% if perms.cecyrd.change_revisiondireccion %}
+          <form id="form-conclusiones" action="" method="POST" class="mt-3">
+            {% csrf_token %}
+            <textarea id="txt-conclusiones" name="conclusiones" class="textarea textarea-bordered w-full h-32 focus:textarea-primary" placeholder="Escriba las conclusiones analíticas para el SGC..."></textarea>
+            <div class="flex justify-end mt-2">
+              <button type="submit" class="btn btn-primary btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Guardar Observaciones
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <p id="lbl-conclusiones" class="text-base-content/80 mt-3 whitespace-pre-line bg-base-200/50 p-4 rounded-xl border border-base-300">
+            Sin conclusiones registradas para este periodo.
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6">
+        <h4 class="font-bold text-lg text-base-content flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-secondary"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+          Recomendaciones y Acciones de Mejora
+        </h4>
+
+        {% if perms.cecyrd.change_revisiondireccion %}
+          <form id="form-recomendaciones" action="" method="POST" class="mt-3">
+            {% csrf_token %}
+            <textarea id="txt-recomendaciones" name="recomendaciones" class="textarea textarea-bordered w-full h-32 focus:textarea-secondary" placeholder="Escriba las acciones correctivas o de mejora continua..."></textarea>
+            <div class="flex justify-end mt-2">
+              <button type="submit" class="btn btn-secondary btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Guardar Acciones
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <p id="lbl-recomendaciones" class="text-base-content/80 mt-3 whitespace-pre-line bg-base-200/50 p-4 rounded-xl border border-base-300">
+            Sin recomendaciones registradas para este periodo.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="md:col-span-1">
+      <div class="card border border-base-300 bg-base-100 shadow-md p-6 text-center justify-between h-full">
+        <div>
+          <div class="p-4 bg-red-50 text-error rounded-2xl w-16 h-16 mx-auto flex items-center justify-center mb-4 border border-red-100">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z" /></svg>
+          </div>
+          <h4 class="font-black text-xl text-base-content">Expediente Oficial PDF</h4>
+          <p class="text-xs text-base-content/60 mt-1 px-4">
+            Fotografía institucional inmutable del periodo. Certificado por el CMI para auditorías del SGC.
+          </p>
+        </div>
+
+        <div class="mt-6">
+          <a id="btn-descarga-pdf" href="#" target="_blank" class="btn btn-error text-white btn-block shadow-md gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            Descargar Informe General
+          </a>
+          <span class="text-[10px] text-base-content/40 block mt-2">Acceso público autorizado bajo la Norma ISO 9001</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </section>
 {% endblock content %}
 
@@ -153,19 +219,41 @@
 <script>
   let chartTendenciaInstance = null;
   let chartEstresInstance = null;
+  let currentPeriodoId = null;
+  let currentKPIs = {};
 
-  // Al cargar la página, ejecutar consulta inicial del Histórico
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     fetchDashboardData(null, null, 'global');
+
+    const formConclusiones = document.getElementById('form-conclusiones');
+    const formRecomendaciones = document.getElementById('form-recomendaciones');
+
+    if (formConclusiones) formConclusiones.addEventListener('submit', guardarRevision);
+    if (formRecomendaciones) formRecomendaciones.addEventListener('submit', guardarRevision);
   });
 
-  // Manejador del cambio de Pestañas
   function cambiarFiltro(tipo) {
-    // Gestionar clases activas de los botones de pestañas
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
     document.getElementById(`tab-${tipo}`).classList.add('tab-active');
 
     const filterPanel = document.getElementById('custom-filter-panel');
+    const seccionRevision = document.getElementById('seccion-revision-direccion');
+
     if (tipo === 'custom') {
       filterPanel.classList.remove('hidden');
     } else {
@@ -184,6 +272,12 @@
 
       fetchDashboardData(start, end, tipo);
     }
+
+    if (tipo === 'sem1' || tipo === 'sem2') {
+      seccionRevision.classList.remove('hidden');
+    } else {
+      seccionRevision.classList.add('hidden');
+    }
   }
 
   function ejecutarFiltroPersonalizado() {
@@ -192,41 +286,55 @@
     fetchDashboardData(start, end, 'custom');
   }
 
-
-// Petición asíncrona al Motor Estadístico de Django
   async function fetchDashboardData(start, end, tipoTab) {
     document.getElementById('header-status').innerText = "Masticando millones de filas...";
 
     let url = "{% url 'cecyrd:api_dashboard' %}";
+
+    currentPeriodoId = null;
+    if (tipoTab === 'sem1') currentPeriodoId = 'sem1_2026';
+    else if (tipoTab === 'sem2') currentPeriodoId = 'sem2_2026';
+
+    const params = new URLSearchParams();
     if (start && end) {
-      url += `?start=${start}&end=${end}`;
+      params.append('start', start);
+      params.append('end', end);
+    }
+    if (currentPeriodoId) {
+      params.append('periodo', currentPeriodoId);
+    }
+    if (params.toString()) {
+      url += `?${params.toString()}`;
     }
 
     try {
       const response = await fetch(url);
       const res = await response.json();
 
-      // LÓGICA DE VISIBILIDAD BIDIRECCIONAL:
-      // Si hay datos en el segundo semestre, muestra la pestaña; si no, la oculta.
+      currentKPIs = {
+        total_tramites: res.kpis.total_tramites,
+        analizados: res.kpis.analizados,
+        en_tiempo: res.kpis.en_tiempo,
+        rezago: res.kpis.rezago,
+        porcentaje_global: res.kpis.porcentaje_global
+      };
+
       const tabSem2 = document.getElementById('tab-sem2');
       const tieneDatosSegundoSemestre = res.labels.some(l =>
         ["Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].some(m => l.startsWith(m))
       );
-
       if (tieneDatosSegundoSemestre) {
         tabSem2.classList.remove('hidden');
       } else {
         tabSem2.classList.add('hidden');
       }
 
-      // Actualizar Fichas de Indicadores (KPIs)
       document.getElementById('kpi-bruto').innerText = res.kpis.total_tramites.toLocaleString();
       document.getElementById('kpi-total').innerText = res.kpis.analizados.toLocaleString();
       document.getElementById('kpi-pct').innerText = res.kpis.porcentaje_global + '%';
       document.getElementById('kpi-fugas').innerText = res.kpis.rezago.toLocaleString();
       document.getElementById('kpi-en-tiempo').innerText = res.kpis.en_tiempo.toLocaleString();
 
-      // Cambiar dinámicamente el color de la tarjeta de fugas si hay alertas rojas
       const fugasIcon = document.getElementById('kpi-fugas-icon');
       if (res.kpis.rezago > 0) {
         fugasIcon.className = "p-3 bg-red-100 text-error rounded-2xl";
@@ -234,7 +342,37 @@
         fugasIcon.className = "p-3 bg-emerald-100 text-emerald-600 rounded-2xl";
       }
 
-      // Renderizar o actualizar Gráficas
+      if (tipoTab === 'sem1' || tipoTab === 'sem2') {
+        const txtConclusiones = document.getElementById('txt-conclusiones');
+        const txtRecomendaciones = document.getElementById('txt-recomendaciones');
+        const lblConclusiones = document.getElementById('lbl-conclusiones');
+        const lblRecomendaciones = document.getElementById('lbl-recomendaciones');
+        const btnDescarga = document.getElementById('btn-descarga-pdf');
+
+        if(txtConclusiones) txtConclusiones.value = "";
+        if(txtRecomendaciones) txtRecomendaciones.value = "";
+        if(lblConclusiones) lblConclusiones.innerText = "Sin conclusiones registradas para este periodo.";
+        if(lblRecomendaciones) lblRecomendaciones.innerText = "Sin recomendaciones registradas para este periodo.";
+
+        if(btnDescarga) {
+            btnDescarga.href = "#";
+            btnDescarga.classList.add("btn-disabled", "opacity-50");
+        }
+
+        if (res.revision) {
+            if(txtConclusiones) txtConclusiones.value = res.revision.conclusiones || "";
+            if(txtRecomendaciones) txtRecomendaciones.value = res.revision.recomendaciones || "";
+            if(lblConclusiones && res.revision.conclusiones) lblConclusiones.innerText = res.revision.conclusiones;
+            if(lblRecomendaciones && res.revision.recomendaciones) lblRecomendaciones.innerText = res.revision.recomendaciones;
+
+            if (res.revision.pdf_url && btnDescarga) {
+                // Truco para evitar la caché del navegador al descargar el PDF
+                btnDescarga.href = res.revision.pdf_url + '?v=' + new Date().getTime();
+                btnDescarga.classList.remove("btn-disabled", "opacity-50");
+            }
+        }
+      }
+
       if (res.datasets) {
         renderCharts(res.labels, res.datasets);
       }
@@ -246,10 +384,109 @@
     }
   }
 
+  async function guardarRevision(event) {
+    event.preventDefault();
 
-function renderCharts(labels, datasets) {
+    if (!currentPeriodoId) {
+      alert("Seleccione un periodo semestral válido.");
+      return;
+    }
+
+    const txtConclusiones = document.getElementById('txt-conclusiones');
+    const txtRecomendaciones = document.getElementById('txt-recomendaciones');
+
+    let imgTendencia = "";
+    let imgEstres = "";
+
+    if (chartTendenciaInstance) {
+        const canvas = document.getElementById('chartTendencia');
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        imgTendencia = chartTendenciaInstance.toBase64Image();
+        ctx.restore();
+    }
+
+    if (chartEstresInstance) {
+        const canvas = document.getElementById('chartEstres');
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        imgEstres = chartEstresInstance.toBase64Image();
+        ctx.restore();
+    }
+
+    const payload = {
+      periodo: currentPeriodoId,
+      conclusiones: txtConclusiones ? txtConclusiones.value : '',
+      recomendaciones: txtRecomendaciones ? txtRecomendaciones.value : '',
+      kpis: currentKPIs,
+      grafica_tendencia: imgTendencia,
+      grafica_estres: imgEstres
+    };
+
+    const csrfToken = getCookie('csrftoken');
+    const botonSubmit = event.target.querySelector('button[type="submit"]');
+    const textoOriginal = botonSubmit.innerHTML;
+
+    botonSubmit.innerHTML = "Guardando...";
+    botonSubmit.disabled = true;
+
+    try {
+      const response = await fetch("{% url 'cecyrd:api_guardar_revision' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("✅ " + data.message);
+      } else {
+        alert("❌ Error al guardar: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error al enviar revisión:", error);
+      alert("❌ Ocurrió un error de red al intentar guardar.");
+    } finally {
+      botonSubmit.innerHTML = textoOriginal;
+      botonSubmit.disabled = false;
+    }
+  }
+
+  function renderCharts(labels, datasets) {
     if (chartTendenciaInstance) chartTendenciaInstance.destroy();
     if (chartEstresInstance) chartEstresInstance.destroy();
+
+    // 1. GENERADOR DE TRAMA RAYADA PARA IMPRESIÓN
+    function crearTramaRayada() {
+      const canvasTrama = document.createElement('canvas');
+      canvasTrama.width = 10;
+      canvasTrama.height = 10;
+      const ctxTrama = canvasTrama.getContext('2d');
+
+      // Fondo gris oscuro
+      ctxTrama.fillStyle = '#52525b';
+      ctxTrama.fillRect(0, 0, 10, 10);
+
+      // Línea diagonal blanca
+      ctxTrama.strokeStyle = '#ffffff';
+      ctxTrama.lineWidth = 2;
+      ctxTrama.beginPath();
+      ctxTrama.moveTo(0, 10);
+      ctxTrama.lineTo(10, 0);
+      ctxTrama.stroke();
+
+      return ctxTrama.createPattern(canvasTrama, 'repeat');
+    }
+    const patronRetraso = crearTramaRayada();
 
     const ctx1 = document.getElementById('chartTendencia').getContext('2d');
     chartTendenciaInstance = new Chart(ctx1, {
@@ -289,9 +526,9 @@ function renderCharts(labels, datasets) {
                 let label = context.dataset.label || '';
                 if (label) { label += ': '; }
                 label += context.parsed.y + ' días';
-                if (context.datasetIndex === 1) {
+                if (context.datasetIndex === 1 && datasets.motivos) {
                   const motivo = datasets.motivos[context.dataIndex];
-                  if (motivo !== "Ordinario") { label += ` ⚠️ (${motivo})`; }
+                  if (motivo && motivo !== "Ordinario") { label += ` ⚠️ (${motivo})`; }
                 }
                 return label;
               }
@@ -323,16 +560,20 @@ function renderCharts(labels, datasets) {
             yAxisID: 'yVolumen'
           },
           {
-            label: 'En tiempo',
+            label: 'Recibidas en tiempo',
             data: datasets.en_tiempo,
-            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            backgroundColor: '#d1d5db',
+            borderColor: '#9ca3af',
+            borderWidth: 1,
             stack: 'GrupoAnalizado',
             yAxisID: 'yVolumen'
           },
           {
-            label: 'Con rezago',
+            label: 'Recibidas con retraso',
             data: datasets.rezago,
-            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            backgroundColor: patronRetraso,
+            borderColor: '#3f3f46',
+            borderWidth: 1,
             stack: 'GrupoAnalizado',
             yAxisID: 'yVolumen'
           },
@@ -370,6 +611,5 @@ function renderCharts(labels, datasets) {
       }
     });
   }
-
 </script>
 {% endblock scripts %}

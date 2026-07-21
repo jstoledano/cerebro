@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Tramite(models.Model):
@@ -43,3 +44,56 @@ class Tramite(models.Model):
 
     def __str__(self):
         return self.folio
+
+
+class RevisionDireccion(models.Model):
+    # Metadatos del Periodo
+    periodo = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Identificador único del semestre, ej. 'sem1_2026'"
+    )
+    fecha_cierre = models.DateTimeField(auto_now_add=True)
+    responsable = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Usuario que generó el cierre inicial"
+    )
+
+    # Capa de Datos Ciega e Inmutable (KPIs Congelados)
+    total_tramites = models.PositiveIntegerField(default=0)
+    analizados = models.PositiveIntegerField(default=0)
+    en_tiempo = models.PositiveIntegerField(default=0)
+    rezago = models.PositiveIntegerField(default=0)
+    porcentaje_global = models.FloatField(default=0.0)
+    promedio_dias = models.FloatField(default=0.0)
+
+    # Capa Humana Editable (Para el usuario "altamente falible")
+    conclusiones = models.TextField(
+        blank=True,
+        default="",
+        help_text="Observaciones analíticas del responsable"
+    )
+    recomendaciones = models.TextField(
+        blank=True,
+        default="",
+        help_text="Acciones correctivas o de mejora continua"
+    )
+
+    # Trazabilidad Oficial
+    pdf_oficial = models.FileField(
+        upload_to='cecyrd/portadas/',
+        blank=True,
+        null=True,
+        help_text="Fotografía institucional inmutable del periodo generada post-ETL"
+    )
+
+    class Meta:
+        verbose_name = "Revisión por la Dirección"
+        verbose_name_plural = "Revisiones por la Dirección"
+        ordering = ['-fecha_cierre']
+
+    def __str__(self):
+        return f"Revisión {self.periodo} - Cumplimiento: {self.porcentaje_global}%"

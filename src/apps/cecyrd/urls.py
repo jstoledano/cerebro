@@ -15,4 +15,5 @@ urlpatterns = [
 
     # API DEL CUADRO DE MANDO SGC
     path("api/dashboard/", views.DashboardDataView.as_view(), name="api_dashboard"),
+    path('api/revision/guardar/', views.GuardarRevisionView.as_view(), name='api_guardar_revision'), # <-- Añadir esta ruta
 ]

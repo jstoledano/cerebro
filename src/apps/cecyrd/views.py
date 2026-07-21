@@ -1,13 +1,17 @@
 import calendar
+import json
 from datetime import datetime, timedelta
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Avg, Case, Count, DurationField, F, Q, Value, When
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views import View
+from django.template.loader import render_to_string
+from django.core.files.base import ContentFile
+from weasyprint import HTML
 
-from .models import Tramite
+from .models import Tramite, RevisionDireccion
 
 # === CONFIGURACIÓN DEL SGC ===
 SLA_ORDINARIO = 9
@@ -37,12 +41,13 @@ class IndexCecyrd(TemplateView):
         context["sla_ordinario"] = SLA_ORDINARIO
         return context
 
-class DashboardDataView(LoginRequiredMixin, View):
+class DashboardDataView(View):
     """API que agrupa registros evaluando SLAs dinámicos con métricas atómicas del SGC."""
 
     def get(self, request, *args, **kwargs):
         start_date = request.GET.get("start")
         end_date = request.GET.get("end")
+        periodo_req = request.GET.get("periodo")
 
         queryset = Tramite.objects.filter(fecha_tramite__isnull=False)
 
@@ -174,6 +179,28 @@ class DashboardDataView(LoginRequiredMixin, View):
             else 0
         )
 
+        # NUEVO: Verificar si existe una revisión congelada para este periodo
+        revision_data = None
+        if periodo_req:
+            revision = RevisionDireccion.objects.filter(periodo=periodo_req).first()
+            if revision:
+                revision_data = {
+                    "conclusiones": revision.conclusiones,
+                    "recomendaciones": revision.recomendaciones,
+                    "pdf_url": revision.pdf_oficial.url
+                    if revision.pdf_oficial
+                    else None,
+                    "congelado": True,
+                    "kpis_congelados": {
+                        "total_tramites": revision.total_tramites,
+                        "analizados": revision.analizados,
+                        "en_tiempo": revision.en_tiempo,
+                        "rezago": revision.rezago,
+                        "porcentaje_global": revision.porcentaje_global,
+                    },
+                }
+
+        # Retornamos el diccionario completo, añadiendo la llave 'revision'
         return JsonResponse(
             {
                 "labels": labels,
@@ -194,6 +221,7 @@ class DashboardDataView(LoginRequiredMixin, View):
                     "porcentaje_global": global_pct,
                     "rezago": global_rezago,
                 },
+                "revision": revision_data,  # <--- SE INYECTA AQUÍ
             }
         )
 
@@ -226,3 +254,63 @@ class ProgresoETLView(View):
             task_id, {"status": "iniciando", "progress": 0, "logs": [], "stats": {}}
         )
         return JsonResponse(data)
+
+
+class GuardarRevisionView(PermissionRequiredMixin, View):
+    """Guarda los textos de la Revisión por la Dirección y genera el PDF oficial con gráficas inyectadas."""
+
+    permission_required = "cecyrd.change_revisiondireccion"
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            periodo = data.get("periodo")
+
+            revision, created = RevisionDireccion.objects.get_or_create(
+                periodo=periodo,
+                defaults={
+                    "responsable": request.user,
+                    "total_tramites": int(
+                        data.get("kpis", {}).get("total_tramites", 0)
+                    ),
+                    "analizados": int(data.get("kpis", {}).get("analizados", 0)),
+                    "en_tiempo": int(data.get("kpis", {}).get("en_tiempo", 0)),
+                    "rezago": int(data.get("kpis", {}).get("rezago", 0)),
+                    "porcentaje_global": float(
+                        data.get("kpis", {}).get("porcentaje_global", 0)
+                    ),
+                },
+            )
+
+            revision.conclusiones = data.get("conclusiones", "")
+            revision.recomendaciones = data.get("recomendaciones", "")
+            revision.save()
+
+            grafica_tendencia = data.get("grafica_tendencia", "")
+            grafica_estres = data.get("grafica_estres", "")
+
+            html_string = render_to_string(
+                "cecyrd/reporte_sgc_pdf.html",
+                {
+                    "revision": revision,
+                    "grafica_tendencia": grafica_tendencia,
+                    "grafica_estres": grafica_estres,
+                },
+            )
+
+            pdf_file = HTML(
+                string=html_string, base_url=request.build_absolute_uri()
+            ).write_pdf()
+
+            nombre_archivo = f"Revision_SGC_{periodo}.pdf"
+            revision.pdf_oficial.save(nombre_archivo, ContentFile(pdf_file), save=True)
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Revisión guardada y Expediente PDF con gráficas generado exitosamente.",
+                }
+            )
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)

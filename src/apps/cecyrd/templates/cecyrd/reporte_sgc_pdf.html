@@ -1,0 +1,223 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Revisión por la Dirección - {{ revision.periodo }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 2cm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #71717a;
+            }
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #27272a;
+            line-height: 1.5;
+            font-size: 10.5pt;
+        }
+        .header {
+            border-bottom: 2px solid #e4e4e7;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #0f172a;
+            margin: 0;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+        .header p {
+            margin: 4px 0 0 0;
+            color: #52525b;
+            font-size: 9.5pt;
+        }
+        .header-table {
+            display: table;
+            width: 100%;
+            border-bottom: 2px solid #e4e4e7;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+        }
+        .header-logo-cell {
+            display: table-cell;
+            width: 150px; /* Ancho exacto estimado del logo */
+            vertical-align: middle;
+            padding-right: 20px;
+        }
+        .header-text-cell {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: left;
+        }
+        /* Estilos para mantener la consistencia de los textos anteriores */
+        .header-text-cell h1 {
+            color: #0f172a;
+            margin: 0;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+        .header-text-cell p {
+            margin: 4px 0 0 0;
+            color: #52525b;
+            font-size: 9.5pt;
+        }
+        .section-title {
+            background-color: #f4f4f5;
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 11pt;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            border-left: 4px solid #3b82f6;
+            page-break-after: avoid;
+        }
+        .kpi-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+        }
+        .kpi-row {
+            display: table-row;
+        }
+        .kpi-box {
+            display: table-cell;
+            width: 33.33%;
+            border: 1px solid #e4e4e7;
+            padding: 12px;
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .kpi-label {
+            font-size: 8.5pt;
+            color: #71717a;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .chart-block {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        .chart-block img {
+            max-width: 90%;
+            height: auto;
+            border: 1px solid #e4e4e7;
+            padding: 4px;
+            background-color: #ffffff;
+        }
+        .chart-caption {
+            font-size: 9pt;
+            font-style: italic;
+            color: #52525b;
+            margin-top: 4px;
+        }
+        .text-content {
+            text-align: justify;
+            white-space: pre-wrap;
+            background-color: #fafafa;
+            border: 1px solid #e4e4e7;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .footer-signatures {
+            margin-top: 50px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .signature-line {
+            width: 220px;
+            border-bottom: 1px solid #000;
+            margin: 0 auto 8px auto;
+        }
+    </style>
+</head>
+<body>
+
+  <div class="header-table">
+    <div class="header-logo-cell">
+      <img src="{% static 'img/ine_150x53.png' %}" alt="Logo INE" style="display: block; max-width: 100%; height: auto;" />
+    </div>
+    <div class="header-text-cell">
+      <h1>Evaluación de Desempeño CECyRD</h1>
+      <p>Informe Oficial para la Revisión por la Dirección - SGC Tlaxcala</p>
+      <p><strong>Periodo:</strong> {{ revision.periodo }} | <strong>Generado:</strong> {% now "d/m/Y H:i" %}</p>
+    </div>
+  </div>
+
+    <div class="section-title">1. Indicadores Clave de Desempeño</div>
+
+    <div class="kpi-grid">
+        <div class="kpi-row">
+            <div class="kpi-box">
+                <div class="kpi-value">{{ revision.total_tramites | intcomma }}</div>
+                <div class="kpi-label">Trámites Totales</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-value">{{ revision.analizados | intcomma }}</div>
+                <div class="kpi-label">Trámites con CPV Disponible</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-value">{{ revision.porcentaje_global }}%</div>
+                <div class="kpi-label">Cumplimiento Global</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-row">
+            <div class="kpi-box">
+                <div class="kpi-value">{{ revision.en_tiempo | intcomma}}</div>
+                <div class="kpi-label">Recibidas en Tiempo</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-value" style="color: {% if revision.rezago > 0 %}#dc2626{% else %}#16a34a{% endif %};">{{ revision.rezago | intcomma }}</div>
+                <div class="kpi-label">Recibidas con Retraso</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">2. Evidencia Gráfica de Tendencia y Volumen</div>
+
+    {% if grafica_tendencia %}
+    <div class="chart-block">
+        <img src="{{ grafica_tendencia|safe }}" alt="Tiempos de Disponibilidad">
+        <div class="chart-caption">Gráfica 2.1: Histórico de días promedio transcurridos vs Meta Estructural SGC.</div>
+    </div>
+    {% endif %}
+
+    {% if grafica_estres %}
+    <div class="chart-block">
+        <img src="{{ grafica_estres|safe }}" alt="Volumen vs Cumplimiento">
+        <div class="chart-caption">Gráfica 2.2: Relación de carga volumétrica de producción frente a niveles de cumplimiento del SLA.</div>
+    </div>
+    {% endif %}
+
+    <div class="section-title">3. Conclusiones y Análisis de Resultados</div>
+    <div class="text-content">{% if revision.conclusiones %}{{ revision.conclusiones }}{% else %}Sin observaciones cualitativas ingresadas por la dirección.{% endif %}</div>
+
+    <div class="section-title">4. Recomendaciones y Acciones de Mejora Continua</div>
+    <div class="text-content">{% if revision.recomendaciones %}{{ revision.recomendaciones }}{% else %}Sin acciones correctivas dictadas para este periodo.{% endif %}</div>
+
+    <div class="footer-signatures">
+      <div style="margin-top: 50px;">
+        <strong>{{ revision.responsable.get_full_name|default:revision.responsable.username }}</strong><br>
+        <span style="font-size: 9pt; color: #71717a;">Fecha de elaboración: {% now "d/m/Y" %}</span>
+      </div>
+    </div>
+
+</body>
+</html>
