@@ -1,106 +1,111 @@
-{% extends 'base.html' %}
-{% load static %}
-{% load crispy_forms_tags %}
+{% extends 'cerebro/base.html' %}
 
-{% block hero %}
-  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
-    <h1 class="display-4 fw-normal">Agregar un PUSINEX</h1>
-  </div>
-{% endblock hero %}
-
-{% block site_title %}Agregar PUSINEX{% endblock %}
+{% block title %}Nuevo PUSINEX{% endblock %}
 
 {% block content %}
-  <div class="row">
-    <div class="col">
-      <div class="row">
-        {% if form.errors %}
+<section class="max-w-3xl mx-auto space-y-6">
+
+  <header class="mb-8">
+    <h1 class="text-3xl font-extrabold text-base-content">Cargar / Actualizar PUSINEX</h1>
+    <p class="text-base-content/70">Selecciona el municipio y la sección para asociar el archivo PDF oficial.</p>
+  </header>
+
+  {% if form.errors %}
+  <div class="alert alert-error shadow-lg">
+    <div>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <div>
+        <h3 class="font-bold">Error en la validación</h3>
+        <div class="text-sm text-error-content">
+          {{ form.non_field_errors }}
           {% for field in form %}
-            {% for error in field.errors %}
-              <div class="alert alert-danger">
-                <strong>{{field.name }}: </strong> {{ error|escape }}
-              </div>
-            {% endfor %}
+            {% if field.errors %}{{ field.label }}: {{ field.errors|striptags }}<br>{% endif %}
           {% endfor %}
-          {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-              <strong>{{ error|escape }}</strong>
-            </div>
-          {% endfor %}
-        {% endif %}
+        </div>
       </div>
     </div>
   </div>
+  {% endif %}
 
-  <form
-    class="form"
-    action="{% url 'create' %}"
-    method="POST"
-    enctype="multipart/form-data">
-      {% csrf_token %}
-      {% crispy form %}
-  </form>
-{% endblock content %}
+  <div class="card bg-base-100 shadow-md border border-base-200">
+    <div class="card-body">
 
-{% block react %}
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
-  <script type="text/javascript">
-      function pad (str, max) {
-          str = str.toString();
-          return str.length < max ? pad("0" + str, max) : str;
-      }
+      <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
 
-      $(document).ready(function() {
-          // Realiza la petición AJAX al endpoint de secciones
-          $.ajax({
-              type: "GET",
-              url: "/api/seccion/?municipio=1",
-              data: {'csrfmiddlewaretoken': '{{csrf_token}}'},
-              success: function (data) {
-                  $.each(data, function(idx, s){
-                      $("#id_seccion").append($('<option />', {
-                          value: s.seccion,
-                          text: pad(s.seccion, 4)
-                      }));
-                  })
-              }
-          });
-      });
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Municipio</span></label>
+            {{ form.municipio_filtro }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Sección (Solo activas)</span></label>
+            {{ form.seccion }}
+          </div>
+        </div>
 
-      $.ajax({
-          type: "GET",
-          url: "/api/municipio/",
-          data: {
-              'csrfmiddlewaretoken': '{{csrf_token}}',
-          },
-          success: function (data) {
-              $.each(data, function(idx, m){
-                  $("#id_municipio").append($('<option />', {
-                      value: m.municipio,
-                      text: m.nombre
-                  }));
-              });
-          }
-      });
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Fecha de Actualización</span></label>
+            {{ form.f_act }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Número de Hojas</span></label>
+            {{ form.hojas }}
+          </div>
+        </div>
 
-      $("#id_municipio").on("change", () => {
-          $('#id_seccion').find('option').remove().end();
-          const m = $("#id_municipio option:selected").val();
-          $.when(
-              $.ajax({
-                  type: "GET",
-                  url: `/api/seccion/?municipio=${m}`,
-                  data: {'csrfmiddlewaretoken': '{{csrf_token}}'},
-                  success: function (data) {
-                      $.each(data, function(idx, s){
-                          $("#id_seccion").append($('<option />', {
-                              value: s.seccion,
-                              text: pad(s.seccion, 4)
-                          }));
-                      })
-                  }
-              })
-          )
-      });
-  </script>
-{% endblock react %}
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Archivo PDF</span></label>
+          {{ form.archivo }}
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Observaciones (Opcional)</span></label>
+          {{ form.observaciones }}
+        </div>
+
+        <div class="card-actions justify-end mt-6 border-t border-base-200 pt-4">
+          <a href="{% url 'pusinex:bgd' %}" class="btn btn-ghost">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Guardar Plano</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Leemos el diccionario de secciones que mandó la vista
+    const seccionesData = {{ secciones_json|safe }};
+
+    const municipioSelect = document.getElementById('filtro_municipio');
+    const seccionSelect = document.getElementById('id_seccion');
+
+    // 2. Función para actualizar el combo de secciones
+    function actualizarSecciones() {
+        const municipioId = municipioSelect.value;
+
+        // Limpiamos las opciones actuales
+        seccionSelect.innerHTML = '<option value="">--- Selecciona una sección ---</option>';
+
+        if (municipioId && seccionesData[municipioId]) {
+            // Llenamos solo con las secciones del municipio seleccionado
+            seccionesData[municipioId].forEach(numSeccion => {
+                const opt = document.createElement('option');
+                opt.value = numSeccion;
+                // Rellenamos con ceros a la izquierda (ej. 0001)
+                opt.textContent = String(numSeccion).padStart(4, '0');
+                seccionSelect.appendChild(opt);
+            });
+        }
+    }
+
+    // 3. Escuchamos el cambio
+    municipioSelect.addEventListener('change', actualizarSecciones);
+});
+</script>
+{% endblock scripts %}

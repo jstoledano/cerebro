@@ -1,0 +1,128 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}Documentos SGC{% endblock %}
+
+{% block content %}
+<section class="space-y-10">
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+    <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-start gap-4">
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5.75A2.75 2.75 0 0 1 7.75 3h6.086c.464 0 .91.184 1.238.512l3.914 3.914c.328.328.512.774.512 1.238V19a2 2 0 0 1-2 2Z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm uppercase tracking-wide text-base-content/60">Sistema de Gestión de la Calidad</p>
+          <h1 class="text-3xl font-bold text-base-content">Gestor documental</h1>
+          <p class="mt-1 max-w-2xl text-sm text-base-content/70">
+            Consulta la Lista Maestra de Documentos, resultados del SGC y registros clasificados por proceso o tipo. Usa los filtros para localizar cualquier archivo.
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-col items-end gap-3">
+        <a href="{% url 'docs:add' %}" class="btn btn-primary btn-sm">Agregar documento</a>
+        <p class="text-sm text-base-content/60">Última actualización · {% now "d/m/Y H:i" %}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+      <p class="text-sm text-base-content/60">Documentos activos</p>
+      <p class="mt-2 text-3xl font-semibold text-base-content">{{ stats.total }}</p>
+    </article>
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+      <p class="text-sm text-base-content/60">Lista Maestra</p>
+      <p class="mt-2 text-3xl font-semibold text-base-content">{{ stats.lmd }}</p>
+    </article>
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+      <p class="text-sm text-base-content/60">Procesos</p>
+      <p class="mt-2 text-3xl font-semibold text-base-content">{{ stats.procesos }}</p>
+    </article>
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+      <p class="text-sm text-base-content/60">Tipos</p>
+      <p class="mt-2 text-3xl font-semibold text-base-content">{{ stats.tipos }}</p>
+    </article>
+  </div>
+
+  <div class="space-y-4 rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="tabs tabs-boxed" role="tablist" aria-label="Filtros de documento">
+        <button type="button"
+                class="tab tab-sm tab-active"
+                data-tab="lmd"
+                hx-get="{% url 'docs:index' %}"
+                hx-target="#docs-list"
+                hx-swap="innerHTML"
+                hx-indicator="#docs-loading">
+          LMD
+        </button>
+        <button type="button"
+                class="tab tab-sm"
+                data-tab="ldp"
+                hx-get="{% url 'docs:ldp' %}"
+                hx-target="#docs-list"
+                hx-swap="innerHTML"
+                hx-indicator="#docs-loading">
+          Por proceso
+        </button>
+        <button type="button"
+                class="tab tab-sm"
+                data-tab="ldt"
+                hx-get="{% url 'docs:ldt' %}"
+                hx-target="#docs-list"
+                hx-swap="innerHTML"
+                hx-indicator="#docs-loading">
+          Por tipo
+        </button>
+        <button type="button"
+                class="tab tab-sm"
+                data-tab="ldr"
+                hx-get="{% url 'docs:ldr' %}"
+                hx-target="#docs-list"
+                hx-swap="innerHTML"
+                hx-indicator="#docs-loading">
+          Resultados
+        </button>
+      </div>
+      <label class="input input-bordered flex items-center gap-2 max-w-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Zm-7 5.5a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" />
+        </svg>
+        <input type="search"
+               name="q"
+               placeholder="Buscar documento..."
+               hx-get="{% url 'docs:buscador' %}"
+               hx-trigger="keyup changed delay:400ms"
+               hx-target="#docs-list"
+               hx-swap="innerHTML"
+               hx-indicator="#docs-loading"
+               class="grow"
+               autocomplete="off" />
+      </label>
+    </div>
+    <div id="docs-loading" class="hidden text-sm text-base-content/70">
+      <span class="loading loading-spinner loading-sm mr-2"></span> Actualizando listado...
+    </div>
+  </div>
+
+  <div id="docs-list">
+    {% include 'docs/partials/_doc_list.html' %}
+  </div>
+</section>
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+  (function(){
+    const tabs = document.querySelectorAll('[data-tab]');
+    document.addEventListener('click', function(evt){
+      const tab = evt.target.closest('[data-tab]');
+      if (!tab) return;
+      tabs.forEach(btn => btn.classList.toggle('tab-active', btn === tab));
+    });
+  })();
+</script>
+{% endblock scripts %}
