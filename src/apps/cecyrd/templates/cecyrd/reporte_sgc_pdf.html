@@ -206,14 +206,14 @@
     {% if grafica_tendencia %}
     <div class="chart-block">
         <img src="{{ grafica_tendencia|safe }}" alt="Tiempos de Disponibilidad">
-        <div class="chart-caption">Gráfica 2.1: Histórico de días promedio transcurridos vs Meta Estructural SGC.</div>
+        <div class="chart-caption">Gráfica 2.1: Histórico de días promedio transcurridos vs la Meta SGC.</div>
     </div>
     {% endif %}
 
     {% if grafica_estres %}
     <div class="chart-block">
         <img src="{{ grafica_estres|safe }}" alt="Volumen vs Cumplimiento">
-        <div class="chart-caption">Gráfica 2.2: Relación de carga volumétrica de producción frente a niveles de cumplimiento del SLA.</div>
+        <div class="chart-caption">Gráfica 2.2: Relación de carga volumétrica de producción frente a niveles de cumplimiento de la meta.</div>
     </div>
     {% endif %}
 
