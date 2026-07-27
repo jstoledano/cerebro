@@ -5,13 +5,15 @@ from apps.pusinex.views import (
     VNM2024,
     Administration,
     CreatePUSINEX,
+    DistrictPUSINEXPackageDownload,
     DistritoDetail,
     Index,
     MunicipioDetail,
     PUSINEXLastUpdate,
-    PUSINEXZip,
+    GeneratePUSINEXPackages,
     PusinexDetail,
     SeccionDetail,
+    StatePUSINEXPackageDownload,
     VNMZipView,
 )
 
@@ -31,8 +33,20 @@ urlpatterns = [
     path("gestion/subir/", CreatePUSINEX.as_view(), name="create"),
     path(
         "gestion/generar-paquetes/",
-        PUSINEXZip.as_view(),
+        GeneratePUSINEXPackages.as_view(),
         name="generate_packages",
+    ),
+
+    # Descargas publicas de paquetes previamente generados.
+    path(
+        "paquetes/estatal/",
+        StatePUSINEXPackageDownload.as_view(),
+        name="state_package",
+    ),
+    path(
+        "paquetes/distrito/<int:pk>/",
+        DistrictPUSINEXPackageDownload.as_view(),
+        name="district_package",
     ),
 
     # Compatibilidad temporal con enlaces anteriores.
@@ -55,7 +69,7 @@ urlpatterns = [
     path(
         "paquete/",
         RedirectView.as_view(
-            pattern_name="pusinex:generate_packages",
+            pattern_name="pusinex:state_package",
             permanent=False,
         ),
         name="paquete",
@@ -71,7 +85,7 @@ urlpatterns = [
     path(
         "gestion/descargar-paquete/",
         RedirectView.as_view(
-            pattern_name="pusinex:generate_packages",
+            pattern_name="pusinex:state_package",
             permanent=False,
         ),
         name="package_legacy",

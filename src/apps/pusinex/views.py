@@ -2,19 +2,23 @@ import csv
 import os
 import json
 import zipfile
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
+from django.contrib import messages
 from django.db.models import OuterRef, Subquery, Sum
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.gis.geos import MultiPolygon
-from django.http import FileResponse
+from django.http import FileResponse, Http404
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView
+from django.utils import timezone
 
 from .forms import PUSINEXForm
 from .models import Entidad, Distrito, Municipio, Seccion, Pusinex
@@ -223,6 +227,57 @@ def build_all_pusinex_packages():
     }
 
 
+def get_pusinex_package_metadata(district=None):
+    """Devuelve los datos públicos de un paquete previamente generado."""
+    package_path = get_pusinex_package_path(district=district)
+    exists = package_path.is_file()
+
+    if district is None:
+        download_url = reverse("pusinex:state_package")
+    else:
+        download_url = reverse(
+            "pusinex:district_package",
+            kwargs={"pk": int(district)},
+        )
+
+    metadata = {
+        "district": district,
+        "path": package_path,
+        "filename": package_path.name,
+        "exists": exists,
+        "size": None,
+        "modified": None,
+        "download_url": download_url,
+    }
+
+    if exists:
+        stat = package_path.stat()
+        metadata.update(
+            {
+                "size": stat.st_size,
+                "modified": datetime.fromtimestamp(
+                    stat.st_mtime,
+                    tz=timezone.get_current_timezone(),
+                ),
+            }
+        )
+
+    return metadata
+
+
+def open_pusinex_package(package_path):
+    """Entrega un paquete generado o responde con 404 cuando aún no existe."""
+    if not package_path.is_file():
+        raise Http404("El paquete PUSINEX solicitado aún no ha sido generado.")
+
+    return FileResponse(
+        package_path.open("rb"),
+        as_attachment=True,
+        filename=package_path.name,
+        content_type="application/zip",
+    )
+
+
 class Index(ListView):
     template_name = 'pusinex/index.html'
     model = Distrito
@@ -421,22 +476,23 @@ class DistritoDetail(DetailView):
 
             municipios_geo_dict["features"] = features
 
-            # 3. DECLARACIÓN DEL CONTEXTO
-            # Tomamos padron y lista_nominal directamente del objeto Distrito cargado en memoria, ¡Cero coste de base de datos!
-            context.update(
-                {
-                    "ruta": ruta_url,
-                    "distrito_geojson": distrito_geo,
-                    "municipios_geojson": json.dumps(municipios_geo_dict),
-                    "secciones_conteo": secciones_totales,
-                    "secciones": secciones_qs,
-                    # Variables directas del modelo, súper-rápidas
-                    "padron_total": self.object.pe,
-                    "lista_nominal_total": self.object.ln,
-                }
-            )
+        # 3. DECLARACIÓN DEL CONTEXTO
+        context.update(
+            {
+                "ruta": ruta_url,
+                "distrito_geojson": distrito_geo,
+                "municipios_geojson": json.dumps(municipios_geo_dict),
+                "secciones_conteo": secciones_totales,
+                "secciones": secciones_qs,
+                "padron_total": self.object.pe,
+                "lista_nominal_total": self.object.ln,
+                "district_package": get_pusinex_package_metadata(
+                    district=self.object.distrito
+                ),
+            }
+        )
 
-            return context
+        return context
 
 
 class MunicipioDetail(DetailView):
@@ -518,7 +574,32 @@ class CreatePUSINEX(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 
 
 class Administration(TemplateView):
-    template_name = 'pusinex/administration.html'
+    template_name = "pusinex/administration.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        districts = list(
+            Distrito.objects.filter(entidad_id=TLAXCALA).order_by("distrito")
+        )
+
+        district_packages = []
+        for district in districts:
+            district_packages.append(
+                {
+                    "district": district,
+                    "package": get_pusinex_package_metadata(
+                        district=district.distrito
+                    ),
+                }
+            )
+
+        context.update(
+            {
+                "state_package": get_pusinex_package_metadata(),
+                "district_packages": district_packages,
+            }
+        )
+        return context
 
 
 class LogoutView(TemplateView):
@@ -582,19 +663,77 @@ class VNMZipView(View):
         return FileResponse(open(zip_name, 'rb'))
 
 
-class PUSINEXZip(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Genera todos los paquetes y entrega el paquete estatal."""
+class GeneratePUSINEXPackages(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    View,
+):
+    """Regenera el paquete estatal y todos los paquetes distritales."""
 
     permission_required = "pusinex.generate_pusinex_packages"
+    raise_exception = True
+
+    def post(self, request):
+        try:
+            results = build_all_pusinex_packages()
+        except Exception:
+            messages.error(
+                request,
+                "No fue posible generar los paquetes PUSINEX.",
+            )
+            return redirect("pusinex:administration")
+
+        generated = [results["state"], *results["districts"]]
+        summary = [
+            f"Estatal: {results['state']['included']} archivos"
+        ]
+        summary.extend(
+            (
+                f"Distrito {int(result['district']):02d}: "
+                f"{result['included']} archivos"
+            )
+            for result in results["districts"]
+        )
+
+        messages.success(
+            request,
+            "Paquetes PUSINEX generados. " + "; ".join(summary) + ".",
+        )
+
+        omitted = sum(result["omitted"] for result in generated)
+        if omitted:
+            messages.warning(
+                request,
+                (
+                    f"Los manifiestos registran {omitted} omisiones "
+                    "acumuladas. Cada sección ausente aparece en el paquete "
+                    "estatal y en su paquete distrital."
+                ),
+            )
+
+        return redirect("pusinex:administration")
+
+
+class StatePUSINEXPackageDownload(View):
+    """Descarga pública del paquete estatal previamente generado."""
 
     def get(self, request):
-        results = build_all_pusinex_packages()
-        state_package = results["state"]
+        return open_pusinex_package(get_pusinex_package_path())
 
-        return FileResponse(
-            open(state_package["path"], "rb"),
-            as_attachment=True,
-            filename=state_package["filename"],
+
+class DistrictPUSINEXPackageDownload(View):
+    """Descarga pública del paquete correspondiente a un distrito."""
+
+    def get(self, request, pk):
+        district = Distrito.objects.filter(
+            entidad_id=TLAXCALA,
+            distrito=pk,
+        ).first()
+        if district is None:
+            raise Http404("El distrito solicitado no existe.")
+
+        return open_pusinex_package(
+            get_pusinex_package_path(district=district.distrito)
         )
 
 
