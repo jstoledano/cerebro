@@ -1,9 +1,13 @@
+import csv
 import os
 import json
 import zipfile
+from io import StringIO
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
-from django.db.models import Sum
+from django.conf import settings
+from django.db.models import OuterRef, Subquery, Sum
 from django.core.serializers import serialize
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.gis.geos import MultiPolygon
@@ -16,6 +20,207 @@ from .forms import PUSINEXForm
 from .models import Entidad, Distrito, Municipio, Seccion, Pusinex
 
 TLAXCALA = 29
+PACKAGE_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "paquetes"
+STATE_PACKAGE_FILENAME = "29_pusinex_estatal.zip"
+DISTRICT_PACKAGE_FILENAME = "29_pusinex_distrito_{district:02d}.zip"
+MANIFEST_FILENAME = "MANIFIESTO.csv"
+
+
+def get_pusinex_package_path(district=None):
+    """Devuelve la ruta estable del paquete estatal o distrital."""
+    if district is None:
+        filename = STATE_PACKAGE_FILENAME
+    else:
+        filename = DISTRICT_PACKAGE_FILENAME.format(district=int(district))
+
+    return PACKAGE_DIRECTORY / filename
+
+
+def get_latest_pusinex_entries(district=None):
+    """Obtiene una entrada por sección válida con su revisión más reciente."""
+    latest_revision = Pusinex.objects.filter(
+        seccion_id=OuterRef("pk")
+    ).order_by("-f_act", "-pk")
+
+    sections = Seccion.objects.filter(
+        entidad_id=TLAXCALA,
+        activa=True,
+        tipo__lt=4,
+    ).select_related("distrito", "municipio")
+
+    if district is not None:
+        sections = sections.filter(distrito__distrito=int(district))
+
+    sections = list(
+        sections.annotate(
+            latest_pusinex_id=Subquery(latest_revision.values("pk")[:1])
+        ).order_by(
+            "distrito__distrito",
+            "municipio__municipio",
+            "seccion",
+        )
+    )
+
+    latest_ids = [
+        section.latest_pusinex_id
+        for section in sections
+        if section.latest_pusinex_id is not None
+    ]
+    pusinex_by_id = {
+        pusinex.pk: pusinex
+        for pusinex in Pusinex.objects.filter(pk__in=latest_ids)
+    }
+
+    entries = []
+    for section in sections:
+        pusinex = pusinex_by_id.get(section.latest_pusinex_id)
+        status = "INCLUIDO"
+        observation = ""
+        source_path = None
+        filename = ""
+        revision_date = ""
+
+        if pusinex is None:
+            status = "SIN_REGISTRO"
+            observation = "La sección carece de registros PUSINEX."
+        else:
+            revision_date = pusinex.f_act.isoformat()
+
+            if not pusinex.archivo:
+                status = "SIN_ARCHIVO"
+                observation = "La revisión más reciente carece de archivo asociado."
+            elif not pusinex.archivo.storage.exists(pusinex.archivo.name):
+                status = "ARCHIVO_NO_ENCONTRADO"
+                observation = "El archivo registrado no existe en el almacenamiento."
+                filename = Path(pusinex.archivo.name).name
+            else:
+                source_path = Path(pusinex.archivo.path)
+                filename = source_path.name
+
+        entries.append(
+            {
+                "section": section,
+                "pusinex": pusinex,
+                "source_path": source_path,
+                "filename": filename,
+                "revision_date": revision_date,
+                "status": status,
+                "observation": observation,
+            }
+        )
+
+    return entries
+
+
+def build_pusinex_manifest(entries):
+    """Construye el manifiesto CSV que se agrega dentro de cada paquete."""
+    output = StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "distrito",
+            "municipio",
+            "seccion",
+            "fecha_revision",
+            "nombre_archivo",
+            "estado",
+            "observacion",
+        ]
+    )
+
+    for entry in entries:
+        section = entry["section"]
+        writer.writerow(
+            [
+                f"{section.distrito.distrito:02d}",
+                f"{section.municipio.municipio:03d}",
+                f"{section.seccion:04d}",
+                entry["revision_date"],
+                entry["filename"],
+                entry["status"],
+                entry["observation"],
+            ]
+        )
+
+    return output.getvalue()
+
+
+def build_pusinex_package(district=None):
+    """Genera atómicamente un paquete estatal o distrital."""
+    PACKAGE_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    target_path = get_pusinex_package_path(district=district)
+    entries = get_latest_pusinex_entries(district=district)
+
+    included_entries = [
+        entry for entry in entries if entry["status"] == "INCLUIDO"
+    ]
+    omitted_entries = [
+        entry for entry in entries if entry["status"] != "INCLUIDO"
+    ]
+
+    temporary_path = None
+    try:
+        with NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{target_path.stem}_",
+            suffix=".tmp",
+            dir=PACKAGE_DIRECTORY,
+            delete=False,
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+
+        with zipfile.ZipFile(
+            temporary_path,
+            mode="w",
+            compression=zipfile.ZIP_DEFLATED,
+            compresslevel=9,
+        ) as archive:
+            for entry in included_entries:
+                archive.write(
+                    entry["source_path"],
+                    arcname=entry["filename"],
+                )
+
+            archive.writestr(
+                MANIFEST_FILENAME,
+                build_pusinex_manifest(entries).encode("utf-8-sig"),
+            )
+
+        os.replace(temporary_path, target_path)
+    except Exception:
+        if temporary_path and temporary_path.exists():
+            temporary_path.unlink()
+        raise
+
+    return {
+        "district": district,
+        "path": target_path,
+        "filename": target_path.name,
+        "sections": len(entries),
+        "included": len(included_entries),
+        "omitted": len(omitted_entries),
+        "omissions": omitted_entries,
+    }
+
+
+def build_all_pusinex_packages():
+    """Genera el paquete estatal y un paquete por distrito de Tlaxcala."""
+    state_result = build_pusinex_package()
+    district_results = []
+
+    district_numbers = Distrito.objects.filter(
+        entidad_id=TLAXCALA
+    ).order_by("distrito").values_list("distrito", flat=True)
+
+    for district_number in district_numbers:
+        district_results.append(
+            build_pusinex_package(district=district_number)
+        )
+
+    return {
+        "state": state_result,
+        "districts": district_results,
+    }
 
 
 class Index(ListView):
@@ -378,35 +583,18 @@ class VNMZipView(View):
 
 
 class PUSINEXZip(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Genera un ZIP al vuelo exclusivamente con el PUSINEX más reciente de secciones activas y urbanas."""
+    """Genera todos los paquetes y entrega el paquete estatal."""
 
     permission_required = "pusinex.generate_pusinex_packages"
 
     def get(self, request):
-        zip_name = Path("media", "pusinex", "29_pusinex_completo.zip")
-
-        # Aseguramos que la carpeta exista antes de crear el zip
-        os.makedirs(zip_name.parent, exist_ok=True)
-
-        secciones_validas = Seccion.objects.filter(tipo__lt=4, activa=True)
-
-        with zipfile.ZipFile(
-            zip_name, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
-        ) as archive:
-            for s in secciones_validas:
-                try:
-                    # Obtenemos solo el último plano subido para esta sección
-                    ultimo_p = s.pusinex_set.latest("f_act")
-                    if ultimo_p.archivo and os.path.exists(ultimo_p.archivo.path):
-                        archive.write(
-                            ultimo_p.archivo.path,
-                            arcname=Path(ultimo_p.archivo.path).name,
-                        )
-                except Pusinex.DoesNotExist:
-                    continue
+        results = build_all_pusinex_packages()
+        state_package = results["state"]
 
         return FileResponse(
-            open(zip_name, "rb"), as_attachment=True, filename="29_pusinex_oficial.zip"
+            open(state_package["path"], "rb"),
+            as_attachment=True,
+            filename=state_package["filename"],
         )
 
 
