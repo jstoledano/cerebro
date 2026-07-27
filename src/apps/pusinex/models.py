@@ -176,6 +176,12 @@ class Pusinex(models.Model):
         verbose_name_plural = 'PUSINEXs'
         ordering = ['seccion__distrito__distrito', 'seccion__municipio__municipio', 'seccion__seccion', ]
         get_latest_by = ["f_act", ]
+        permissions = [
+            (
+                "generate_pusinex_packages",
+                "Puede generar paquetes PUSINEX",
+            ),
+        ]
 
     def __str__(self):
         d = self.seccion.distrito.distrito

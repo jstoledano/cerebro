@@ -5,7 +5,7 @@ from pathlib import Path
 
 from django.db.models import Sum
 from django.core.serializers import serialize
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.gis.geos import MultiPolygon
 from django.http import FileResponse
 from django.urls import reverse, reverse_lazy
@@ -280,12 +280,13 @@ class MunicipioDetail(DetailView):
         return context
 
 
-class CreatePUSINEX(LoginRequiredMixin, CreateView):
+class CreatePUSINEX(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    permission_required = "pusinex.add_pusinex"
     template_name = "pusinex/pusinex_form.html"
     form_class = PUSINEXForm
     model = Pusinex
     success_url = reverse_lazy(
-        "pusinex:bgd"
+        "pusinex:administration"
     )  # Redirige al panel de administración al guardar
 
     def get_context_data(self, **kwargs):
@@ -376,8 +377,10 @@ class VNMZipView(View):
         return FileResponse(open(zip_name, 'rb'))
 
 
-class PUSINEXZip(LoginRequiredMixin, View):
+class PUSINEXZip(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Genera un ZIP al vuelo exclusivamente con el PUSINEX más reciente de secciones activas y urbanas."""
+
+    permission_required = "pusinex.generate_pusinex_packages"
 
     def get(self, request):
         zip_name = Path("media", "pusinex", "29_pusinex_completo.zip")
