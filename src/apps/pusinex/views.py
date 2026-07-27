@@ -117,11 +117,11 @@ def get_latest_pusinex_entries(district=None):
 
 
 def get_pusinex_coverage_statistics(entries):
-    """Resume la cobertura PUSINEX de un conjunto de secciones elegibles."""
-    status_counts = {
-        "SIN_REGISTRO": 0,
-        "SIN_ARCHIVO": 0,
-        "ARCHIVO_NO_ENCONTRADO": 0,
+    """Resume la cobertura y conserva el nominativo de secciones faltantes."""
+    missing_sections = {
+        "SIN_REGISTRO": [],
+        "SIN_ARCHIVO": [],
+        "ARCHIVO_NO_ENCONTRADO": [],
     }
     with_pusinex = 0
 
@@ -129,11 +129,27 @@ def get_pusinex_coverage_statistics(entries):
         status = entry["status"]
         if status == "INCLUIDO":
             with_pusinex += 1
-        elif status in status_counts:
-            status_counts[status] += 1
+            continue
+
+        if status not in missing_sections:
+            continue
+
+        section = entry["section"]
+        pusinex = entry["pusinex"]
+        missing_sections[status].append(
+            {
+                "district": section.distrito.distrito,
+                "municipality": section.municipio.municipio,
+                "municipality_name": section.municipio.nombre,
+                "section": section.seccion,
+                "section_pk": section.pk,
+                "revision_date": pusinex.f_act if pusinex else None,
+                "filename": entry["filename"],
+            }
+        )
 
     eligible = len(entries)
-    missing = eligible - with_pusinex
+    missing = sum(len(items) for items in missing_sections.values())
     coverage = round((with_pusinex * 100) / eligible, 1) if eligible else 0.0
 
     return {
@@ -141,9 +157,26 @@ def get_pusinex_coverage_statistics(entries):
         "with_pusinex": with_pusinex,
         "missing": missing,
         "coverage": coverage,
-        "without_record": status_counts["SIN_REGISTRO"],
-        "without_file": status_counts["SIN_ARCHIVO"],
-        "file_not_found": status_counts["ARCHIVO_NO_ENCONTRADO"],
+        "without_record": len(missing_sections["SIN_REGISTRO"]),
+        "without_file": len(missing_sections["SIN_ARCHIVO"]),
+        "file_not_found": len(missing_sections["ARCHIVO_NO_ENCONTRADO"]),
+        "missing_groups": [
+            {
+                "status": "SIN_REGISTRO",
+                "label": "Sin registro PUSINEX",
+                "sections": missing_sections["SIN_REGISTRO"],
+            },
+            {
+                "status": "SIN_ARCHIVO",
+                "label": "Registro sin archivo asociado",
+                "sections": missing_sections["SIN_ARCHIVO"],
+            },
+            {
+                "status": "ARCHIVO_NO_ENCONTRADO",
+                "label": "Archivo registrado no encontrado",
+                "sections": missing_sections["ARCHIVO_NO_ENCONTRADO"],
+            },
+        ],
     }
 
 
