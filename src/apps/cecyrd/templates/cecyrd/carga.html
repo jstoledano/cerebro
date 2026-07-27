@@ -1,0 +1,204 @@
+{% extends 'cerebro/base.html' %}
+{% block title %}Carga de trámites - CECyRD{% endblock %}
+
+{% block content %}
+<section class="p-6">
+
+  <div id="alert-error-container" class="hidden mb-6 max-w-4xl animate-bounce">
+    <div class="alert alert-error shadow-xl border border-error/20 bg-error/10 text-error-content flex items-start gap-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-8 w-8 text-error mt-0.5" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 class="font-bold text-lg text-base-content">¡Atención! El proceso se detuvo</h3>
+        <p class="text-sm opacity-90 mt-1 font-medium" id="alert-error-text">Aquí aparecerá el error en español.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-base-300 pb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-base-content">Actualización de Trámites CECyRD</h1>
+      <p class="text-base-content/70 mt-1">Sube el archivo plano (.txt) o un empaquetado cifrado (.zip) para actualizar los trámites.</p>
+    </div>
+    <div>
+      <a href="{% url 'cecyrd:index' %}" class="btn btn-error btn-lg text-white gap-2 shadow-lg px-8">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Regresar
+      </a>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2 items-start">
+    <div class="card border border-base-300 bg-base-100 shadow-xl" id="upload-card">
+      <form id="etlForm" class="card-body">
+        {% csrf_token %}
+        <h2 class="card-title mb-4">Seleccionar archivos</h2>
+
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Archivo Origen (TXT o ZIP)</span></label>
+          <input type="file" name="data_file" id="data_file" class="file-input file-input-bordered file-input-primary w-full" required />
+        </div>
+
+        <div id="key_field" class="form-control w-full mt-4 hidden">
+          <label class="label">
+            <span class="label-text font-semibold text-warning">Archivo de Contraseña (.txt)</span>
+          </label>
+          <input type="file" name="key_file" id="key_file" class="file-input file-input-bordered file-input-warning w-full" />
+        </div>
+
+        <div class="card-actions mt-8">
+          <button type="submit" id="btn-submit" class="btn btn-primary w-full shadow-md">Iniciar carga</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card border border-base-300 bg-neutral text-neutral-content shadow-xl hidden" id="progress-card">
+      <div class="card-body">
+        <h2 class="card-title text-success">Consola del Servidor</h2>
+
+        <div class="flex items-center gap-4 mt-2">
+            <progress id="etl-progress" class="progress progress-success w-full" value="0" max="100"></progress>
+            <span class="font-mono text-lg font-bold"><span id="pct-text">0</span>%</span>
+        </div>
+
+        <div class="mockup-code mt-4 bg-base-300 text-base-content text-xs overflow-y-auto" style="height: 220px;" id="terminal">
+          <pre data-prefix="$" class="text-success"><code>Sistema en espera...</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats shadow mt-6 w-full hidden border border-base-300" id="stats-card">
+    <div class="stat text-center">
+      <div class="stat-title">Registros Identificados</div>
+      <div class="stat-value text-base-content" id="stat-total">0</div>
+    </div>
+    <div class="stat text-center">
+      <div class="stat-title">Trámites Actualizados</div>
+      <div class="stat-value text-success" id="stat-ok">0</div>
+    </div>
+    <div class="stat text-center">
+      <div class="stat-title">Filas Ignoradas/Errores</div>
+      <div class="stat-value text-error" id="stat-err">0</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const dataFile = document.getElementById('data_file');
+  const keyField = document.getElementById('key_field');
+  const keyFile = document.getElementById('key_file');
+  const form = document.getElementById('etlForm');
+  const btnSubmit = document.getElementById('btn-submit');
+
+  const progressCard = document.getElementById('progress-card');
+  const statsCard = document.getElementById('stats-card');
+  const terminal = document.getElementById('terminal');
+  const progressBar = document.getElementById('etl-progress');
+  const pctText = document.getElementById('pct-text');
+
+  // Detección mágica de ZIP
+  dataFile.addEventListener('change', (e) => {
+    if (e.target.files[0]?.name.toLowerCase().endsWith('.zip')) {
+      keyField.classList.remove('hidden');
+      keyFile.required = true;
+    } else {
+      keyField.classList.add('hidden');
+      keyFile.required = false;
+    }
+  });
+
+  // Procesamiento AJAX
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<span class="loading loading-spinner"></span> Transfiriendo...';
+
+    // Ocultar alerta de error previa si el usuario reintenta
+    document.getElementById('alert-error-container').classList.add('hidden');
+
+    progressCard.classList.remove('hidden');
+    statsCard.classList.add('hidden');
+    terminal.innerHTML = '<pre data-prefix="$" class="text-info"><code>Enviando datos al servidor...</code></pre>';
+    progressBar.value = 0;
+    pctText.innerText = '0';
+
+    try {
+      const resp = await fetch("{% url 'cecyrd:api_etl_iniciar' %}", {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+      });
+
+      const data = await resp.json();
+      if (data.task_id) {
+        monitorearServidor(data.task_id);
+      } else {
+        mostrarError(data.error || 'Fallo desconocido al iniciar.');
+        reiniciarBoton();
+      }
+    } catch (err) {
+      mostrarError('Fallo de conexión con el servidor. Por favor revisa tu internet.');
+      reiniciarBoton();
+    }
+  });
+
+  // Polling (Consulta Redis cada 800ms)
+  function monitorearServidor(taskId) {
+    const intervalo = setInterval(async () => {
+      const resp = await fetch(`/cecyrd/api/etl/progreso/${taskId}/`);
+      const state = await resp.json();
+
+      progressBar.value = state.progress;
+      pctText.innerText = state.progress;
+
+      terminal.innerHTML = '';
+      state.logs.forEach(log => escribirTerminal(log));
+
+      if (state.status === 'completado' || state.status === 'error') {
+        clearInterval(intervalo);
+        reiniciarBoton();
+
+        if (state.status === 'completado') {
+          document.getElementById('stat-total').innerText = state.stats.total;
+          document.getElementById('stat-ok').innerText = state.stats.procesados;
+          document.getElementById('stat-err').innerText = state.stats.errores;
+          statsCard.classList.remove('hidden');
+          form.reset();
+          keyField.classList.add('hidden');
+        } else {
+          // Mostrar el error en la alerta superior
+          const mensajeFinal = state.logs[state.logs.length - 1] || "Ocurrió un problema imprevisto en el servidor.";
+          mostrarError(mensajeFinal);
+          escribirTerminal(mensajeFinal, "text-error");
+        }
+      }
+    }, 800);
+  }
+
+  // Función auxiliar para mostrar la alerta visual
+  function mostrarError(mensaje) {
+    document.getElementById('alert-error-text').innerText = mensaje;
+    document.getElementById('alert-error-container').classList.remove('hidden');
+    // Scroll hacia arriba para que el usuario no se pierda la alerta
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function escribirTerminal(texto, color = "text-base-content") {
+    const pre = document.createElement('pre');
+    pre.setAttribute('data-prefix', '>');
+    pre.className = color;
+    pre.innerHTML = `<code>${texto}</code>`;
+    terminal.appendChild(pre);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function reiniciarBoton() {
+    btnSubmit.disabled = false;
+    btnSubmit.innerText = 'Iniciar carga';
+  }
+</script>
+{% endblock content %}

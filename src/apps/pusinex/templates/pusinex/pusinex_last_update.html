@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block hero %}
+  <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
+      <h1 class="display-4 fw-normal"><i class="fa fa-road"></i> Secciones Actualizadas</h1>
+      <p class="fs-4 text-muted">{{ year }}</p>
+  </div>
+{% endblock hero %}
+
+{% block site_title %}Secciones Actualizadas {{ year }}{% endblock %}
+
+{% block content %}
+    <table class="table thead-dark table-striped table-bordered table-hover table-sm">
+        <thead>
+            <tr>
+                <th scope="col"><i class="fa fa-map"></i> Sección</th>
+                <th scope="col"><i class="fa fa-file"></i> Hojas</th>
+                <th scope="col"><i class="fa fa-clock-o"></i> Última Actualización</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for object in object_list %}
+                <tr>
+                    <td>{{ object.seccion }}</td>
+                    <td>{{ object.hojas }}</td>
+                    <td>{{ object.updated|date:"M d, Y" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock content %}

@@ -1,0 +1,254 @@
+{% extends 'cerebro/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Cartografía Estatal{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+  .etiqueta-distrito {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #000000;
+      text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      var map = L.map('map', {
+          doubleClickZoom: false
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 20,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(map);
+
+      var entidadData = {{ entidad_geojson|safe }};
+      var distritosData = {{ distritos_geojson|safe }};
+
+      // Capa de los Distritos
+      var capaDistritos = L.geoJSON(distritosData, {
+          style: function(feature) {
+              return {
+                  color: "#00008b",
+                  weight: 2,
+                  fillColor: "#60a5fa",
+                  fillOpacity: 0.2
+              };
+          },
+          onEachFeature: function(feature, layer) {
+              var numeroDistrito = String(feature.id).padStart(2, '0');
+
+              layer.bindTooltip("Distrito " + numeroDistrito, {
+                  permanent: true,
+                  direction: 'center',
+                  className: 'etiqueta-distrito'
+              });
+
+              layer.on('mouseover', function() {
+                  this.setStyle({
+                      fillColor: "#2563eb",
+                      fillOpacity: 0.4
+                  });
+              });
+
+              layer.on('mouseout', function() {
+                  this.setStyle({
+                      fillColor: "#60a5fa",
+                      fillOpacity: 0.2
+                  });
+              });
+
+              layer.on('dblclick', function(e) {
+                  var url = "{% url 'pusinex:distrito' 0 %}".replace('0', feature.id);
+                  window.location.href = url;
+              });
+          }
+      });
+
+      var capaEntidad = L.geoJSON(entidadData, {
+          style: {
+              color: "#000000",
+              weight: 4,
+              fillOpacity: 0
+          },
+          interactive: false
+      });
+
+      capaDistritos.addTo(map);
+      capaEntidad.addTo(map);
+
+      var overlayMaps = {
+          "Entidad": capaEntidad,
+          "Distritos": capaDistritos
+      };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+
+      map.fitBounds(capaEntidad.getBounds());
+
+      var controlCentrar = L.control({position: 'topleft'});
+      controlCentrar.onAdd = function() {
+          var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+          var button = L.DomUtil.create('a', '', container);
+
+          button.innerHTML = '🎯';
+          button.href = '#';
+          button.title = 'Volver a centrar';
+          button.style.display = 'flex';
+          button.style.alignItems = 'center';
+          button.style.justifyContent = 'center';
+          button.style.textDecoration = 'none';
+
+          L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.fitBounds(capaEntidad.getBounds());
+          });
+
+          return container;
+      };
+      controlCentrar.addTo(map);
+  });
+</script>
+{% endblock scripts %}
+
+{% block content %}
+<section class="space-y-6">
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg select-none">
+    <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+
+      <div class="flex items-center gap-4">
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503-3.46 3.663-1.832a.75.75 0 0 1 1.023.669V18.6a.75.75 0 0 1-.416.669l-4.183 2.092a.75.75 0 0 1-1.024-.669V10.13a.75.75 0 0 1 .416-.669l4.183-2.092ZM2.25 9.183l4.183-2.092a.75.75 0 0 1 1.024.669v11.778a.75.75 0 0 1-.416.669L2.66 22.315a.75.75 0 0 1-1.023-.67V9.852a.75.75 0 0 1 .416-.67Z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-extrabold text-base-content tracking-tight md:text-4xl">
+            Cartografía Electoral
+          </h1>
+          <p class="text-sm text-base-content/70 mt-1 font-medium flex items-center gap-2">
+            Junta Local Ejecutiva · Entidad 29 (Tlaxcala)
+          </p>
+        </div>
+      </div>
+
+      <div class="flex shrink-0 gap-3">
+        <a href="{% url 'pusinex:bgd' %}" class="btn btn-primary gap-2 rounded-xl shadow-sm font-bold">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
+          Gestión de PUSINEX
+        </a>
+      </div>
+
+    </div>
+  </header>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-8">
+      <div id="map" class="w-full h-[650px] lg:h-[750px] rounded-box border border-base-300 relative z-[1]"></div>
+    </div>
+
+    <div class="lg:col-span-4 flex flex-col gap-4 h-[650px] lg:h-[750px]">
+
+      <div class="card bg-base-100 shadow-md border border-base-200 shrink-0">
+        <div class="card-body p-0">
+          <div class="stats stats-vertical shadow-sm w-full bg-base-50/50 rounded-xl m-0">
+
+            <div class="stat px-4 py-3">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Entidad</div>
+              <div class="stat-value text-2xl">Tlaxcala</div>
+            </div>
+
+            <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Secciones Activas</div>
+              <div class="stat-value text-2xl">{{ secciones_conteo|intcomma }}</div>
+            </div>
+
+            <div class="stat px-4 py-3 border-t border-base-200">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Padrón Electoral</div>
+              <div class="stat-value text-2xl text-secondary">{{ padron_total|intcomma }}</div>
+            </div>
+
+            <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Lista Nominal</div>
+              <div class="stat-value text-2xl text-primary">{{ lista_nominal_total|intcomma }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md border border-base-200 flex-1 overflow-hidden flex flex-col">
+        <div class="card-body p-0 flex flex-col h-full">
+
+          <div class="px-5 py-4 border-b border-base-200 bg-base-200/30 flex-shrink-0">
+            <h2 class="card-title text-base">Distritos Electorales Federales</h2>
+          </div>
+
+          <ul class="menu bg-base-100 w-full rounded-none overflow-y-auto flex-1 flex-nowrap p-0 m-0 [&_li>*]:rounded-none gap-0">
+            {% for distrito in distritos %}
+            <li class="border-b border-base-200 last:border-b-0 flex-row items-stretch p-0">
+
+              <a href="{% url 'pusinex:distrito' distrito.pk %}" class="flex-1 flex flex-col items-start gap-1 py-3 px-5 hover:bg-base-200/50 transition-colors">
+                <span class="font-bold text-base">
+                  Distrito {{ distrito.distrito|stringformat:"02d" }}
+                </span>
+                <span class="text-xs font-medium opacity-60 truncate">
+                  {{ distrito.cabecera|default:"Cabecera no definida" }}
+                </span>
+              </a>
+
+              <button class="btn btn-square btn-ghost h-auto rounded-none shrink-0 border-l border-base-200/50" title="Ir al distrito" onclick="window.location.href='{% url 'pusinex:distrito' distrito.pk %}'">
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+
+            </li>
+            {% empty %}
+            <li class="p-6 text-center text-base-content/50 italic pointer-events-none">
+              No hay distritos registrados en esta entidad.
+            </li>
+            {% endfor %}
+          </ul>
+
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md border border-base-200 shrink-0">
+        <div class="card-body p-4 justify-center">
+          <h2 class="card-title text-base">¿Buscas un PUSINEX?</h2>
+
+          <form onsubmit="event.preventDefault(); window.location.href='{% url 'pusinex:seccion' 0 %}'.replace('0', document.getElementById('input-seccion').value);">
+            <div class="join w-full mt-2">
+              <input
+                id="input-seccion"
+                type="number"
+                placeholder="Ej. 123"
+                class="input input-bordered join-item w-full"
+                min="1"
+                required />
+              <button type="submit" class="btn btn-primary join-item">
+                Buscar
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock content %}

@@ -1,8 +1,9 @@
 """Configuración del proyecto cerebro."""
 
+import os
 import sys
 import environ
-from pathlib import Path  # Sustituye a unipath
+from pathlib import Path
 from django.contrib.messages import constants as messages
 
 VERSION = "2.0.0"
@@ -36,6 +37,7 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django.contrib.gis",
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
@@ -55,11 +57,12 @@ LOCAL_APPS = [
     "apps.profiles.config.ProfilesConfig",
     "apps.docs.config.DocsConfig",
     "apps.ideas.config.IdeasConfig",
-    "apps.carto.config.CartoConfig",
+    "apps.pusinex.config.PusinexConfig",
     "apps.pas.config.PasConfig",
     "apps.kpi.config.KpiConfig",
     "apps.vozmac.config.VozmacConfig",
     "apps.pmml.config.PmmlConfig",
+    "apps.cecyrd.config.CecyrdConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -80,8 +83,8 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            APPS_DIR / "templates",          # Sustituye a APPS_DIR.child("templates")
-            APPS_DIR / "kpi" / "templates",  # Sustituye a APPS_DIR.child("kpi", "templates")
+            APPS_DIR / "templates",
+            APPS_DIR / "kpi" / "templates",
             BASE_DIR / "templates",
         ],
         "APP_DIRS": True,
@@ -161,7 +164,26 @@ MESSAGE_TAGS = {
     messages.ERROR: "alert-danger",
 }
 
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
+# Configuración inteligente de Caché
+if DEBUG:
+    # En desarrollo (tu Windows): Usa la memoria local de la computadora
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "cerebro-dev-cache",
+        }
+    }
+else:
+    # En producción (tu Debian): Usa el servidor Redis que acabamos de instalar
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://127.0.0.1:6379/1",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
+        }
+    }
 
 LOGGING = {
     "disable_existing_loggers": False,
@@ -223,3 +245,9 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
     "compressor.finders.CompressorFinder",
 )
+
+if os.name == "nt":
+    QGIS_BIN = r'C:\Program Files\QGIS 3.28.12\bin'
+    os.environ['PATH'] = f"{QGIS_BIN};{os.environ.get('PATH', '')}"
+    GDAL_LIBRARY_PATH = os.path.join(QGIS_BIN, 'gdal307.dll')
+    GEOS_LIBRARY_PATH = os.path.join(QGIS_BIN, 'geos_c.dll')

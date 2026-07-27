@@ -1,0 +1,111 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}Nuevo PUSINEX{% endblock %}
+
+{% block content %}
+<section class="max-w-3xl mx-auto space-y-6">
+
+  <header class="mb-8">
+    <h1 class="text-3xl font-extrabold text-base-content">Cargar / Actualizar PUSINEX</h1>
+    <p class="text-base-content/70">Selecciona el municipio y la sección para asociar el archivo PDF oficial.</p>
+  </header>
+
+  {% if form.errors %}
+  <div class="alert alert-error shadow-lg">
+    <div>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <div>
+        <h3 class="font-bold">Error en la validación</h3>
+        <div class="text-sm text-error-content">
+          {{ form.non_field_errors }}
+          {% for field in form %}
+            {% if field.errors %}{{ field.label }}: {{ field.errors|striptags }}<br>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card bg-base-100 shadow-md border border-base-200">
+    <div class="card-body">
+
+      <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Municipio</span></label>
+            {{ form.municipio_filtro }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Sección (Solo activas)</span></label>
+            {{ form.seccion }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Fecha de Actualización</span></label>
+            {{ form.f_act }}
+          </div>
+          <div class="form-control">
+            <label class="label"><span class="label-text font-bold">Número de Hojas</span></label>
+            {{ form.hojas }}
+          </div>
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Archivo PDF</span></label>
+          {{ form.archivo }}
+        </div>
+
+        <div class="form-control">
+          <label class="label"><span class="label-text font-bold">Observaciones (Opcional)</span></label>
+          {{ form.observaciones }}
+        </div>
+
+        <div class="card-actions justify-end mt-6 border-t border-base-200 pt-4">
+          <a href="{% url 'pusinex:bgd' %}" class="btn btn-ghost">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Guardar Plano</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Leemos el diccionario de secciones que mandó la vista
+    const seccionesData = {{ secciones_json|safe }};
+
+    const municipioSelect = document.getElementById('filtro_municipio');
+    const seccionSelect = document.getElementById('id_seccion');
+
+    // 2. Función para actualizar el combo de secciones
+    function actualizarSecciones() {
+        const municipioId = municipioSelect.value;
+
+        // Limpiamos las opciones actuales
+        seccionSelect.innerHTML = '<option value="">--- Selecciona una sección ---</option>';
+
+        if (municipioId && seccionesData[municipioId]) {
+            // Llenamos solo con las secciones del municipio seleccionado
+            seccionesData[municipioId].forEach(numSeccion => {
+                const opt = document.createElement('option');
+                opt.value = numSeccion;
+                // Rellenamos con ceros a la izquierda (ej. 0001)
+                opt.textContent = String(numSeccion).padStart(4, '0');
+                seccionSelect.appendChild(opt);
+            });
+        }
+    }
+
+    // 3. Escuchamos el cambio
+    municipioSelect.addEventListener('change', actualizarSecciones);
+});
+</script>
+{% endblock scripts %}

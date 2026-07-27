@@ -17,3 +17,4 @@ django_compressor
 django-guardian
 django-recaptcha
 whitenoise
+WeasyPrint

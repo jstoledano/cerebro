@@ -1,0 +1,229 @@
+{% extends 'cerebro/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Expediente Sección {{ seccion.seccion|stringformat:"04d" }} - Cartografía{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock head %}
+
+{% block content %}
+<section class="space-y-10">
+
+  <div class="flex flex-col gap-2">
+    <div class="text-sm breadcrumbs text-base-content/60 font-medium">
+      <ul>
+        <li>
+          <a href="{% url 'pusinex:index' %}" class="inline-flex items-center gap-1 hover:text-primary transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            </svg>
+            Entidad (Tlaxcala)
+          </a>
+        </li>
+        <li><a href="{% url 'pusinex:distrito' pk=seccion.distrito.pk %}" class="hover:text-primary transition-colors">Distrito {{ seccion.distrito.distrito|stringformat:"02d" }}</a></li>
+        <li><a href="{% url 'pusinex:municipio' pk=seccion.municipio.pk %}" class="hover:text-primary transition-colors">Municipio {{ seccion.municipio.nombre }}</a></li>
+        <li class="text-base-content/80">Sección {{ seccion.seccion|stringformat:"04d" }}</li>
+      </ul>
+    </div>
+
+    <div>
+      <h1 class="text-4xl md:text-5xl font-extrabold text-base-content tracking-tight">
+        Expediente Sección <span class="text-primary">{{ seccion.seccion|stringformat:"04d" }}</span>
+      </h1>
+      <p class="text-lg text-base-content/70 mt-2 font-medium flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-secondary">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+        </svg>
+        Entidad: Tlaxcala - D{{ seccion.distrito.distrito|stringformat:"02d" }} - M{{ seccion.municipio.municipio|stringformat:"03d" }}
+      </p>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-8">
+      <div id="map" class="w-full h-[650px] rounded-box border border-base-300 relative z-[1]"></div>
+    </div>
+
+    <div class="lg:col-span-4">
+      <div class="card bg-base-100 card-border shadow-md border border-base-200 h-[650px]">
+        <div class="card-body flex flex-col justify-between">
+
+          <div class="stats stats-vertical shadow-sm border border-base-200 w-full bg-base-50/50 rounded-xl mb-4">
+            <div class="stat px-4 py-3">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Sección</div>
+              <div class="stat-value text-3xl">{{ seccion.seccion|stringformat:"04d" }}</div>
+            </div>
+            <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Tipo de Sección</div>
+              <div class="stat-value text-xl whitespace-normal leading-tight">{{ seccion.get_tipo_display }}</div>
+            </div>
+            <div class="stat px-4 py-3 border-t border-base-200">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Padrón Electoral</div>
+              <div class="stat-value text-2xl text-secondary">{{ seccion.pe|intcomma }}</div>
+            </div>
+            <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
+              <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Lista Nominal</div>
+              <div class="stat-value text-2xl text-primary">{{ seccion.ln|intcomma }}</div>
+            </div>
+          </div>
+
+          <div class="card-actions flex flex-col gap-3 mt-auto">
+
+            {% if es_urbana %}
+
+              <button class="btn btn-neutral w-full gap-2 px-6" onclick="modal_pusi.showModal()">
+                🗺️ Ver PUSI (Plano Urbano)
+              </button>
+
+              {% if ultimo_pusinex and ultimo_pusinex.archivo %}
+                <button class="btn btn-primary w-full gap-2 px-6" onclick="modal_pusinex.showModal()">
+                  🏠 Ver PUSINEX (Números Ext.)
+                </button>
+              {% else %}
+                <div class="tooltip w-full" data-tip="El archivo PUSINEX no ha sido cargado">
+                  <button class="btn btn-disabled w-full gap-2 px-6">
+                    🚫 PUSINEX No Disponible
+                  </button>
+                </div>
+              {% endif %}
+
+            {% else %}
+              <div class="alert bg-base-200 text-sm py-3 font-medium opacity-80 justify-center">
+                🌾 Sección Rural (No aplica PUSI / PUSINEX)
+              </div>
+            {% endif %}
+
+            {% if ruta %}
+            <button class="btn btn-accent w-full gap-2 px-6" onclick="modal_ruta_maps.showModal()">
+              📍 Ver Ruta: Distrito a Casilla
+            </button>
+            {% else %}
+            <div class="tooltip w-full" data-tip="Faltan coordenadas de origen o destino">
+              <button class="btn btn-disabled w-full gap-2 px-6">
+                📍 Ruta No Disponible
+              </button>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+{% if ruta %}
+<dialog id="modal_ruta_maps" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none">
+    <div class="flex justify-between items-center mb-2 flex-shrink-0">
+      <h3 class="font-bold text-lg text-accent">Ruta Oficial: Sede Distrital ➔ Casilla Sección {{ seccion.seccion|stringformat:"04d" }}</h3>
+      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300">✕</button></form>
+    </div>
+    <div class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200">
+      <iframe src="{{ ruta }}" class="w-full h-full" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm"><button>close</button></form>
+</dialog>
+{% endif %}
+
+{% if es_urbana %}
+<dialog id="modal_pusi" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none">
+    <div class="flex justify-between items-center mb-2 flex-shrink-0">
+      <h3 class="font-bold text-lg text-neutral">Plano Urbano (PUSI) - Sección {{ seccion.seccion|stringformat:"04d" }}</h3>
+      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300">✕</button></form>
+    </div>
+    <div class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200">
+      <iframe src="/media/pusinex/pusis/{{ seccion.seccion }}.pdf#view=FitH&zoom=page-width" class="w-full h-full block" style="border:0;" loading="eager"></iframe>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm"><button>close</button></form>
+</dialog>
+{% endif %}
+
+{% if es_urbana and ultimo_pusinex and ultimo_pusinex.archivo %}
+<dialog id="modal_pusinex" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none">
+    <div class="flex justify-between items-center mb-2 flex-shrink-0">
+      <h3 class="font-bold text-lg text-primary">Plano PUSINEX - Sección {{ seccion.seccion|stringformat:"04d" }} (Rev: {{ ultimo_pusinex.f_act|date:"d/m/Y" }})</h3>
+      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300">✕</button></form>
+    </div>
+    <div class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200">
+      <iframe src="{{ ultimo_pusinex.archivo.url }}#view=FitH&zoom=page-width" class="w-full h-full block" style="border:0;" loading="eager"></iframe>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm"><button>close</button></form>
+</dialog>
+{% endif %}
+
+{% endblock content %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      const map = L.map('map', { doubleClickZoom: false });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 20,
+          attribution: '© OpenStreetMap contributors © CARTO'
+      }).addTo(map);
+
+      const municipioData = {{ municipio_geojson|safe }};
+      const seccionData = {{ seccion_geojson|safe }};
+
+      // Capa de fondo: El municipio entero (Color tenue)
+      const capaMunicipio = L.geoJSON(municipioData, {
+        style: { color: "#9ca3af", weight: 2, fillOpacity: 0.1 },
+        interactive: false
+      }).addTo(map);
+
+      // Capa principal: La sección resaltada
+      const capaSeccion = L.geoJSON(seccionData, {
+        style: { color: "#ef4444", weight: 4, fillColor: "#fca5a5", fillOpacity: 0.4 },
+        onEachFeature: function (feature, layer) {
+          layer.bindTooltip("Sección " + String(feature.id).padStart(4, '0'), {
+            permanent: true,
+            direction: "center",
+            className: "font-bold text-sm bg-white/80 border-none shadow-sm rounded-md"
+          });
+        }
+      }).addTo(map);
+
+      var overlayMaps = {
+          "Sección Actual": capaSeccion,
+          "Municipio Contexto": capaMunicipio
+      };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+
+      // Centrar el mapa directamente en la sección
+      map.fitBounds(capaSeccion.getBounds());
+
+      let controlCentrar = L.control({position: 'topleft'});
+      controlCentrar.onAdd = function() {
+          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+          const button = L.DomUtil.create('a', '', container);
+          button.innerHTML = '🎯';
+          button.href = '#';
+          button.title = 'Volver a centrar en la Sección';
+          button.style.display = 'flex';
+          button.style.alignItems = 'center';
+          button.style.justifyContent = 'center';
+          button.style.textDecoration = 'none';
+
+          L.DomEvent.on(button, 'click', function(e) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+              map.fitBounds(capaSeccion.getBounds());
+          });
+          return container;
+      };
+      controlCentrar.addTo(map);
+  });
+</script>
+{% endblock scripts %}
