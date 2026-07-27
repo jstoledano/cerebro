@@ -116,6 +116,37 @@ def get_latest_pusinex_entries(district=None):
     return entries
 
 
+def get_pusinex_coverage_statistics(entries):
+    """Resume la cobertura PUSINEX de un conjunto de secciones elegibles."""
+    status_counts = {
+        "SIN_REGISTRO": 0,
+        "SIN_ARCHIVO": 0,
+        "ARCHIVO_NO_ENCONTRADO": 0,
+    }
+    with_pusinex = 0
+
+    for entry in entries:
+        status = entry["status"]
+        if status == "INCLUIDO":
+            with_pusinex += 1
+        elif status in status_counts:
+            status_counts[status] += 1
+
+    eligible = len(entries)
+    missing = eligible - with_pusinex
+    coverage = round((with_pusinex * 100) / eligible, 1) if eligible else 0.0
+
+    return {
+        "eligible": eligible,
+        "with_pusinex": with_pusinex,
+        "missing": missing,
+        "coverage": coverage,
+        "without_record": status_counts["SIN_REGISTRO"],
+        "without_file": status_counts["SIN_ARCHIVO"],
+        "file_not_found": status_counts["ARCHIVO_NO_ENCONTRADO"],
+    }
+
+
 def build_pusinex_manifest(entries):
     """Construye el manifiesto CSV que se agrega dentro de cada paquete."""
     output = StringIO(newline="")
@@ -582,13 +613,26 @@ class Administration(TemplateView):
             Distrito.objects.filter(entidad_id=TLAXCALA).order_by("distrito")
         )
 
+        state_entries = get_latest_pusinex_entries()
+        entries_by_district = {
+            district.distrito: []
+            for district in districts
+        }
+        for entry in state_entries:
+            district_number = entry["section"].distrito.distrito
+            entries_by_district.setdefault(district_number, []).append(entry)
+
         district_packages = []
         for district in districts:
+            district_entries = entries_by_district.get(district.distrito, [])
             district_packages.append(
                 {
                     "district": district,
                     "package": get_pusinex_package_metadata(
                         district=district.distrito
+                    ),
+                    "statistics": get_pusinex_coverage_statistics(
+                        district_entries
                     ),
                 }
             )
@@ -596,6 +640,9 @@ class Administration(TemplateView):
         context.update(
             {
                 "state_package": get_pusinex_package_metadata(),
+                "state_statistics": get_pusinex_coverage_statistics(
+                    state_entries
+                ),
                 "district_packages": district_packages,
             }
         )

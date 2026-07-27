@@ -81,6 +81,22 @@
 
           <!-- Actions Section -->
           <div class="card-actions flex flex-col gap-3">
+            {% if district_package.exists %}
+            <a href="{{ district_package.download_url }}" class="btn btn-secondary w-full gap-2 px-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-4.5-6L12 15m0 0-4.5-4.5M12 15V3" />
+              </svg>
+              Descargar paquete PUSINEX
+            </a>
+            <p class="px-2 text-center text-xs text-base-content/55">
+              Actualizado {{ district_package.modified|date:"d/m/Y H:i" }} · {{ district_package.size|filesizeformat }}
+            </p>
+            {% else %}
+            <button type="button" class="btn w-full gap-2 px-6" disabled>
+              Paquete PUSINEX pendiente
+            </button>
+            {% endif %}
+
             <button class="btn btn-primary w-full gap-2 px-6" onclick="modal_plano_pdf.showModal()">
               🗺️ Ver el plano distrital seccional
             </button>
