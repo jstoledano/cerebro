@@ -1,9 +1,10 @@
 # Cerebro
+deploy/
 .env
 container/.env.container
 .env.json
 .idea/
-media/
+src/apps/media/
 .vscode/
 !.vscode/launch.json
 !.vscode/settings.json
