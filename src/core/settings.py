@@ -77,14 +77,16 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "core.cache_middleware.SelectiveUpdateCacheMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.cache_middleware.SelectiveFetchFromCacheMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -173,26 +175,53 @@ MESSAGE_TAGS = {
     messages.ERROR: "alert-danger",
 }
 
-# Configuración inteligente de Caché
+# Configuración de caché
+SITE_CACHE_SECONDS = env.int("SITE_CACHE_SECONDS", default=300)
+
 if DEBUG:
-    # En desarrollo (tu Windows): Usa la memoria local de la computadora
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "cerebro-dev-cache",
-        }
+            "LOCATION": "cerebro-dev-default",
+            "TIMEOUT": 3600,
+        },
+        "pages": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "cerebro-dev-pages",
+            "TIMEOUT": SITE_CACHE_SECONDS,
+        },
     }
 else:
-    # En producción (tu Debian): Usa el servidor Redis que acabamos de instalar
+    REDIS_OPTIONS = {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "SOCKET_CONNECT_TIMEOUT": 2,
+        "SOCKET_TIMEOUT": 2,
+        "CONNECTION_POOL_KWARGS": {
+            "max_connections": 100,
+            "protocol": 2,
+        },
+    }
+
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": "redis://127.0.0.1:6379/1",
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            }
-        }
+            "OPTIONS": REDIS_OPTIONS,
+            "KEY_PREFIX": "cerebro-default",
+            "TIMEOUT": 3600,
+        },
+        "pages": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://127.0.0.1:6379/2",
+            "OPTIONS": REDIS_OPTIONS,
+            "KEY_PREFIX": "cerebro-pages",
+            "TIMEOUT": SITE_CACHE_SECONDS,
+        },
     }
+
+CACHE_MIDDLEWARE_ALIAS = "pages"
+CACHE_MIDDLEWARE_SECONDS = SITE_CACHE_SECONDS
+CACHE_MIDDLEWARE_KEY_PREFIX = "cerebro-site-v1"
 
 LOGGING = {
     "disable_existing_loggers": False,

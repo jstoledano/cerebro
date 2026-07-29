@@ -3,12 +3,14 @@ import zipfile
 import os
 import tempfile
 import threading
+import logging
 from datetime import datetime, timedelta
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.utils import timezone
 from apps.cecyrd.models import Tramite
 
 BATCH_SIZE = 1000
+logger = logging.getLogger(__name__)
 
 
 def convertir_fecha_para_db(fecha_str):
@@ -52,6 +54,17 @@ def registrar_progreso(task_id, status, progreso, msj=None, stats=None):
     if stats:
         data["stats"] = stats
     cache.set(task_id, data, timeout=3600)
+
+
+def invalidar_cache_paginas():
+    """Elimina páginas antiguas cuando termina una carga ETL."""
+    try:
+        caches["pages"].clear()
+        logger.info("Caché de páginas invalidado después del ETL.")
+    except Exception:
+        logger.exception(
+            "No se pudo invalidar el caché de páginas después del ETL."
+        )
 
 
 def procesar_archivo_background(task_id, file_path, is_zip, password):
@@ -218,6 +231,7 @@ def procesar_archivo_background(task_id, file_path, is_zip, password):
             f"✅ Base de datos sincronizada correctamente.",
             stats,
         )
+        invalidar_cache_paginas()
 
     except Exception as e:
         registrar_progreso(
