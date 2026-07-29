@@ -388,12 +388,12 @@ class Notificacion(models.Model):
     - revisiones: Revisiones de documentos asociadas a la notificación.
     """
 
-    TIPOS = (
-        ('S', 'Semanal'),
-        ('U', 'Urgente')
-    )
+    class Tipo(models.TextChoices):
+        SEMANAL = "S", "Semanal"
+        URGENTE = "U", "Urgente"
+
     fecha_envio = models.DateTimeField(auto_now_add=True)
-    tipo = models.CharField(max_length=1, choices=TIPOS)
+    tipo = models.CharField(max_length=1, choices=Tipo.choices)
     asunto = models.CharField(max_length=255)
     cuerpo_html = models.TextField()
     documento = models.ForeignKey(Documento, on_delete=models.CASCADE, related_name='notificaciones', null=True, blank=True)

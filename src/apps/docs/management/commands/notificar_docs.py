@@ -99,7 +99,7 @@ class Command(BaseCommand):
             documento=None,
             revision_obj=None,
             destinatarios=", ".join([s.email_full for s in destinatarios]),
-            tipo="P",
+            tipo=Notificacion.Tipo.SEMANAL,
             asunto=asunto,
             cuerpo_html=cuerpo_html_para_notificacion,
         )
