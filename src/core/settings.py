@@ -23,8 +23,18 @@ SECRET_KEY = env("SECRET_KEY")
 
 DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
-CSRF_TRUSTED_ORIGINS = ["https://sgctlaxcala.com.mx", "https://www.sgctlaxcala.com.mx"]
-CORS_ORIGIN_WHITELIST = ["https://sgctlaxcala.com.mx", "https://www.sgctlaxcala.com.mx"]
+SITE_URL = env(
+    "SITE_URL",
+    default="http://127.0.0.1:8000",
+).rstrip("/")
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[],
+)
+CORS_ORIGIN_WHITELIST = env.list(
+    "CORS_ORIGIN_WHITELIST",
+    default=[],
+)
 
 if env("SSL", default=False) is True:
     SECURE_SSL_REDIRECT = False
@@ -114,7 +124,6 @@ if DEBUG:
         {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
         {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ]
-    SITE_URL = "http://127.0.0.1:8000"
 else:
     AUTH_PASSWORD_VALIDATORS = [
         {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

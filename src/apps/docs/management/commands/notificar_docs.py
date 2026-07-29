@@ -3,6 +3,7 @@ import logging
 import pytz
 
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -43,6 +44,7 @@ class Command(BaseCommand):
         context = {
             "revisiones": revisiones_pendientes,
             "fecha_notificacion": ahora.strftime("%d/%b/%Y"),
+            "site_url": settings.SITE_URL,
         }
 
         asunto = f"Documentos actualizados a la fecha {context['fecha_notificacion']}"

@@ -16,6 +16,7 @@ Incluye las siguientes vistas:
 
 from datetime import datetime
 from django.forms.models import BaseModelForm
+from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from watson import search as watson
 from django.urls import reverse_lazy
@@ -362,6 +363,7 @@ def envio_de_correo(request, destinatarios, asunto, documento, revision, autor):
                 "revision": revision,
                 "autor": autor,
                 "nombre_usuario": nombre_usuario,
+                "site_url": settings.SITE_URL,
             },
         )
         try:
@@ -402,6 +404,7 @@ def send_message(request, destinatarios, asunto, documento, revision, autor):
                 "revision": revision,
                 "autor": autor,
                 "nombre_usuario": nombre_usuario,
+                "site_url": settings.SITE_URL,
             },
         )
 

@@ -19,7 +19,7 @@
         <tbody>
             {% for revision in revisiones %}
             <tr>
-                <td><a href="https://sgctlaxcala.com.mx{% url 'docs:detalle' pk=revision.documento.pk %}" target=_blank>{{ revision.documento.nombre }}</a></td>
+                <td><a href="{{ site_url }}{% url 'docs:detalle' pk=revision.documento.pk %}" target=_blank>{{ revision.documento.nombre }}</a></td>
                 <td>{{ revision.revision }}</td>
                 <td>{{ revision.cambios|safe }}</td>
             </tr>
