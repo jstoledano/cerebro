@@ -1,6 +1,5 @@
 import os
 import logging
-import pytz
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -8,7 +7,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.files.models import Revision, Notificacion
+from apps.docs.models import Notificacion, Revision
 from apps.pmml.models import Subscriber
 
 logger = logging.getLogger(__name__)
@@ -18,8 +17,7 @@ class Command(BaseCommand):
     help = "Envía notificaciones programadas para revisiones de documentos no urgentes."
 
     def handle(self, *args, **options):
-        tz = pytz.timezone("America/Mexico_City")
-        ahora = timezone.now().astimezone(tz)
+        ahora = timezone.localtime()
 
         revisiones_pendientes = Revision.objects.filter(notificacion_enviada=False)
 
@@ -59,7 +57,7 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.ERROR("Error: SMTP_USER no configurada."))
             return
-        
+
         texto_plano = (
             "Se han actualizado documentos en el sistema CMI.\n\n"
             "Puede revisar los cambios ingresando al sistema.\n\n"
