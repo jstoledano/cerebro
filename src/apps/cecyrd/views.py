@@ -10,6 +10,8 @@ from django.views import View
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from weasyprint import HTML
+from django.core.cache import cache
+from .etl import iniciar_etl_thread
 
 from .models import Tramite, RevisionDireccion
 
