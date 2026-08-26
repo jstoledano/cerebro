@@ -34,11 +34,24 @@
     </div>
   </header>
 
-  <div class="tabs tabs-boxed bg-base-200 p-2 rounded-2xl max-w-3xl">
-    <button class="tab tab-active font-semibold" id="tab-global" onclick="cambiarFiltro('global')">Todo el Histórico</button>
-    <button class="tab font-semibold" id="tab-sem1" onclick="cambiarFiltro('sem1')">Revisión Ene-Jun 2026</button>
-    <button class="tab font-semibold hidden" id="tab-sem2" onclick="cambiarFiltro('sem2')">Revisión Jul-Dic 2026</button>
-    <button class="tab font-semibold" id="tab-custom" onclick="cambiarFiltro('custom')">Búsqueda por fechas</button>
+  <div class="flex flex-col md:flex-row items-center justify-between gap-4 w-full mb-4">
+
+    <!-- Caja gris de pestañas (Izquierda) -->
+    <div class="tabs tabs-boxed bg-base-200 p-2 rounded-2xl w-full md:w-auto">
+      <button class="tab tab-active font-semibold" id="tab-global" onclick="cambiarFiltro('global')">Todo el Histórico</button>
+      <button class="tab font-semibold" id="tab-sem1" onclick="cambiarFiltro('sem1')">Revisión Ene-Jun 2026</button>
+      <button class="tab font-semibold hidden" id="tab-sem2" onclick="cambiarFiltro('sem2')">Revisión Jul-Dic 2026</button>
+      <button class="tab font-semibold" id="tab-custom" onclick="cambiarFiltro('custom')">Búsqueda por fechas</button>
+    </div>
+
+<!-- Botón independiente (Derecha) -->
+<a href="{% url 'cecyrd:reporte_semanal' %}" class="btn btn-primary shadow-sm" id="btn-semanal">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+  </svg>
+  Revisión Semanal
+</a>
+
   </div>
 
   <div class="card border border-base-300 bg-base-100 shadow-md p-4 max-w-3xl hidden" id="custom-filter-panel">
@@ -135,6 +148,17 @@
       </div>
     </div>
   </div>
+
+  <!-- Gráfica de Distribución Normal a todo lo ancho -->
+  <div class="card border border-base-300 bg-base-100 shadow-lg p-6 mt-6">
+    <h3 class="text-lg font-bold text-base-content mb-1">Distribución del tiempo de disponibilidad</h3>
+    <p class="text-xs text-base-content/60 mb-4">Volumen de credenciales entregadas agrupadas por los días transcurridos.</p>
+    <div class="relative w-full" style="height: 300px;">
+      <canvas id="chartDistribucion"></canvas>
+    </div>
+  </div>
+
+
   <div id="seccion-revision-direccion" class="hidden mt-6 grid gap-6 md:grid-cols-3">
     <div class="md:col-span-2 space-y-6">
 
@@ -221,6 +245,7 @@
   let chartEstresInstance = null;
   let currentPeriodoId = null;
   let currentKPIs = {};
+  let chartDistribucionInstance = null;
 
   function getCookie(name) {
     let cookieValue = null;
@@ -374,7 +399,7 @@
       }
 
       if (res.datasets) {
-        renderCharts(res.labels, res.datasets);
+        renderCharts(res.labels, res.datasets, res.distribucion);
       }
 
       document.getElementById('header-status').innerText = "Base de datos lista";
@@ -384,7 +409,7 @@
     }
   }
 
-  async function guardarRevision(event) {
+async function guardarRevision(event) {
     event.preventDefault();
 
     if (!currentPeriodoId) {
@@ -397,6 +422,7 @@
 
     let imgTendencia = "";
     let imgEstres = "";
+    let imgDistribucion = "";
 
     if (chartTendenciaInstance) {
         const canvas = document.getElementById('chartTendencia');
@@ -420,13 +446,26 @@
         ctx.restore();
     }
 
+    // NUEVO: Capturamos la gráfica de distribución
+    if (chartDistribucionInstance) {
+        const canvas = document.getElementById('chartDistribucion');
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        imgDistribucion = chartDistribucionInstance.toBase64Image();
+        ctx.restore();
+    }
+
     const payload = {
       periodo: currentPeriodoId,
       conclusiones: txtConclusiones ? txtConclusiones.value : '',
       recomendaciones: txtRecomendaciones ? txtRecomendaciones.value : '',
       kpis: currentKPIs,
       grafica_tendencia: imgTendencia,
-      grafica_estres: imgEstres
+      grafica_estres: imgEstres,
+      grafica_distribucion: imgDistribucion // NUEVO: La enviamos al backend
     };
 
     const csrfToken = getCookie('csrftoken');
@@ -461,58 +500,219 @@
     }
   }
 
-  function renderCharts(labels, datasets) {
-    if (chartTendenciaInstance) chartTendenciaInstance.destroy();
-    if (chartEstresInstance) chartEstresInstance.destroy();
+  function renderCharts(labels, datasets, distribucion) {
+  // 1. Destruir instancias previas para evitar superposición
+  if (chartTendenciaInstance) chartTendenciaInstance.destroy();
+  if (chartEstresInstance) chartEstresInstance.destroy();
+  if (chartDistribucionInstance) chartDistribucionInstance.destroy();
 
-    // 1. GENERADOR DE TRAMA RAYADA PARA IMPRESIÓN
-    function crearTramaRayada() {
-      const canvasTrama = document.createElement('canvas');
-      canvasTrama.width = 10;
-      canvasTrama.height = 10;
-      const ctxTrama = canvasTrama.getContext('2d');
+  // 2. GENERADOR DE TRAMA RAYADA PARA IMPRESIÓN (Gráfica de Estrés)
+  function crearTramaRayada() {
+    const canvasTrama = document.createElement('canvas');
+    canvasTrama.width = 12;
+    canvasTrama.height = 12;
+    const ctxTrama = canvasTrama.getContext('2d');
 
-      // Fondo gris oscuro
-      ctxTrama.fillStyle = '#52525b';
-      ctxTrama.fillRect(0, 0, 10, 10);
+    // Fondo rojo claro
+    ctxTrama.fillStyle = '#fee2e2';
+    ctxTrama.fillRect(0, 0, 12, 12);
 
-      // Línea diagonal blanca
-      ctxTrama.strokeStyle = '#ffffff';
-      ctxTrama.lineWidth = 2;
-      ctxTrama.beginPath();
-      ctxTrama.moveTo(0, 10);
-      ctxTrama.lineTo(10, 0);
-      ctxTrama.stroke();
+    // Líneas diagonales rojas
+    ctxTrama.strokeStyle = '#dc2626';
+    ctxTrama.lineWidth = 2;
+    ctxTrama.beginPath();
+    ctxTrama.moveTo(-3, 3);
+    ctxTrama.lineTo(3, -3);
+    ctxTrama.moveTo(-3, 15);
+    ctxTrama.lineTo(15, -3);
+    ctxTrama.moveTo(9, 15);
+    ctxTrama.lineTo(15, 9);
+    ctxTrama.stroke();
 
-      return ctxTrama.createPattern(canvasTrama, 'repeat');
+    return ctxTrama.createPattern(canvasTrama, 'repeat');
+  }
+  const patronRetraso = crearTramaRayada();
+
+  // =========================================================
+  // GRÁFICA 1: Tendencia (Tiempos de disponibilidad)
+  // =========================================================
+  const ctx1 = document.getElementById('chartTendencia').getContext('2d');
+  chartTendenciaInstance = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Días promedio de disponibilidad',
+          data: datasets.promedios,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 3,
+          tension: 0.2,
+          fill: true
+        },
+        {
+          label: 'Meta SGC',
+          data: datasets.metas,
+          borderColor: '#ef4444',
+          borderWidth: 2,
+          stepped: true,
+          borderDash: [5, 5],
+          pointRadius: 4,
+          pointBackgroundColor: '#ef4444',
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) { label += ': '; }
+              label += context.parsed.y + ' días';
+              if (context.datasetIndex === 1 && datasets.motivos) {
+                const motivo = datasets.motivos[context.dataIndex];
+                if (motivo && motivo !== "Ordinario") { label += ` ⚠️ (${motivo})`; }
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Días transcurridos', font: { weight: 'bold' } }
+        }
+      }
     }
-    // const patronRetraso = crearTramaRayada();
+  }); // <-- Aquí faltaba el cierre correcto
 
-    const ctx1 = document.getElementById('chartTendencia').getContext('2d');
-    chartTendenciaInstance = new Chart(ctx1, {
-      type: 'line',
+  // =========================================================
+  // GRÁFICA 2: Estrés de Producción
+  // =========================================================
+  const ctx2 = document.getElementById('chartEstres').getContext('2d');
+  chartEstresInstance = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Trámites totales',
+          data: datasets.totales,
+          backgroundColor: 'rgba(219, 39, 119, 0.72)',
+          borderColor: '#9d174d',
+          hoverBackgroundColor: 'rgba(219, 39, 119, 0.88)',
+          hoverBorderColor: '#831843',
+          borderWidth: 2,
+          borderRadius: 3,
+          stack: 'GrupoTotal',
+          yAxisID: 'yVolumen',
+          order: 1
+        },
+        {
+          label: 'Recibidas en tiempo',
+          data: datasets.en_tiempo,
+          backgroundColor: 'rgba(124, 58, 237, 0.68)',
+          borderColor: '#5b21b6',
+          hoverBackgroundColor: 'rgba(124, 58, 237, 0.85)',
+          hoverBorderColor: '#4c1d95',
+          borderWidth: 2,
+          borderRadius: 3,
+          stack: 'GrupoAnalizado',
+          yAxisID: 'yVolumen',
+          order: 1
+        },
+        {
+          label: 'Recibidas con retraso',
+          data: datasets.rezago,
+          backgroundColor: patronRetraso,
+          borderColor: '#b91c1c',
+          hoverBorderColor: '#991b1b',
+          borderWidth: 2,
+          borderRadius: 3,
+          stack: 'GrupoAnalizado',
+          yAxisID: 'yVolumen',
+          order: 1
+        },
+        {
+          type: 'line',
+          label: '% Cumplimiento de Meta',
+          data: datasets.cumplimiento,
+          borderColor: '#059669',
+          backgroundColor: '#059669',
+          borderWidth: 3,
+          pointRadius: 3,
+          pointBackgroundColor: '#059669',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          tension: 0.1,
+          fill: false,
+          yAxisID: 'yPorcentaje',
+          order: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        yVolumen: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Volumen de Trámites', font: { weight: 'bold' } }
+        },
+        yPorcentaje: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          max: 100,
+          title: { display: true, text: 'Cumplimiento (%)', font: { weight: 'bold' } },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  }); // Cierre restaurado para la gráfica de estrés
+
+  // =========================================================
+  // GRÁFICA 3: Distribución Normal (Campana de la Verdad Mixta)
+  // =========================================================
+  if (distribucion && distribucion.labels && distribucion.data) {
+    const ctx3 = document.getElementById('chartDistribucion').getContext('2d');
+    chartDistribucionInstance = new Chart(ctx3, {
+      type: 'bar', // El tipo base del lienzo
       data: {
-        labels: labels,
+        labels: distribucion.labels,
         datasets: [
           {
-            label: 'Días promedio de disponibilidad',
-            data: datasets.promedios,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            type: 'line', // La curva de Gauss
+            label: 'Tendencia de entrega',
+            data: distribucion.data,
+            borderColor: '#1e40af', // Un azul más oscuro para que contraste
             borderWidth: 3,
-            tension: 0.2,
-            fill: true
+            tension: 0.4, // Suavizado de la curva
+            pointRadius: 1,
+            pointHoverRadius: 6,
+            fill: false, // Sin relleno para no tapar las barras
+            order: 1 // Dibuja la línea por encima
           },
           {
-            label: 'Meta SGC',
-            data: datasets.metas,
-            borderColor: '#ef4444',
-            borderWidth: 2,
-            stepped: true,
-            borderDash: [5, 5],
-            pointRadius: 4,
-            pointBackgroundColor: '#ef4444',
-            fill: false
+            type: 'bar', // Las barras de volumen
+            label: 'Volumen de Credenciales',
+            data: distribucion.data,
+            backgroundColor: 'rgba(59, 130, 246, 0.4)', // Azul suave con transparencia
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4,
+            barPercentage: 0.9,
+            categoryPercentage: 1.0,
+            order: 2 // Dibuja las barras por el fondo
           }
         ]
       },
@@ -520,207 +720,30 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) { label += ': '; }
-                label += context.parsed.y + ' días';
-                if (context.datasetIndex === 1 && datasets.motivos) {
-                  const motivo = datasets.motivos[context.dataIndex];
-                  if (motivo && motivo !== "Ordinario") { label += ` ⚠️ (${motivo})`; }
-                }
-                return label;
+              title: function(context) {
+                return 'Tiempo transcurrido: ' + context[0].label;
               }
             }
           }
         },
         scales: {
+          x: {
+            title: { display: true, text: 'Días transcurridos (SLA)', font: { weight: 'bold' } },
+            grid: { display: false }
+          },
           y: {
             beginAtZero: true,
-            title: { display: true, text: 'Días transcurridos', font: { weight: 'bold' } }
+            title: { display: true, text: 'Cantidad de Trámites', font: { weight: 'bold' } }
           }
         }
       }
     });
-
-    // Patrón rojo para los trámites recibidos con retraso
-function crearTramaRayada() {
-  const canvasTrama = document.createElement('canvas');
-  canvasTrama.width = 12;
-  canvasTrama.height = 12;
-
-  const ctxTrama = canvasTrama.getContext('2d');
-
-  // Fondo rojo claro
-  ctxTrama.fillStyle = '#fee2e2';
-  ctxTrama.fillRect(0, 0, 12, 12);
-
-  // Líneas diagonales rojas
-  ctxTrama.strokeStyle = '#dc2626';
-  ctxTrama.lineWidth = 2;
-
-  ctxTrama.beginPath();
-
-  // Se dibujan varias líneas para que el patrón continúe sin cortes
-  ctxTrama.moveTo(-3, 3);
-  ctxTrama.lineTo(3, -3);
-
-  ctxTrama.moveTo(-3, 15);
-  ctxTrama.lineTo(15, -3);
-
-  ctxTrama.moveTo(9, 15);
-  ctxTrama.lineTo(15, 9);
-
-  ctxTrama.stroke();
-
-  return ctxTrama.createPattern(canvasTrama, 'repeat');
+  }
 }
 
-const patronRetraso = crearTramaRayada();
 
-const ctx2 = document
-  .getElementById('chartEstres')
-  .getContext('2d');
-
-chartEstresInstance = new Chart(ctx2, {
-  type: 'bar',
-
-  data: {
-    labels: labels,
-
-    datasets: [
-      {
-        label: 'Trámites totales',
-        data: datasets.totales,
-
-        // Rosa intenso
-        backgroundColor: 'rgba(219, 39, 119, 0.72)',
-        borderColor: '#9d174d',
-        hoverBackgroundColor: 'rgba(219, 39, 119, 0.88)',
-        hoverBorderColor: '#831843',
-
-        borderWidth: 2,
-        borderRadius: 3,
-        borderSkipped: false,
-
-        stack: 'GrupoTotal',
-        yAxisID: 'yVolumen',
-
-        order: 1
-      },
-
-      {
-        label: 'Recibidas en tiempo',
-        data: datasets.en_tiempo,
-
-        // Violeta institucional
-        backgroundColor: 'rgba(124, 58, 237, 0.68)',
-        borderColor: '#5b21b6',
-        hoverBackgroundColor: 'rgba(124, 58, 237, 0.85)',
-        hoverBorderColor: '#4c1d95',
-
-        borderWidth: 2,
-        borderRadius: 3,
-        borderSkipped: false,
-
-        stack: 'GrupoAnalizado',
-        yAxisID: 'yVolumen',
-
-        order: 1
-      },
-
-      {
-        label: 'Recibidas con retraso',
-        data: datasets.rezago,
-
-        // Fondo claro con líneas diagonales rojas
-        backgroundColor: patronRetraso,
-        borderColor: '#b91c1c',
-        hoverBorderColor: '#991b1b',
-
-        borderWidth: 2,
-        borderRadius: 3,
-        borderSkipped: false,
-
-        stack: 'GrupoAnalizado',
-        yAxisID: 'yVolumen',
-
-        order: 1
-      },
-
-      {
-        type: 'line',
-        label: '% Cumplimiento de Meta',
-        data: datasets.cumplimiento,
-
-        // Verde reservado para cumplimiento
-        borderColor: '#059669',
-        backgroundColor: '#059669',
-
-        borderWidth: 3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#059669',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-
-        tension: 0.1,
-        fill: false,
-
-        yAxisID: 'yPorcentaje',
-
-        order: 0
-      }
-    ]
-  },
-
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-
-    interaction: {
-      mode: 'index',
-      intersect: false
-    },
-
-    scales: {
-      yVolumen: {
-        type: 'linear',
-        position: 'left',
-        beginAtZero: true,
-
-        title: {
-          display: true,
-          text: 'Volumen de Trámites',
-          font: {
-            weight: 'bold'
-          }
-        }
-      },
-
-      yPorcentaje: {
-        type: 'linear',
-        position: 'right',
-        beginAtZero: true,
-        max: 100,
-
-        title: {
-          display: true,
-          text: 'Cumplimiento (%)',
-          font: {
-            weight: 'bold'
-          }
-        },
-
-        grid: {
-          drawOnChartArea: false
-        }
-      }
-    }
-  }
-});
-
-  }
 </script>
 {% endblock scripts %}

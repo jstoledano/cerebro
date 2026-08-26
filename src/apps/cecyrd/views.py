@@ -3,15 +3,16 @@ import json
 from datetime import datetime, timedelta
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Avg, Case, Count, DurationField, F, Q, Value, When
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, ExtractDay, TruncWeek
 from django.http import JsonResponse
 from django.views.generic import TemplateView
-from django.views import View
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
-from weasyprint import HTML
 from django.core.cache import cache
 from .etl import iniciar_etl_thread
+from django.http import HttpResponse
+from django.views import View
+from weasyprint import HTML
 
 from .models import Tramite, RevisionDireccion
 
@@ -202,7 +203,28 @@ class DashboardDataView(View):
                     },
                 }
 
-        # Retornamos el diccionario completo, añadiendo la llave 'revision'
+
+        distribucion_qs = (
+            queryset.filter(tramo_disponible__isnull=False)
+            .annotate(dias=ExtractDay("tramo_disponible"))
+            .values("dias")
+            .annotate(cantidad=Count("folio"))
+            .order_by("dias")
+        )
+
+        dias_dict = {i: 0 for i in range(16)}
+        for item in distribucion_qs:
+            dia = item["dias"]
+            if dia is not None:
+                if dia > 15:
+                    dias_dict[15] += item["cantidad"]
+                else:
+                    dias_dict[int(dia)] += item["cantidad"]
+
+        dist_labels = [f"{i} días" for i in range(15)] + ["15+ días"]
+        dist_data = [dias_dict[i] for i in range(16)]
+
+
         return JsonResponse(
             {
                 "labels": labels,
@@ -223,10 +245,13 @@ class DashboardDataView(View):
                     "porcentaje_global": global_pct,
                     "rezago": global_rezago,
                 },
-                "revision": revision_data,  # <--- SE INYECTA AQUÍ
+                "revision": revision_data,
+                "distribucion": {
+                    "labels": dist_labels,
+                    "data": dist_data
+                }
             }
         )
-
 
 class CargaETLView(TemplateView):
     template_name = "cecyrd/carga.html"
@@ -290,6 +315,7 @@ class GuardarRevisionView(PermissionRequiredMixin, View):
 
             grafica_tendencia = data.get("grafica_tendencia", "")
             grafica_estres = data.get("grafica_estres", "")
+            grafica_distribucion = data.get("grafica_distribucion", "") # NUEVO: Recibimos la imagen
 
             html_string = render_to_string(
                 "cecyrd/reporte_sgc_pdf.html",
@@ -297,6 +323,7 @@ class GuardarRevisionView(PermissionRequiredMixin, View):
                     "revision": revision,
                     "grafica_tendencia": grafica_tendencia,
                     "grafica_estres": grafica_estres,
+                    "grafica_distribucion": grafica_distribucion, # NUEVO: La pasamos al PDF
                 },
             )
 
@@ -316,3 +343,173 @@ class GuardarRevisionView(PermissionRequiredMixin, View):
 
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+class ReporteSemanalView(TemplateView):
+    template_name = "cecyrd/reporte_semanal.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        start_date_str = self.request.GET.get("start", "2026-05-01")
+        end_date_str = self.request.GET.get("end", "2026-07-31")
+
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        qs = Tramite.objects.filter(
+            fecha_tramite__gte=start_date,
+            fecha_tramite__lte=end_date,
+            tramo_disponible__isnull=False,
+        )
+
+        # KPIs Superiores
+        total_analizados = qs.count()
+        promedio_estatal = qs.aggregate(avg=Avg("tramo_disponible"))["avg"]
+        promedio_dias_estatal = (
+            round(promedio_estatal.total_seconds() / 86400, 1)
+            if promedio_estatal
+            else 0
+        )
+
+        # Gráfica Acumulada
+        stats_distrito = (
+            qs.values("distrito")
+            .annotate(avg_tramo=Avg("tramo_disponible"))
+            .order_by("distrito")
+        )
+
+        distritos_labels = []
+        distritos_promedios = []
+
+        for item in stats_distrito:
+            distritos_labels.append(f"Distrito {item['distrito']}")
+            val = (
+                round(item["avg_tramo"].total_seconds() / 86400, 1)
+                if item["avg_tramo"]
+                else 0
+            )
+            distritos_promedios.append(val)
+
+        # Gráfica Principal: Tendencia Semanal
+        tendencia = (
+            qs.annotate(semana=TruncWeek("fecha_tramite"))
+            .values("semana", "distrito")
+            .annotate(promedio=Avg("tramo_disponible"))
+            .order_by("semana", "distrito")
+        )
+
+        semanas_set = sorted(
+            list(set(item["semana"] for item in tendencia if item["semana"]))
+        )
+
+        # Diccionarios de meses
+        MESES = {
+            1: "Ene",
+            2: "Feb",
+            3: "Mar",
+            4: "Abr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Ago",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dic",
+        }
+        MESES_MIN = {k: v.lower() for k, v in MESES.items()}
+
+        semanas_labels = [f"Sem {s.day} {MESES.get(s.month)}" for s in semanas_set]
+
+        data_d1 = {s: None for s in semanas_set}
+        data_d2 = {s: None for s in semanas_set}
+        data_d3 = {s: None for s in semanas_set}
+
+        for item in tendencia:
+            sem = item["semana"]
+            if not sem:
+                continue
+            val = (
+                round(item["promedio"].total_seconds() / 86400, 1)
+                if item["promedio"]
+                else None
+            )
+            d = item["distrito"]
+            if d == 1:
+                data_d1[sem] = val
+            elif d == 2:
+                data_d2[sem] = val
+            elif d == 3:
+                data_d3[sem] = val
+
+        # Construcción de la tabla
+        tabla_semanas = []
+        for sem in semanas_set:
+            fin_dt = sem + timedelta(days=6)
+            inicio_str = f"lun {sem.day:02d}/{MESES_MIN.get(sem.month)}/{sem.year}"
+            fin_str = (
+                f"dom {fin_dt.day:02d}/{MESES_MIN.get(fin_dt.month)}/{fin_dt.year}"
+            )
+            label_larga = f"{inicio_str} - {fin_str}"
+
+            tabla_semanas.append(
+                {
+                    "semana": label_larga,
+                    "d1": data_d1[sem] if data_d1[sem] is not None else "-",
+                    "d2": data_d2[sem] if data_d2[sem] is not None else "-",
+                    "d3": data_d3[sem] if data_d3[sem] is not None else "-",
+                }
+            )
+
+        context.update(
+            {
+                "start_date": start_date_str,
+                "end_date": end_date_str,
+                "total_analizados": total_analizados,
+                "promedio_estatal": promedio_dias_estatal,
+                "chart_semanas_labels": json.dumps(semanas_labels),
+                "chart_d1": json.dumps(list(data_d1.values())),
+                "chart_d2": json.dumps(list(data_d2.values())),
+                "chart_d3": json.dumps(list(data_d3.values())),
+                "chart_distritos_labels": json.dumps(distritos_labels),
+                "chart_distritos_promedios": json.dumps(distritos_promedios),
+                "tabla_semanas": tabla_semanas,
+                "tabla_semanas_json": json.dumps(tabla_semanas),
+            }
+        )
+        return context
+
+
+class ReporteSemanalPDFView(View):
+    """Generador efímero de PDF en formato Horizontal (Landscape)"""
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            start_date = data.get("start_date")
+            end_date = data.get("end_date")
+
+            context = {
+                "start_date": start_date,
+                "end_date": end_date,
+                "total_analizados": data.get("total_analizados"),
+                "promedio_estatal": data.get("promedio_estatal"),
+                "img_tendencia": data.get("img_tendencia"),
+                "img_barras": data.get("img_barras"),
+                "tabla_semanas": data.get("tabla_semanas", []),
+                "fecha_generacion": datetime.now(),
+            }
+
+            html_string = render_to_string("cecyrd/reporte_semanal_pdf.html", context)
+            pdf_file = HTML(
+                string=html_string, base_url=request.build_absolute_uri()
+            ).write_pdf()
+
+            response = HttpResponse(pdf_file, content_type="application/pdf")
+            response["Content-Disposition"] = (
+                f'attachment; filename="Desempeno_Semanal_{start_date}_al_{end_date}.pdf"'
+            )
+            return response
+
+        except Exception as e:
+            return HttpResponse(f"Error generando PDF: {str(e)}", status=400)
