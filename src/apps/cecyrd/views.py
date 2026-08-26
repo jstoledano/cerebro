@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Avg, Case, Count, DurationField, F, Q, Value, When
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, ExtractDay
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from django.views import View
@@ -202,7 +202,28 @@ class DashboardDataView(View):
                     },
                 }
 
-        # Retornamos el diccionario completo, añadiendo la llave 'revision'
+
+        distribucion_qs = (
+            queryset.filter(tramo_disponible__isnull=False)
+            .annotate(dias=ExtractDay("tramo_disponible"))
+            .values("dias")
+            .annotate(cantidad=Count("folio"))
+            .order_by("dias")
+        )
+
+        dias_dict = {i: 0 for i in range(16)}
+        for item in distribucion_qs:
+            dia = item["dias"]
+            if dia is not None:
+                if dia > 15:
+                    dias_dict[15] += item["cantidad"]
+                else:
+                    dias_dict[int(dia)] += item["cantidad"]
+
+        dist_labels = [f"{i} días" for i in range(15)] + ["15+ días"]
+        dist_data = [dias_dict[i] for i in range(16)]
+
+
         return JsonResponse(
             {
                 "labels": labels,
@@ -223,10 +244,13 @@ class DashboardDataView(View):
                     "porcentaje_global": global_pct,
                     "rezago": global_rezago,
                 },
-                "revision": revision_data,  # <--- SE INYECTA AQUÍ
+                "revision": revision_data,
+                "distribucion": {
+                    "labels": dist_labels,
+                    "data": dist_data
+                }
             }
         )
-
 
 class CargaETLView(TemplateView):
     template_name = "cecyrd/carga.html"
@@ -290,6 +314,7 @@ class GuardarRevisionView(PermissionRequiredMixin, View):
 
             grafica_tendencia = data.get("grafica_tendencia", "")
             grafica_estres = data.get("grafica_estres", "")
+            grafica_distribucion = data.get("grafica_distribucion", "") # NUEVO: Recibimos la imagen
 
             html_string = render_to_string(
                 "cecyrd/reporte_sgc_pdf.html",
@@ -297,6 +322,7 @@ class GuardarRevisionView(PermissionRequiredMixin, View):
                     "revision": revision,
                     "grafica_tendencia": grafica_tendencia,
                     "grafica_estres": grafica_estres,
+                    "grafica_distribucion": grafica_distribucion, # NUEVO: La pasamos al PDF
                 },
             )
 

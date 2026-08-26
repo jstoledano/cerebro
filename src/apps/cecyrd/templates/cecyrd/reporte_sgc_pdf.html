@@ -48,7 +48,7 @@
         }
         .header-logo-cell {
             display: table-cell;
-            width: 150px; /* Ancho exacto estimado del logo */
+            width: 150px;
             vertical-align: middle;
             padding-right: 20px;
         }
@@ -57,7 +57,6 @@
             vertical-align: middle;
             text-align: left;
         }
-        /* Estilos para mantener la consistencia de los textos anteriores */
         .header-text-cell h1 {
             color: #0f172a;
             margin: 0;
@@ -144,9 +143,9 @@
             margin: 0 auto 8px auto;
         }
         .footnote {
-            font-size: 0.75rem;       /* Equivalente a letra small / extra small */
-            color: #4b5563;           /* Gris oscuro neutral */
-            margin-bottom: 1rem;      /* Margen inferior equivalente a mb-4 */
+            font-size: 0.75rem;
+            color: #4b5563;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -214,6 +213,13 @@
     <div class="chart-block">
         <img src="{{ grafica_estres|safe }}" alt="Volumen vs Cumplimiento">
         <div class="chart-caption">Gráfica 2.2: Relación de carga volumétrica de producción frente a niveles de cumplimiento de la meta.</div>
+    </div>
+    {% endif %}
+
+    {% if grafica_distribucion %}
+    <div class="chart-block">
+        <img src="{{ grafica_distribucion|safe }}" alt="Distribución del Tiempo">
+        <div class="chart-caption">Gráfica 2.3: Distribución normal de tiempos de disponibilidad (Campana de frecuencias).</div>
     </div>
     {% endif %}
 
