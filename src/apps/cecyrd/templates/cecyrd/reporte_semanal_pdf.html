@@ -1,0 +1,189 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte Semanal de Desempeño</title>
+    <style>
+        @page {
+            size: letter landscape;
+            margin: 1.5cm 2cm;
+            @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                color: #71717a;
+            }
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #27272a;
+            line-height: 1.5;
+            font-size: 10.5pt;
+        }
+        .header-table {
+            display: table;
+            width: 100%;
+            border-bottom: 2px solid #e4e4e7;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header-logo-cell {
+            display: table-cell;
+            width: 150px;
+            vertical-align: middle;
+            padding-right: 20px;
+        }
+        .header-text-cell {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: left;
+        }
+        .header-text-cell h1 {
+            color: #0f172a;
+            margin: 0;
+            font-size: 16pt;
+            text-transform: uppercase;
+        }
+        .header-text-cell p {
+            margin: 4px 0 0 0;
+            color: #52525b;
+            font-size: 9.5pt;
+        }
+        .kpi-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+        .kpi-row {
+            display: table-row;
+        }
+        .kpi-box {
+            display: table-cell;
+            width: 50%;
+            border: 1px solid #e4e4e7;
+            padding: 12px;
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .kpi-label {
+            font-size: 8.5pt;
+            color: #71717a;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .charts-container {
+            display: table;
+            width: 100%;
+        }
+        .chart-cell {
+            display: table-cell;
+            vertical-align: top;
+            padding: 10px;
+        }
+        .chart-cell.left {
+            width: 65%;
+        }
+        .chart-cell.right {
+            width: 35%;
+        }
+        .chart-title {
+            background-color: #f4f4f5;
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 10pt;
+            margin-bottom: 12px;
+            border-left: 4px solid #ec4899;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e4e4e7;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 9pt;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #e4e4e7;
+            padding: 8px;
+            text-align: center;
+        }
+        .data-table th {
+            background-color: #f4f4f5;
+            font-weight: bold;
+            color: #3f3f46;
+        }
+        .data-table th:first-child, .data-table td:first-child {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+  <div class="header-table">
+    <div class="header-logo-cell">
+      <img src="{% static 'img/ine_150x53.png' %}" alt="Logo INE" style="display: block; max-width: 100%; height: auto;" />
+    </div>
+    <div class="header-text-cell">
+      <h1>Reporte Estadístico Desagregado por Distrito</h1>
+      <p>Tiempo Promedio de Entrega Real (Días transcurridos)</p>
+      <p><strong>Periodo analizado:</strong> {{ start_date }} al {{ end_date }} | <strong>Fecha de emisión:</strong> {{ fecha_generacion|date:"d/m/Y H:i" }}</p>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+      <div class="kpi-row">
+          <div class="kpi-box">
+              <div class="kpi-value">{{ total_analizados }}</div>
+              <div class="kpi-label">Volumen del Periodo</div>
+          </div>
+          <div class="kpi-box">
+              <div class="kpi-value">{{ promedio_estatal }} días</div>
+              <div class="kpi-label">Promedio Estatal</div>
+          </div>
+      </div>
+  </div>
+
+  <div class="charts-container">
+      <div class="chart-cell left">
+          <div class="chart-title">Tendencia Semanal de Entrega Real</div>
+          <img src="{{ img_tendencia|safe }}" alt="Tendencia Semanal">
+      </div>
+      <div class="chart-cell right">
+          <div class="chart-title">Comparativo Trimestral Acumulado</div>
+          <img src="{{ img_barras|safe }}" alt="Barras Comparativo">
+      </div>
+  </div>
+
+  <div class="chart-title" style="margin-top: 20px;">Desglose Semanal por Distrito</div>
+  <table class="data-table">
+      <thead>
+          <tr>
+              <th>Semana (inicio - fin)</th>
+              <th>01</th>
+              <th>02</th>
+              <th>03</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for fila in tabla_semanas %}
+          <tr>
+              <td>{{ fila.semana }}</td>
+              <td>{{ fila.d1 }}</td>
+              <td>{{ fila.d2 }}</td>
+              <td>{{ fila.d3 }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+
+</body>
+</html>

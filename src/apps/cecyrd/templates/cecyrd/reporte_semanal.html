@@ -1,0 +1,263 @@
+{% extends 'cerebro/base.html' %}
+{% load humanize %}
+
+{% block title %}Reporte Semanal de Entrega - CECyRD{% endblock %}
+
+{% block content %}
+<section class="space-y-6 p-6">
+  <!-- Encabezado y Botón de Regreso -->
+  <div class="flex items-center gap-4 mb-2">
+    <a href="{% url 'cecyrd:index' %}" class="btn btn-ghost btn-sm gap-2 text-base-content/70">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+      Regresar al Cuadro de Mando
+    </a>
+  </div>
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h1 class="text-3xl font-bold text-base-content">Reporte Estadístico por Distrito</h1>
+        <p class="mt-1 max-w-2xl text-sm text-base-content/70">
+          Análisis semanal del Tiempo de Entrega Real (días transcurridos desde el trámite hasta la disponibilidad).
+        </p>
+      </div>
+      <form method="GET" class="flex flex-wrap items-end gap-3 bg-base-200 p-4 rounded-2xl">
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs font-bold">Desde:</span></label>
+          <input type="date" name="start" class="input input-bordered input-sm w-36" value="{{ start_date }}" required />
+        </div>
+        <div class="form-control">
+          <label class="label py-1"><span class="label-text text-xs font-bold">Hasta:</span></label>
+          <input type="date" name="end" class="input input-bordered input-sm w-36" value="{{ end_date }}" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm px-6 shadow-sm">Filtrar</button>
+      </form>
+    </div>
+  </header>
+
+  <!-- Tarjetas de KPIs (Reducido a 2 columnas) -->
+  <div class="grid gap-6 md:grid-cols-2">
+    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+      <div class="p-3 bg-fuchsia-100 text-fuchsia-600 rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18"></path></svg>
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Volumen del Periodo</p>
+        <h3 class="text-3xl font-black text-base-content mt-1">{{ total_analizados|intcomma }}</h3>
+      </div>
+    </div>
+    <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
+      <div class="p-3 bg-rose-100 text-rose-600 rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+      </div>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Promedio Estatal</p>
+        <h3 class="text-3xl font-black text-base-content mt-1">{{ promedio_estatal }} <span class="text-lg font-normal text-base-content/50">días</span></h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lienzos Chart.js -->
+  <div class="grid gap-6 lg:grid-cols-3">
+    <!-- Gráfica Semanal (Ocupa 2 columnas) -->
+    <div class="card border border-base-300 bg-base-100 shadow-lg p-6 lg:col-span-2">
+      <h3 class="text-lg font-bold text-base-content mb-1">Tendencia Semanal de Entrega Real</h3>
+      <div class="relative w-full" style="height: 350px;">
+        <canvas id="chartSemanas"></canvas>
+      </div>
+    </div>
+    <!-- Gráfica de Barras Acumulada (Ocupa 1 columna) -->
+    <div class="card border border-base-300 bg-base-100 shadow-lg p-6 lg:col-span-1">
+      <h3 class="text-lg font-bold text-base-content mb-1">Comparativo Acumulado</h3>
+      <div class="relative w-full" style="height: 350px;">
+        <canvas id="chartBarras"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Datos -->
+  <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
+    <h3 class="text-lg font-bold text-base-content mb-4">Desglose Semanal por Distrito</h3>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra w-full text-center">
+        <thead>
+          <tr>
+            <th class="text-left font-bold text-sm">Semana (inicio - fin)</th>
+            <th class="font-bold text-sm">01</th>
+            <th class="font-bold text-sm">02</th>
+            <th class="font-bold text-sm">03</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in tabla_semanas %}
+          <tr>
+            <td class="text-left font-mono text-sm">{{ fila.semana }}</td>
+            <td>{{ fila.d1 }}</td>
+            <td>{{ fila.d2 }}</td>
+            <td>{{ fila.d3 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Botón de Exportación -->
+  <div class="flex justify-end mt-4">
+    <button id="btn-exportar" class="btn btn-error text-white shadow-md gap-2 px-8" onclick="exportarPDF()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+      Exportar a PDF
+    </button>
+  </div>
+</section>
+{% endblock content %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const labelsSemanas = {{ chart_semanas_labels|safe }};
+  const d1 = {{ chart_d1|safe }};
+  const d2 = {{ chart_d2|safe }};
+  const d3 = {{ chart_d3|safe }};
+  const labelsDistritos = {{ chart_distritos_labels|safe }};
+  const promediosDistritos = {{ chart_distritos_promedios|safe }};
+  const tablaSemanasData = {{ tabla_semanas_json|safe }};
+
+  let chartSemanasInstance = null;
+  let chartBarrasInstance = null;
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Gráfica de Tendencia Semanal
+    const ctx1 = document.getElementById('chartSemanas').getContext('2d');
+    chartSemanasInstance = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: labelsSemanas,
+        datasets: [
+          { label: 'Distrito 1', data: d1, borderColor: '#ec4899', backgroundColor: '#ec4899', tension: 0.4, borderWidth: 3 },
+          { label: 'Distrito 2', data: d2, borderColor: '#a855f7', backgroundColor: '#a855f7', tension: 0.4, borderWidth: 3 },
+          { label: 'Distrito 3', data: d3, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.4, borderWidth: 3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, title: { display: true, text: 'Días Transcurridos' } }
+        }
+      }
+    });
+
+    // Cálculo del límite inferior: math.floor(promedio_menor - 2)
+    let minPromedio = promediosDistritos.length > 0 ? Math.min(...promediosDistritos) : 0;
+    const yMin = Math.max(0, Math.floor(minPromedio - 2));
+
+    // 2. Gráfica de Barras Acumulada
+    const ctx2 = document.getElementById('chartBarras').getContext('2d');
+    chartBarrasInstance = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: labelsDistritos,
+        datasets: [{
+          label: 'Promedio Global (Días)',
+          data: promediosDistritos,
+          backgroundColor: ['#ec4899', '#a855f7', '#3b82f6'],
+          borderRadius: 4,
+          barPercentage: 0.7
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            beginAtZero: false,
+            min: yMin,
+            title: { display: true, text: 'Días Promedio' }
+          }
+        }
+      }
+    });
+  });
+
+  async function exportarPDF() {
+    const btn = document.getElementById('btn-exportar');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = "Generando...";
+    btn.disabled = true;
+
+    const canvas1 = document.getElementById('chartSemanas');
+    const ctx1 = canvas1.getContext('2d');
+    ctx1.save();
+    ctx1.globalCompositeOperation = 'destination-over';
+    ctx1.fillStyle = 'white';
+    ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
+    const imgTendencia = chartSemanasInstance.toBase64Image();
+    ctx1.restore();
+
+    const canvas2 = document.getElementById('chartBarras');
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.save();
+    ctx2.globalCompositeOperation = 'destination-over';
+    ctx2.fillStyle = 'white';
+    ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
+    const imgBarras = chartBarrasInstance.toBase64Image();
+    ctx2.restore();
+
+    const payload = {
+      start_date: "{{ start_date }}",
+      end_date: "{{ end_date }}",
+      total_analizados: "{{ total_analizados|intcomma }}",
+      promedio_estatal: "{{ promedio_estatal }}",
+      img_tendencia: imgTendencia,
+      img_barras: imgBarras,
+      tabla_semanas: tablaSemanasData
+    };
+
+    try {
+      const response = await fetch("{% url 'cecyrd:api_pdf_semanal' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie('csrftoken') },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Desempeno_Semanal_{{ start_date }}_al_{{ end_date }}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert("❌ Error al generar el PDF.");
+      }
+    } catch (error) {
+      console.error("Error de red:", error);
+      alert("❌ Ocurrió un error de red al intentar descargar.");
+    } finally {
+      btn.innerHTML = textoOriginal;
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock scripts %}

@@ -9,6 +9,10 @@ urlpatterns = [
     path("", views.IndexCecyrd.as_view(), name="index"),
     path("carga/", login_required(views.CargaETLView.as_view()), name="carga"),
 
+    # Reporte semanal
+    path('reporte-semanal/', views.ReporteSemanalView.as_view(), name='reporte_semanal'),
+    path('api/reporte-semanal/pdf/', views.ReporteSemanalPDFView.as_view(), name='api_pdf_semanal'),
+
     # Rutas API para el proceso ETL
     path("api/etl/iniciar/", login_required(views.IniciarETLView.as_view()), name="api_etl_iniciar"),
     path("api/etl/progreso/<str:task_id>/", login_required(views.ProgresoETLView.as_view()), name="api_etl_progreso"),
