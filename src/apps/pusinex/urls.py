@@ -2,7 +2,6 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from apps.pusinex.views import (
-    VNM2024,
     Administration,
     CreatePUSINEX,
     DistrictPUSINEXPackageDownload,
@@ -14,14 +13,13 @@ from apps.pusinex.views import (
     PusinexDetail,
     SeccionDetail,
     StatePUSINEXPackageDownload,
-    VNMZipView,
+    VNM2026,
 )
 
 app_name = "pusinex"
 
 urlpatterns = [
-    path("vnm/", VNM2024.as_view(), name="vnm"),
-    path("vnm/<int:dto>", VNMZipView.as_view(), name="vnmZip"),
+    path("vnm2026/", VNM2026.as_view(), name="vnm2026",),
     path("pusinex/<int:pk>", PusinexDetail.as_view(), name="pusinex"),
     path("seccion/<int:pk>", SeccionDetail.as_view(), name="seccion"),
     path("municipio/<int:pk>", MunicipioDetail.as_view(), name="municipio"),

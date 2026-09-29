@@ -1,0 +1,392 @@
+{% extends 'cerebro/base.html' %}
+{% load humanize %}
+
+{% block title %}VNM 2026{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-sm">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+      <div class="flex items-center gap-4">
+        <div
+          class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl"
+          style="
+            background-color: color-mix(
+              in srgb,
+              var(--ine-beige) 20%,
+              white
+            );
+            color: var(--ine-gris-oxford);
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            class="size-7"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 6.75V15m6-6v8.25M3.75 6.75 9 4.125l6 3 5.25-2.625v12.75L15 19.875l-6-3-5.25 2.625V6.75Z"
+            />
+          </svg>
+        </div>
+
+        <div>
+          <p
+            class="text-xs font-bold uppercase tracking-widest"
+            style="color: var(--ine-beige);"
+          >
+            Cartografía electoral
+          </p>
+
+          <h1 class="mt-1 text-3xl font-extrabold tracking-tight text-base-content md:text-4xl">
+            Verificación Nacional Muestral 2026
+          </h1>
+
+          <p class="mt-2 text-sm font-medium text-base-content/65">
+            Seguimiento de las secciones seleccionadas para la VNM 2026 en la entidad 29.
+          </p>
+        </div>
+      </div>
+
+      <a
+        href="{% url 'pusinex:index' %}"
+        class="btn btn-ghost self-start lg:self-auto"
+      >
+        ← Volver a cartografía
+      </a>
+    </div>
+  </header>
+
+
+  {# Resumen estatal #}
+  <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+
+    <div class="stat rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+      <div class="stat-title text-xs font-bold uppercase tracking-wide">
+        Seleccionadas
+      </div>
+      <div class="stat-value text-3xl text-base-content">
+        {{ total_selected|intcomma }}
+      </div>
+      <div class="stat-desc">
+        Muestra estatal VNM 2026
+      </div>
+    </div>
+
+    <div class="stat rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+      <div class="stat-title text-xs font-bold uppercase tracking-wide">
+        Con PUSINEX
+      </div>
+      <div class="stat-value text-3xl text-success">
+        {{ total_with_pusinex|intcomma }}
+      </div>
+      <div class="stat-desc">
+        Archivo disponible
+      </div>
+    </div>
+
+    <div class="stat rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+      <div class="stat-title text-xs font-bold uppercase tracking-wide">
+        Faltantes
+      </div>
+      <div
+        class="stat-value text-3xl {% if total_missing %}text-error{% else %}text-success{% endif %}"
+      >
+        {{ total_missing|intcomma }}
+      </div>
+      <div class="stat-desc">
+        Requieren atención
+      </div>
+    </div>
+
+    <div
+      class="stat rounded-2xl border bg-base-100 shadow-sm"
+      style="border-color: var(--ine-beige);"
+    >
+      <div class="stat-title text-xs font-bold uppercase tracking-wide">
+        Rurales
+      </div>
+      <div
+        class="stat-value text-3xl"
+        style="color: var(--ine-beige);"
+      >
+        {{ total_rural|intcomma }}
+      </div>
+      <div class="stat-desc">
+        No requieren PUSINEX
+      </div>
+    </div>
+
+  </section>
+
+
+  {# Distritos #}
+  <section>
+    <div class="mb-5">
+      <h2 class="text-2xl font-bold text-base-content">
+        Distritos electorales federales
+      </h2>
+
+      <p class="mt-1 text-sm text-base-content/65">
+        La suma de secciones con PUSINEX, faltantes y rurales corresponde al total seleccionado en cada distrito.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+
+      {% for item in districts %}
+        <article
+          class="card border bg-base-100 shadow-sm"
+          style="border-color: var(--ine-beige);"
+        >
+          <div class="card-body">
+
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p
+                  class="text-xs font-bold uppercase tracking-widest"
+                  style="color: var(--ine-beige);"
+                >
+                  Distrito federal
+                </p>
+
+                <h3 class="card-title mt-1 text-2xl text-base-content">
+                  Distrito {{ item.district.distrito|stringformat:"02d" }}
+                </h3>
+
+                <p class="mt-1 text-sm text-base-content/60">
+                  {{ item.district.cabecera }}
+                </p>
+              </div>
+
+              <div
+                class="rounded-xl px-4 py-3 text-center"
+                style="
+                  background-color: color-mix(
+                    in srgb,
+                    var(--ine-beige) 16%,
+                    white
+                  );
+                "
+              >
+                <div class="text-2xl font-extrabold text-base-content">
+                  {{ item.selected }}
+                </div>
+                <div class="text-[0.65rem] font-bold uppercase tracking-wide text-base-content/55">
+                  Seleccionadas
+                </div>
+              </div>
+            </div>
+
+
+            <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+
+              <div class="rounded-xl bg-success/10 px-2 py-3">
+                <div class="text-xl font-extrabold text-success">
+                  {{ item.with_pusinex }}
+                </div>
+
+                <div class="mt-1 text-[0.65rem] font-bold uppercase leading-tight tracking-wide text-base-content/55">
+                  Con PUSINEX
+                </div>
+              </div>
+
+              <div class="rounded-xl bg-error/10 px-2 py-3">
+                <div
+                  class="text-xl font-extrabold {% if item.missing %}text-error{% else %}text-success{% endif %}"
+                >
+                  {{ item.missing }}
+                </div>
+
+                <div class="mt-1 text-[0.65rem] font-bold uppercase leading-tight tracking-wide text-base-content/55">
+                  Faltantes
+                </div>
+              </div>
+
+              <div
+                class="rounded-xl px-2 py-3"
+                style="
+                  background-color: color-mix(
+                    in srgb,
+                    var(--ine-beige) 15%,
+                    white
+                  );
+                "
+              >
+                <div
+                  class="text-xl font-extrabold"
+                  style="color: var(--ine-beige);"
+                >
+                  {{ item.rural }}
+                </div>
+
+                <div class="mt-1 text-[0.65rem] font-bold uppercase leading-tight tracking-wide text-base-content/55">
+                  Rurales
+                </div>
+              </div>
+
+            </div>
+
+
+            {% if item.missing %}
+              <div class="mt-4 rounded-xl border border-error/30 bg-error/5 p-4">
+                <div class="flex items-start gap-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    class="mt-0.5 size-5 shrink-0 text-error"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.947-3.374L10.052 3.38c.865-1.5 3.03-1.5 3.896 0l7.355 12.746ZM12 15.75h.008v.008H12v-.008Z"
+                    />
+                  </svg>
+
+                  <div>
+                    <p class="font-bold text-error">
+                      PUSINEX faltante
+                    </p>
+
+                    <p class="mt-1 text-sm text-base-content/65">
+                      Este distrito contiene {{ item.missing }}
+                      sección{{ item.missing|pluralize:"es" }}
+                      con PUSINEX faltante:
+                    </p>
+
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      {% for entry in item.missing_sections %}
+                        <a
+                          href="{% url 'pusinex:seccion' entry.section.pk %}"
+                          class="badge badge-error badge-outline font-mono"
+                        >
+                          {{ entry.section.seccion|stringformat:"04d" }}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+
+            <div class="divider my-3"></div>
+
+
+            <div>
+              <h4 class="mb-3 font-bold text-base-content">
+                Secciones seleccionadas
+              </h4>
+
+              <div class="max-h-[420px] overflow-y-auto rounded-xl border border-base-300">
+                <table class="table table-sm">
+                  <thead class="sticky top-0 z-[1] bg-base-200">
+                    <tr>
+                      <th>Sección</th>
+                      <th>Tipo</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {% for entry in item.sections %}
+                      <tr
+                        class="
+                          {% if entry.status == 'RURAL' %}
+                            bg-base-200/30
+                          {% elif entry.status != 'INCLUIDO' %}
+                            bg-error/5
+                          {% endif %}
+                        "
+                      >
+
+                        <td class="font-mono font-bold">
+                          <a
+                            href="{% url 'pusinex:seccion' entry.section.pk %}"
+                            class="link link-primary font-semibold"
+                          >
+                            {{ entry.section.seccion|stringformat:"04d" }}
+                          </a>
+                        </td>
+
+                        <td class="text-xs font-bold">
+                          {% if entry.section.tipo == 1 or entry.section.tipo == 2 %}
+                            U
+                          {% elif entry.section.tipo == 3 %}
+                            M
+                          {% elif entry.section.tipo >= 4 %}
+                            R
+                          {% endif %}
+                        </td>
+
+                        <td>
+                          {% if entry.status == "INCLUIDO" %}
+                            <span
+                              class="badge badge-sm border-0"
+                              style="
+                                background-color: var(--ine-gris-oxford);
+                                color: var(--ine-blanco);
+                              "
+                            >
+                              Con PUSINEX
+                            </span>
+
+                          {% elif entry.status == "RURAL" %}
+                            <span
+                              class="badge badge-sm border-0"
+                              style="
+                                background-color: var(--ine-beige);
+                                color: var(--ine-gris-oxford);
+                              "
+                            >
+                              Rural
+                            </span>
+
+                          {% elif entry.status == "SIN_REGISTRO" %}
+                            <span class="badge badge-error badge-sm">
+                              Sin PUSINEX
+                            </span>
+
+                          {% elif entry.status == "SIN_ARCHIVO" %}
+                            <span class="badge badge-error badge-sm">
+                              Sin archivo
+                            </span>
+
+                          {% elif entry.status == "ARCHIVO_NO_ENCONTRADO" %}
+                            <span class="badge badge-error badge-sm">
+                              Archivo faltante
+                            </span>
+
+                          {% elif entry.status == "ARCHIVO_NO_PDF" %}
+                            <span class="badge badge-error badge-sm">
+                              No es PDF
+                            </span>
+                          {% endif %}
+                        </td>
+
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </article>
+
+      {% endfor %}
+    </div>
+  </section>
+
+</section>
+{% endblock %}

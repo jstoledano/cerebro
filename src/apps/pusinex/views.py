@@ -439,6 +439,19 @@ class SeccionDetail(DetailView):
             }
         )
 
+        context.update(
+            {
+                "ruta": ruta_url,
+                "seccion_geojson": seccion_geo,
+                "municipio_geojson": municipio_geo,
+                "ultimo_pusinex": ultimo_pusinex,
+                "es_urbana": es_urbana,
+                "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
+                "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
+                "vnm_2026": self.object.seccion in SECCIONES_VNM_2026,
+            }
+        )
+
         return context
 
 
@@ -686,61 +699,248 @@ class LogoutView(TemplateView):
     next_page = reverse_lazy('index')
     redirect_field_name = 'next'
 
-
-seccionesVNM2023 = (
+SECCIONES_VNM_2023 = (
     12, 14, 16, 17, 26, 27, 30, 34, 36, 43, 48, 74, 107, 184, 188,
     201, 203, 218, 261, 409, 414, 474, 478, 482, 506, 542, 543,
     533, 534, 606, 9, 124, 134, 141, 147, 266, 348, 349, 355, 363,
     364, 384, 624, 397, 441, 442, 469, 626, 567, 392, 159, 151, 2,
     78, 85, 87, 89, 234, 242, 290, 297, 325, 336, 425, 511, 512,
-    515, 575, 581, 589, 593, 597, 314, 551, 473, 142)
+    515, 575, 581, 589, 593, 597, 314, 551, 473, 142,
+)
 
-seccionesVNM2024 = (
+SECCIONES_VNM_2024 = (
     14, 19, 26, 635, 68, 100, 102, 107, 109, 191, 213, 217, 365, 403,
     406, 421, 471, 484, 521, 530, 536, 543, 78, 88, 90, 165, 168, 220,
     232, 240, 253, 256, 257, 299, 333, 336, 347, 437, 439, 440, 444,
     446, 457, 464, 467, 626, 629, 509, 550, 556, 643, 295, 296, 126,
     139, 141, 144, 145, 266, 271, 283, 348, 355, 356, 360, 622, 623,
-    639, 374, 375, 381, 382, 384, 561, 572, 597, 599, 154
+    639, 374, 375, 381, 382, 384, 561, 572, 597, 599, 154,
 )
-queryVNM2023 = Seccion.objects.filter(seccion__in=seccionesVNM2023).order_by('distrito', 'seccion')
-pusinexVNM2023 = Pusinex.objects.filter(seccion__seccion__in=seccionesVNM2023)
 
-queryVNM2024 = Seccion.objects.filter(seccion__in=seccionesVNM2024, tipo__lt=4, activa=True)\
-    .order_by('distrito', 'municipio', 'seccion')
-pusinexVNM2024 = Pusinex.objects.filter(seccion__seccion__in=seccionesVNM2024)
-paquete_total = Seccion.objects.filter(tipo__lt=4, activa=True).order_by('distrito', 'municipio', 'seccion')
+SECCIONES_VNM_2026 = (
+    3, 4, 16, 17, 26, 27, 40, 42, 66, 80, 82, 86, 92, 106, 107, 115,
+    134, 144, 152, 153, 182, 183, 187, 200, 203, 204, 214, 215, 218, 222,
+    232, 243, 245, 247, 253, 265, 276, 290, 311, 314, 321, 339, 352, 354,
+    359, 367, 378, 379, 390, 397, 408, 409, 420, 431, 444, 447, 464, 468,
+    469, 470, 474, 509, 514, 540, 542, 545, 560, 562, 585, 589, 591, 609,
+    614, 622, 627, 628, 633, 648,
+)
 
+def get_vnm2026_sections():
+    """
+    Devuelve las 78 secciones seleccionadas para la VNM 2026.
+    """
+    return (
+        Seccion.objects
+        .filter(
+            entidad_id=TLAXCALA,
+            seccion__in=SECCIONES_VNM_2026,
+        )
+        .select_related(
+            "distrito",
+            "municipio",
+        )
+        .order_by(
+            "distrito__distrito",
+            "municipio__municipio",
+            "seccion",
+        )
+    )
 
-class VNM2024(ListView):
-    model = Seccion
+def get_vnm2026_entries():
+    """
+    Clasifica las secciones seleccionadas de la VNM 2026.
 
-    def get_queryset(self):
-        qs = queryVNM2024
-        return qs
+    Estados:
+    - RURAL
+    - INCLUIDO
+    - SIN_REGISTRO
+    - SIN_ARCHIVO
+    - ARCHIVO_NO_ENCONTRADO
+    - ARCHIVO_NO_PDF
+    """
+    latest_revision = (
+        Pusinex.objects
+        .filter(seccion_id=OuterRef("pk"))
+        .order_by("-f_act", "-pk")
+    )
 
+    sections = list(
+        get_vnm2026_sections().annotate(
+            latest_pusinex_id=Subquery(
+                latest_revision.values("pk")[:1]
+            )
+        )
+    )
 
-class VNM2023(ListView):
-    model = Seccion
+    latest_ids = [
+        section.latest_pusinex_id
+        for section in sections
+        if section.latest_pusinex_id is not None
+    ]
 
-    def get_queryset(self):
-        qs = queryVNM2023
-        return qs
+    pusinex_by_id = {
+        pusinex.pk: pusinex
+        for pusinex in Pusinex.objects.filter(pk__in=latest_ids)
+    }
 
+    entries = []
 
-class VNMZipView(View):
-    @staticmethod
-    def get(request, dto):
-        files = []
-        zip_name = Path('media', 'pusinex', f'pusinex_VNM_0{dto}.zip')
-        zip_archive = zipfile.ZipFile(zip_name, mode='w', compression=zipfile.ZIP_DEFLATED, compresslevel=9)
-        if dto:
-            for p in pusinexVNM2024.filter(seccion__distrito__distrito=dto):
-                files.append(Path(os.getcwd(), 'media', p.archivo.path))
-        with zip_archive as archive:
-            for file in files:
-                archive.write(file, arcname=Path(file).name)
-        return FileResponse(open(zip_name, 'rb'))
+    for section in sections:
+        entry = {
+            "section": section,
+            "pusinex": None,
+            "status": "",
+            "filename": "",
+            "revision_date": None,
+        }
+
+        # Las rurales forman parte de la muestra,
+        # pero no requieren PUSINEX.
+        if section.tipo >= 4:
+            entry["status"] = "RURAL"
+            entries.append(entry)
+            continue
+
+        pusinex = pusinex_by_id.get(
+            section.latest_pusinex_id
+        )
+
+        entry["pusinex"] = pusinex
+
+        if pusinex is None:
+            entry["status"] = "SIN_REGISTRO"
+            entries.append(entry)
+            continue
+
+        entry["revision_date"] = pusinex.f_act
+
+        if not pusinex.archivo:
+            entry["status"] = "SIN_ARCHIVO"
+            entries.append(entry)
+            continue
+
+        entry["filename"] = Path(
+            pusinex.archivo.name
+        ).name
+
+        if not pusinex.archivo.storage.exists(
+            pusinex.archivo.name
+        ):
+            entry["status"] = "ARCHIVO_NO_ENCONTRADO"
+            entries.append(entry)
+            continue
+
+        if Path(pusinex.archivo.name).suffix.lower() != ".pdf":
+            entry["status"] = "ARCHIVO_NO_PDF"
+            entries.append(entry)
+            continue
+
+        entry["status"] = "INCLUIDO"
+        entries.append(entry)
+
+    return entries
+
+def get_vnm2026_statistics():
+    entries = get_vnm2026_entries()
+
+    districts = {}
+
+    for entry in entries:
+        section = entry["section"]
+        district_number = section.distrito.distrito
+
+        if district_number not in districts:
+            districts[district_number] = {
+                "district": section.distrito,
+                "selected": 0,
+                "with_pusinex": 0,
+                "missing": 0,
+                "rural": 0,
+                "sections": [],
+                "missing_sections": [],
+            }
+
+        stats = districts[district_number]
+
+        stats["selected"] += 1
+        stats["sections"].append(entry)
+
+        status = entry["status"]
+
+        if status == "RURAL":
+            stats["rural"] += 1
+
+        elif status == "INCLUIDO":
+            stats["with_pusinex"] += 1
+
+        else:
+            stats["missing"] += 1
+            stats["missing_sections"].append(entry)
+
+    return [
+        districts[number]
+        for number in sorted(districts)
+    ]
+
+def get_vnm2026_validation():
+    sections = list(get_vnm2026_sections())
+
+    found_ids = {section.seccion for section in sections}
+    expected_ids = set(SECCIONES_VNM_2026)
+
+    missing_ids = sorted(expected_ids - found_ids)
+    unexpected_ids = sorted(found_ids - expected_ids)
+
+    return {
+        "expected": len(expected_ids),
+        "found": len(sections),
+        "missing": missing_ids,
+        "unexpected": unexpected_ids,
+        "valid": len(sections) == len(expected_ids) and not missing_ids,
+    }
+
+def get_vnm2026_section_type(section):
+    """
+    Clasifica una sección VNM según su obligación de contar con PUSINEX.
+    """
+    if section.tipo >= 4:
+        return "RURAL"
+
+    return "REQUIERE_PUSINEX"
+
+class VNM2026(TemplateView):
+    template_name = "pusinex/vnm2026.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        districts = get_vnm2026_statistics()
+
+        context.update(
+            {
+                "districts": districts,
+                "total_selected": sum(
+                    item["selected"]
+                    for item in districts
+                ),
+                "total_with_pusinex": sum(
+                    item["with_pusinex"]
+                    for item in districts
+                ),
+                "total_missing": sum(
+                    item["missing"]
+                    for item in districts
+                ),
+                "total_rural": sum(
+                    item["rural"]
+                    for item in districts
+                ),
+            }
+        )
+
+        return context
+
 
 
 class GeneratePUSINEXPackages(

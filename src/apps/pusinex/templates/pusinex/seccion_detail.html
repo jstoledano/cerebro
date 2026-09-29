@@ -70,6 +70,64 @@
             </div>
           </div>
 
+        {% if vnm_2023 or vnm_2024 or vnm_2026 %}
+  <div class="mb-4 rounded-xl border border-base-300 bg-base-200/30 p-4">
+
+    <div class="mb-3 text-xs font-bold uppercase tracking-wider text-base-content/55">
+      Verificación Nacional Muestral
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+
+      {% if vnm_2023 %}
+        <span
+          class="badge border-0"
+          style="
+            background-color: var(--ine-gris-claro);
+            color: var(--ine-gris-oxford);
+          "
+        >
+          VNM 2023
+        </span>
+      {% endif %}
+
+      {% if vnm_2024 %}
+        <span
+          class="badge border-0"
+          style="
+            background-color: var(--ine-gris-medio);
+            color: var(--ine-blanco);
+          "
+        >
+          VNM 2024
+        </span>
+      {% endif %}
+
+      {% if vnm_2026 %}
+        <a
+          href="{% url 'pusinex:vnm2026' %}"
+          class="badge border-0 transition-opacity hover:opacity-80"
+          style="
+            background-color: var(--ine-beige);
+            color: var(--ine-gris-oxford);
+          "
+          title="Ver Verificación Nacional Muestral 2026"
+        >
+          ★ VNM 2026
+        </a>
+      {% endif %}
+
+    </div>
+
+    {% if vnm_2026 %}
+      <p class="mt-3 text-xs text-base-content/65">
+        Sección seleccionada en la VNM 2026.
+      </p>
+    {% endif %}
+
+  </div>
+{% endif %}
+
           <div class="card-actions flex flex-col gap-3 mt-auto">
 
             {% if es_urbana %}

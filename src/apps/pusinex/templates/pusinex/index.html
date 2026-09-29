@@ -143,15 +143,62 @@
       </div>
 
       <div class="flex shrink-0 gap-3">
-        <a href="{% url 'pusinex:bgd' %}" class="btn btn-primary gap-2 rounded-xl shadow-sm font-bold">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-          </svg>
 
-          Gestión de PUSINEX
-        </a>
-      </div>
+  <a
+    href="{% url 'pusinex:vnm2026' %}"
+    class="btn gap-2 rounded-xl shadow-sm font-bold"
+    style="
+      background-color: var(--ine-beige);
+      color: var(--ine-gris-oxford);
+      border-color: var(--ine-beige);
+    "
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      class="size-6"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 6.75V15m6-6v8.25M3.75 6.75 9 4.125l6 3 5.25-2.625v12.75L15 19.875l-6-3-5.25 2.625V6.75Z"
+      />
+    </svg>
+
+    VNM 2026
+  </a>
+
+  <a
+    href="{% url 'pusinex:bgd' %}"
+    class="btn btn-primary gap-2 rounded-xl shadow-sm font-bold"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      class="size-6"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+      />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+      />
+    </svg>
+
+    Gestión de PUSINEX
+  </a>
+
+</div>
 
     </div>
   </header>
