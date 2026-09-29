@@ -339,7 +339,7 @@ if os.name == "nt":
     GDAL_LIBRARY_PATH = str(gdal_library)
     GEOS_LIBRARY_PATH = str(geos_library)
 
-    CARTO_BASEMAPS_API_KEY = os.environ.get(
-        "CARTO_BASEMAPS_API_KEY",
-        "",
-    )
+CARTO_BASEMAPS_API_KEY = os.environ.get(
+    "CARTO_BASEMAPS_API_KEY",
+    "",
+)
