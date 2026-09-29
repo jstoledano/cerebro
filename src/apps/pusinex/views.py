@@ -372,6 +372,7 @@ class Index(ListView):
             "secciones_conteo": secciones_conteo,
             "padron_total": totales['padron'] or 0,
             "lista_nominal_total": totales['nominal'] or 0,
+            "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
         })
 
         return context
@@ -436,11 +437,6 @@ class SeccionDetail(DetailView):
                 "municipio_geojson": municipio_geo,
                 "ultimo_pusinex": ultimo_pusinex,
                 "es_urbana": es_urbana,  # <--- Pasamos el booleano limpio a la plantilla
-            }
-        )
-
-        context.update(
-            {
                 "ruta": ruta_url,
                 "seccion_geojson": seccion_geo,
                 "municipio_geojson": municipio_geo,
@@ -449,6 +445,7 @@ class SeccionDetail(DetailView):
                 "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
                 "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
                 "vnm_2026": self.object.seccion in SECCIONES_VNM_2026,
+                "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
 
@@ -568,6 +565,7 @@ class DistritoDetail(DetailView):
                 "district_package": get_pusinex_package_metadata(
                     district=self.object.distrito
                 ),
+                "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
 
@@ -616,6 +614,7 @@ class MunicipioDetail(DetailView):
                 "vnm2026_sections": vnm2026_sections,
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
+                "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
 
