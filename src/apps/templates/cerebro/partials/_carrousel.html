@@ -1,55 +1,225 @@
 {% load static %}
 
-<div id="carousel-wrapper" class="relative hidden">
-    <button onclick="dismissCarousel()" class="btn btn-circle btn-sm absolute top-4 right-4 z-50 bg-black/20 border-none text-white">✕</button>
+<style>
+  .ine-widget-wrapper {
+    position: relative;
+  }
 
-    <div id="main-carousel" class="carousel w-full">
-        <div id="slide1" class="carousel-item relative w-full">
-            <a href="{% url 'pmml:register' %}" class="w-full">
-                <img src="{% static 'img/hero-pmml-final.png' %}" class="w-full" alt="Suscripción SGC" />
-            </a>
-            <div class="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-                <a href="#slide2" class="btn btn-circle btn-ghost text-gray-400">❮</a>
-                <a href="#slide2" class="btn btn-circle btn-ghost text-gray-400">❯</a>
-            </div>
-        </div>
+  .ine-widget-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    background-color: #f8f9fa;
+    padding: 20px;
+    font-family: Arial, Helvetica, sans-serif;
+    border-left: 5px solid var(--ine-gris-oxford);
+  }
 
-        <div id="slide2" class="carousel-item relative w-full">
-            <a href="{% url 'docs:cmi_movil_help' %}" class="w-full">
-                <img src="{% static 'img/hero-cmi-final.png' %}" class="w-full" alt="CMI Móvil" />
-            </a>
-            <div class="absolute left-5 right-5 top-1/2 flex -translate-y-1/2 transform justify-between">
-                <a href="#slide1" class="btn btn-circle btn-ghost text-gray-400">❮</a>
-                <a href="#slide1" class="btn btn-circle btn-ghost text-gray-400">❯</a>
-            </div>
-        </div>
+  .ine-widget-text {
+    flex: 1 1 50%;
+    min-width: 280px;
+  }
+
+  .ine-widget-text h2 {
+    font-weight: normal;
+    color: var(--ine-gris-oxford);
+    font-size: 1.5rem;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  .ine-widget-timer {
+    flex: 1 1 40%;
+    display: flex;
+    gap: 15px;
+    min-width: 280px;
+    justify-content: flex-end;
+  }
+
+  .ine-timer-item {
+    min-width: 90px;
+    text-align: center;
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--ine-gris-claro);
+  }
+
+  .ine-timer-digits {
+    display: block;
+    font-size: 2rem;
+    line-height: 1;
+    font-weight: bold;
+    color: var(--ine-gris-oxford);
+  }
+
+  .ine-timer-label {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--ine-gris-medio);
+  }
+
+  .ine-widget-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 10;
+
+    width: 2rem;
+    height: 2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #fff;
+    border-radius: 9999px;
+
+    background-color: var(--ine-gris-oxford);
+    color: #fff;
+
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .ine-widget-close:hover {
+    background-color: #fff;
+    color: var(--ine-gris-oxford);
+    border-color: var(--ine-gris-oxford);
+  }
+
+  @media (max-width: 767px) {
+    .ine-widget-container {
+      padding: 1.25rem;
+      padding-top: 3rem;
+    }
+
+    .ine-widget-text,
+    .ine-widget-timer {
+      min-width: 100%;
+    }
+
+    .ine-widget-timer {
+      justify-content: center;
+    }
+
+    .ine-timer-item {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 8px;
+    }
+
+    .ine-timer-digits {
+      font-size: 1.6rem;
+    }
+  }
+</style>
+
+<div id="ine-widget-wrapper" class="ine-widget-wrapper hidden">
+  <button
+    type="button"
+    class="ine-widget-close"
+    onclick="dismissIneWidget()"
+    aria-label="Cerrar aviso"
+    title="Cerrar"
+  >
+    ✕
+  </button>
+
+  <div class="ine-widget-container">
+    <div class="ine-widget-text">
+      <h2>
+        El día de la <strong>Jornada Electoral</strong><br>
+        es el próximo <strong>6 de junio</strong>, faltan:
+      </h2>
     </div>
+
+    <div class="ine-widget-timer">
+      <div class="ine-timer-item">
+        <span class="ine-timer-digits" id="ine-days">0</span>
+        <span class="ine-timer-label">Días</span>
+      </div>
+
+      <div class="ine-timer-item">
+        <span class="ine-timer-digits" id="ine-hours">0</span>
+        <span class="ine-timer-label">Horas</span>
+      </div>
+
+      <div class="ine-timer-item">
+        <span class="ine-timer-digits" id="ine-minutes">0</span>
+        <span class="ine-timer-label">Minutos</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-    function dismissCarousel() {
-        document.getElementById('carousel-wrapper').classList.add('hidden');
-        sessionStorage.setItem('carousel_dismissed', 'true');
+  function dismissIneWidget() {
+    const wrapper = document.getElementById('ine-widget-wrapper');
+
+    if (wrapper) {
+      wrapper.classList.add('hidden');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const wrapper = document.getElementById('carousel-wrapper');
-        const carousel = document.getElementById('main-carousel');
+    sessionStorage.setItem('ine_widget_dismissed', 'true');
+  }
 
-        if (!sessionStorage.getItem('carousel_dismissed')) {
-            wrapper.classList.remove('hidden');
-        }
+  document.addEventListener('DOMContentLoaded', function () {
+    const wrapper = document.getElementById('ine-widget-wrapper');
 
-        let currentSlide = 1;
-        setInterval(() => {
-            currentSlide = (currentSlide === 1) ? 2 : 1;
-            const target = document.getElementById(`slide${currentSlide}`);
-            if (target && !wrapper.classList.contains('hidden')) {
-                carousel.scrollTo({
-                    left: target.offsetLeft,
-                    behavior: 'smooth'
-                });
-            }
-        }, 5000);
-    });
+    if (
+      wrapper &&
+      !sessionStorage.getItem('ine_widget_dismissed')
+    ) {
+      wrapper.classList.remove('hidden');
+    }
+
+    const fechaObjetivo = new Date(1812286800 * 1000).getTime();
+
+    function actualizarContador() {
+      const ahora = Date.now();
+      const distancia = fechaObjetivo - ahora;
+
+      const days = document.getElementById('ine-days');
+      const hours = document.getElementById('ine-hours');
+      const minutes = document.getElementById('ine-minutes');
+
+      if (!days || !hours || !minutes) {
+        return;
+      }
+
+      if (distancia <= 0) {
+        days.textContent = '0';
+        hours.textContent = '0';
+        minutes.textContent = '0';
+        return;
+      }
+
+      const dias = Math.floor(
+        distancia / (1000 * 60 * 60 * 24)
+      );
+
+      const horas = Math.floor(
+        (distancia % (1000 * 60 * 60 * 24)) /
+        (1000 * 60 * 60)
+      );
+
+      const minutos = Math.floor(
+        (distancia % (1000 * 60 * 60)) /
+        (1000 * 60)
+      );
+
+      days.textContent = dias;
+      hours.textContent = horas;
+      minutes.textContent = minutos;
+    }
+
+    actualizarContador();
+
+    setInterval(actualizarContador, 1000);
+  });
 </script>

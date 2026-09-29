@@ -87,7 +87,12 @@
 /*
  * Tipografía institucional primaria.
  */
-[data-theme="ine2026"] body {
+[data-theme="ine2026"],
+[data-theme="ine2026"] body,
+[data-theme="ine2026"] button,
+[data-theme="ine2026"] input,
+[data-theme="ine2026"] select,
+[data-theme="ine2026"] textarea {
   font-family: Arial, Helvetica, sans-serif;
 }
 
