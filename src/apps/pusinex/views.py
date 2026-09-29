@@ -489,6 +489,7 @@ class DistritoDetail(DetailView):
             "distrito", "municipio", "seccion"
         )
         secciones_totales = secciones_qs.count()
+        vnm2026_sections = set(SECCIONES_VNM_2026)
 
         # Generación de GeoJSON del Distrito
         distrito_geo = serialize(
@@ -561,6 +562,7 @@ class DistritoDetail(DetailView):
                 "municipios_geojson": json.dumps(municipios_geo_dict),
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
+                "vnm2026_sections": vnm2026_sections,
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
                 "district_package": get_pusinex_package_metadata(
@@ -588,6 +590,7 @@ class MunicipioDetail(DetailView):
             "distrito", "seccion"
         )
         secciones_totales = secciones_qs.count()
+        vnm2026_sections = set(SECCIONES_VNM_2026)
 
         # Generación de GeoJSON del contorno del Municipio
         municipio_geo = serialize(
@@ -610,6 +613,7 @@ class MunicipioDetail(DetailView):
                 "secciones_geojson": secciones_geo,
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
+                "vnm2026_sections": vnm2026_sections,
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
             }
@@ -725,6 +729,9 @@ SECCIONES_VNM_2026 = (
     469, 470, 474, 509, 514, 540, 542, 545, 560, 562, 585, 589, 591, 609,
     614, 622, 627, 628, 633, 648,
 )
+
+VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
+VNM2026_PACKAGE_FILENAME = "29_vnm2026_distrito_{district:02d}.zip"
 
 def get_vnm2026_sections():
     """
@@ -878,6 +885,9 @@ def get_vnm2026_statistics():
             stats["missing"] += 1
             stats["missing_sections"].append(entry)
 
+    for district_number, stats in districts.items():
+        stats["package"] = get_vnm2026_package_metadata(district_number)
+
     return [
         districts[number]
         for number in sorted(districts)
@@ -908,6 +918,40 @@ def get_vnm2026_section_type(section):
         return "RURAL"
 
     return "REQUIERE_PUSINEX"
+
+def get_vnm2026_package_path(district):
+    return (
+        VNM2026_DIRECTORY
+        / VNM2026_PACKAGE_FILENAME.format(
+            district=int(district)
+        )
+    )
+
+
+def get_vnm2026_package_metadata(district):
+    package_path = get_vnm2026_package_path(district)
+
+    metadata = {
+        "exists": package_path.is_file(),
+        "filename": package_path.name,
+        "size": None,
+        "modified": None,
+        "download_url": reverse(
+            "pusinex:vnm2026_package",
+            kwargs={"district": int(district)},
+        ),
+    }
+
+    if metadata["exists"]:
+        stat = package_path.stat()
+
+        metadata["size"] = stat.st_size
+        metadata["modified"] = datetime.fromtimestamp(
+            stat.st_mtime,
+            tz=timezone.get_current_timezone(),
+        )
+
+    return metadata
 
 class VNM2026(TemplateView):
     template_name = "pusinex/vnm2026.html"
@@ -942,6 +986,30 @@ class VNM2026(TemplateView):
         return context
 
 
+class VNM2026PackageDownload(View):
+    @staticmethod
+    def get(request, district):
+        if district not in (1, 2, 3):
+            raise Http404(
+                "Distrito no válido para la VNM 2026."
+            )
+
+        package_path = get_vnm2026_package_path(
+            district
+        )
+
+        if not package_path.is_file():
+            raise Http404(
+                "El paquete VNM 2026 solicitado "
+                "no ha sido generado."
+            )
+
+        return FileResponse(
+            package_path.open("rb"),
+            as_attachment=True,
+            filename=package_path.name,
+            content_type="application/zip",
+        )
 
 class GeneratePUSINEXPackages(
     LoginRequiredMixin,

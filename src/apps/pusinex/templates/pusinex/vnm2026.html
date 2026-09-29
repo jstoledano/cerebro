@@ -380,11 +380,63 @@
                 </table>
               </div>
             </div>
-
           </div>
+<div class="mt-4 px-4 pb-1">
+  {% if item.package.exists %}
+    <a
+      href="{{ item.package.download_url }}"
+      class="btn w-full gap-2 font-bold"
+      style="
+        background-color: var(--ine-beige);
+        color: var(--ine-gris-oxford);
+        border-color: var(--ine-beige);
+      "
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="size-5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M3 17.25v1.5A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75v-1.5"
+        />
+      </svg>
+
+      Descargar paquete VNM 2026 — Distrito {{ item.district.distrito|stringformat:"02d" }}
+    </a>
+
+    <div class="mt-2 flex justify-between gap-3 text-xs text-base-content/55">
+      <span>
+        {{ item.package.size|filesizeformat }}
+      </span>
+
+      <span>
+        Generado {{ item.package.modified|date:"d/m/Y H:i" }}
+      </span>
+    </div>
+
+  {% else %}
+    <button
+      type="button"
+      class="btn w-full"
+      disabled
+    >
+      Paquete no generado
+    </button>
+  {% endif %}
+</div>
+
         </article>
 
       {% endfor %}
+
+
+
     </div>
   </section>
 

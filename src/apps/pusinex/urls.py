@@ -14,12 +14,18 @@ from apps.pusinex.views import (
     SeccionDetail,
     StatePUSINEXPackageDownload,
     VNM2026,
+    VNM2026PackageDownload,
 )
 
 app_name = "pusinex"
 
 urlpatterns = [
     path("vnm2026/", VNM2026.as_view(), name="vnm2026",),
+    path(
+        "vnm2026/distrito/<int:district>/descargar/",
+        VNM2026PackageDownload.as_view(),
+        name="vnm2026_package",
+    ),
     path("pusinex/<int:pk>", PusinexDetail.as_view(), name="pusinex"),
     path("seccion/<int:pk>", SeccionDetail.as_view(), name="seccion"),
     path("municipio/<int:pk>", MunicipioDetail.as_view(), name="municipio"),
