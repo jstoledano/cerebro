@@ -24,9 +24,7 @@ SRC_PATH = BASE_PATH / "src"
 
 sys.path.append(str(SRC_PATH))
 
-if os.name == "nt":
-    QGIS_BIN = r'C:\Program Files\QGIS 3.28.12\bin'
-    os.environ['PATH'] = f"{QGIS_BIN};{os.environ.get('PATH', '')}"
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
