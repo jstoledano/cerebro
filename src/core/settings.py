@@ -284,8 +284,57 @@ STATICFILES_FINDERS = (
     "compressor.finders.CompressorFinder",
 )
 
+# 20260929 - Detección de librerías GDAL y GEOS en Windows para QGIS
 if os.name == "nt":
-    QGIS_BIN = r'C:\Program Files\QGIS 3.28.12\bin'
-    os.environ['PATH'] = f"{QGIS_BIN};{os.environ.get('PATH', '')}"
-    GDAL_LIBRARY_PATH = os.path.join(QGIS_BIN, 'gdal307.dll')
-    GEOS_LIBRARY_PATH = os.path.join(QGIS_BIN, 'geos_c.dll')
+    import re
+
+    QGIS_BIN = Path(
+        env(
+            "QGIS_BIN",
+            default=r"C:\Program Files\QGISQT6 3.40.6\bin",
+        )
+    )
+
+    if not QGIS_BIN.is_dir():
+        raise FileNotFoundError(
+            f"No existe el directorio de QGIS configurado: {QGIS_BIN}"
+        )
+
+    if hasattr(os, "add_dll_directory"):
+        os.add_dll_directory(str(QGIS_BIN))
+
+    os.environ["PATH"] = f"{QGIS_BIN};{os.environ.get('PATH', '')}"
+
+    def gdal_version(path):
+        match = re.fullmatch(
+            r"gdal(\d+)\.dll",
+            path.name,
+            re.IGNORECASE,
+        )
+        return int(match.group(1)) if match else -1
+
+    gdal_candidates = [
+        path
+        for path in QGIS_BIN.glob("gdal*.dll")
+        if gdal_version(path) >= 0
+    ]
+
+    if not gdal_candidates:
+        raise FileNotFoundError(
+            f"No se encontró gdalNNN.dll en {QGIS_BIN}"
+        )
+
+    gdal_library = max(
+        gdal_candidates,
+        key=gdal_version,
+    )
+
+    geos_library = QGIS_BIN / "geos_c.dll"
+
+    if not geos_library.is_file():
+        raise FileNotFoundError(
+            f"No se encontró geos_c.dll en {QGIS_BIN}"
+        )
+
+    GDAL_LIBRARY_PATH = str(gdal_library)
+    GEOS_LIBRARY_PATH = str(geos_library)
