@@ -6,7 +6,7 @@
 {% block content %}
 <section class="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
   <div class="w-full">
-    <form class="card bg-base-100 shadow-md" method="get" action="{% url 'docs:buscador' %}">
+    <form class="card bg-base-100 border border-base-300 shadow-sm" method="get" action="{% url 'docs:buscador' %}">
       <div class="card-body">
         <h2 class="card-title justify-center text-2xl font-semibold">Busca un documento</h2>
         <p class="text-sm text-base-content/70">Escribe el nombre o palabra clave del documento que necesitas.</p>
@@ -33,7 +33,7 @@
 </section>
 
 <section class="mx-auto mt-12 w-full max-w-5xl">
-  <div class="card bg-base-100 shadow-xl border border-base-200">
+  <div class="card bg-base-100 border border-base-300 shadow-sm">
     <div class="card-body gap-6 md:flex md:items-start">
       <div class="mx-auto flex shrink-0 items-center justify-center">
         <img
@@ -52,13 +52,13 @@
         </p>
         <div class="divider my-6"></div>
         <div class="grid gap-4 text-sm md:grid-cols-2">
-          <div class="rounded-lg border border-base-200 bg-base-100/50 p-4">
+          <div class="rounded-lg border border-base-300 bg-base-100/50 p-4">
             <h3 class="text-sm font-semibold uppercase tracking-wide text-primary">Nuestro compromiso</h3>
             <p class="mt-2 text-base leading-relaxed text-base-content/80">
               Garantizar procesos oportunos y confiables que acompañen a las personas en cada etapa de su trámite, asegurando la integridad y confidencialidad de su información.
             </p>
           </div>
-          <div class="rounded-lg border border-base-200 bg-base-100/50 p-4">
+          <div class="rounded-lg border border-base-300 bg-base-100/50 p-4">
             <h3 class="text-sm font-semibold uppercase tracking-wide text-primary">Enfoque de mejora continua</h3>
             <p class="mt-2 text-base leading-relaxed text-base-content/80">
               Evaluamos de forma permanente nuestros resultados y prácticas para alinear nuestros servicios a las necesidades ciudadanas y los estándares internacionales de calidad.
@@ -71,7 +71,7 @@
 </section>
 
 <section class="mx-auto mt-12 w-full max-w-4xl">
-  <div class="card border border-primary/30 bg-primary/5 shadow-md">
+  <div class="card border border-base-300 bg-primary/5 shadow-sm">
     <div class="card-body">
       <h2 class="card-title text-3xl font-bold text-primary">Alcance del Sistema</h2>
       <p class="mt-4 text-lg leading-relaxed text-base-content">
@@ -87,7 +87,7 @@
   </div>
 
   <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3" id="obj1">
-    <article class="card bg-base-100 shadow-lg border border-base-200">
+    <article class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body space-y-4">
         <div class="flex items-center gap-3">
           <span class="badge badge-primary badge-outline text-sm">01</span>
@@ -102,7 +102,7 @@
       </div>
     </article>
 
-    <article class="card bg-base-100 shadow-lg border border-base-200">
+    <article class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body space-y-4">
         <div class="flex items-center gap-3">
           <span class="badge badge-primary badge-outline text-sm">02</span>
@@ -117,7 +117,7 @@
       </div>
     </article>
 
-    <article class="card bg-base-100 shadow-lg border border-base-200">
+    <article class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body space-y-4">
         <div class="flex items-center gap-3">
           <span class="badge badge-primary badge-outline text-sm">03</span>
@@ -129,7 +129,7 @@
       </div>
     </article>
 
-    <article class="card bg-base-100 shadow-lg border border-base-200">
+    <article class="card bg-base-100 border border-base-300 shadow-sm">
       <div class="card-body space-y-4">
         <div class="flex items-center gap-3">
           <span class="badge badge-primary badge-outline text-sm">04</span>
@@ -145,7 +145,7 @@
       </div>
     </article>
 
-    <article class="card bg-base-100 shadow-lg border border-base-200 md:col-span-2 xl:col-span-1" id="obj2">
+    <article class="card bg-base-100 shadow-lg border border-base-300 md:col-span-2 xl:col-span-1" id="obj2">
       <div class="card-body space-y-4">
         <div class="flex items-center gap-3">
           <span class="badge badge-primary badge-outline text-sm">05</span>
@@ -171,7 +171,7 @@
       </div>
       <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" data-close-modal="kpi1-modal">✕</button>
     </div>
-    <div class="rounded-2xl border border-base-200 bg-base-100 p-6 space-y-6">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-6 space-y-6">
       <div
         id="chartKPI1"
         class="w-full"
@@ -180,15 +180,15 @@
         data-goal="{{ cap.goal|default:0 }}"
       ></div>
       <div id="kpi1-details" class="grid grid-cols-1 gap-3 text-sm text-base-content md:grid-cols-3">
-        <div class="rounded-xl border border-base-200 bg-base-100/80 p-4 shadow-sm">
+        <div class="rounded-xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-wide text-base-content/70">Trámites acumulados</p>
           <p class="mt-2 text-2xl font-bold text-base-content" id="kpi1-total">0</p>
         </div>
-        <div class="rounded-xl border border-base-200 bg-base-100/80 p-4 shadow-sm">
+        <div class="rounded-xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-wide text-base-content/70">Pronóstico anual</p>
           <p class="mt-2 text-2xl font-bold text-base-content" id="kpi1-forecast">{{ cap.forecast|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-base-200 bg-base-100/80 p-4 shadow-sm">
+        <div class="rounded-xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-wide text-base-content/70">Meta de cumplimiento</p>
           <p class="mt-2 text-2xl font-bold text-base-content" id="kpi1-goal">{{ cap.goal|default:0 }}%</p>
         </div>
@@ -210,7 +210,7 @@
       </div>
       <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" data-close-modal="kpi2-modal">✕</button>
     </div>
-    <div class="rounded-2xl border border-base-200 bg-base-100 p-6 space-y-6">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-6 space-y-6">
       <div
         id="chartKPI2"
         class="w-full"
@@ -219,11 +219,11 @@
         data-total="{{ imagen.mac_totales|default:0 }}"
       ></div>
       <div id="kpi2-details" class="grid grid-cols-1 gap-3 text-sm text-base-content md:grid-cols-2">
-        <div class="rounded-xl border border-base-200 bg-base-100/80 p-4 shadow-sm">
+        <div class="rounded-xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-wide text-base-content/70">MAC con imagen</p>
           <p class="mt-2 text-2xl font-bold text-base-content" id="kpi2-current">{{ imagen.mac_imagen|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-base-200 bg-base-100/80 p-4 shadow-sm">
+        <div class="rounded-xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
           <p class="text-xs font-semibold uppercase tracking-wide text-base-content/70">Total de MAC</p>
           <p class="mt-2 text-2xl font-bold text-base-content" id="kpi2-total">{{ imagen.mac_totales|default:0 }}</p>
         </div>
@@ -245,7 +245,7 @@
       </div>
       <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" data-close-modal="kpi4-modal">✕</button>
     </div>
-    <div class="overflow-x-auto rounded-2xl border border-base-200 bg-base-100">
+    <div class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100">
       <table class="table table-sm table-zebra">
         <thead class="bg-base-200/70">
           <tr class="text-xs font-semibold uppercase tracking-wide text-base-content/70">
@@ -301,7 +301,7 @@
       </div>
       <button type="button" class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar" data-close-modal="kpi5-modal">✕</button>
     </div>
-    <div class="rounded-2xl border border-base-200 bg-base-100 p-4 space-y-4">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-4 space-y-4">
       <div id="kpi5-loading" class="flex justify-center items-center py-6" style="display:none">
         <svg class="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
