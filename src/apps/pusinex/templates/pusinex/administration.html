@@ -23,9 +23,28 @@
         </div>
       </div>
 
-      <a href="{% url 'pusinex:index' %}" class="btn btn-ghost self-start lg:self-auto">
-        Volver a cartografía
-      </a>
+<div class="flex flex-wrap gap-3 self-start lg:self-auto">
+
+  <a
+    href="{% url 'pusinex:vnm2026' %}"
+    class="btn font-bold"
+    style="
+      background-color: var(--ine-gris-oxford);
+      color: var(--ine-blanco);
+      border-color: var(--ine-gris-oxford);
+    "
+  >
+    VNM 2026
+  </a>
+
+  <a
+    href="{% url 'pusinex:index' %}"
+    class="btn btn-outline font-bold"
+  >
+    Volver a cartografía
+  </a>
+
+</div>
     </div>
   </header>
 
@@ -45,9 +64,21 @@
               <p class="text-xs font-bold uppercase tracking-wider text-primary/70">Entidad 29</p>
               <h3 class="card-title mt-1 text-primary">Paquete estatal</h3>
             </div>
-            <span class="badge {% if state_package.exists %}badge-success{% else %}badge-ghost{% endif %}">
-              {% if state_package.exists %}Disponible{% else %}Pendiente{% endif %}
-            </span>
+            {% if state_package.exists %}
+  <span
+    class="badge border-0"
+    style="
+      background-color: var(--ine-gris-oxford);
+      color: var(--ine-blanco);
+    "
+  >
+    Disponible
+  </span>
+{% else %}
+  <span class="badge badge-ghost">
+    Pendiente
+  </span>
+{% endif %}
           </div>
 
           <p class="mt-2 text-sm text-base-content/70">
@@ -257,9 +288,21 @@
                   Distrito {{ item.district.distrito|stringformat:"02d" }}
                 </h3>
               </div>
-              <span class="badge {% if item.package.exists %}badge-success{% else %}badge-ghost{% endif %}">
-                {% if item.package.exists %}Disponible{% else %}Pendiente{% endif %}
-              </span>
+{% if item.package.exists %}
+  <span
+    class="badge border-0"
+    style="
+      background-color: var(--ine-gris-oxford);
+      color: var(--ine-blanco);
+    "
+  >
+    Disponible
+  </span>
+{% else %}
+  <span class="badge badge-ghost">
+    Pendiente
+  </span>
+{% endif %}
             </div>
 
             <p class="mt-2 min-h-10 text-sm text-base-content/70">
