@@ -16,9 +16,9 @@
   <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
       <div>
-        <h1 class="text-3xl font-bold text-base-content">Reporte Estadístico por Distrito</h1>
+        <h1 class="text-3xl font-bold text-base-content">Promedio semanal de disponibilidad</h1>
         <p class="mt-1 max-w-2xl text-sm text-base-content/70">
-          Análisis semanal del Tiempo de Entrega Real (días transcurridos desde el trámite hasta la disponibilidad).
+          Análisis semanal del Tiempo de Disponibilidad Real (días transcurridos desde el trámite hasta la disponibilidad).
         </p>
       </div>
       <form method="GET" class="flex flex-wrap items-end gap-3 bg-base-200 p-4 rounded-2xl">
@@ -38,16 +38,25 @@
   <!-- Tarjetas de KPIs (Reducido a 2 columnas) -->
   <div class="grid gap-6 md:grid-cols-2">
     <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
-      <div class="p-3 bg-fuchsia-100 text-fuchsia-600 rounded-2xl">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18"></path></svg>
+      <div class="p-3 bg-[#C5C9CC]/40 text-[#454248] rounded-2xl">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke-width="2"
+             stroke="currentColor"
+             class="w-8 h-8">
+          <path stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0L6.75 21M9 11.25l3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
+        </svg>
       </div>
       <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Volumen del Periodo</p>
+        <p class="text-xs font-bold uppercase tracking-wider text-base-content/50">Trámitesen en el Periodo</p>
         <h3 class="text-3xl font-black text-base-content mt-1">{{ total_analizados|intcomma }}</h3>
       </div>
     </div>
     <div class="card border border-base-300 bg-base-100 shadow-md p-6 flex flex-row items-center gap-4">
-      <div class="p-3 bg-rose-100 text-rose-600 rounded-2xl">
+      <div class="p-3 bg-[#B2B2B2]/30 text-[#454248] rounded-2xl">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
       </div>
       <div>
@@ -61,14 +70,14 @@
   <div class="grid gap-6 lg:grid-cols-3">
     <!-- Gráfica Semanal (Ocupa 2 columnas) -->
     <div class="card border border-base-300 bg-base-100 shadow-lg p-6 lg:col-span-2">
-      <h3 class="text-lg font-bold text-base-content mb-1">Tendencia Semanal de Entrega Real</h3>
+      <h3 class="text-lg font-bold text-base-content mb-1">Tiempo promedio de disponibilidad por semana</h3>
       <div class="relative w-full" style="height: 350px;">
         <canvas id="chartSemanas"></canvas>
       </div>
     </div>
     <!-- Gráfica de Barras Acumulada (Ocupa 1 columna) -->
     <div class="card border border-base-300 bg-base-100 shadow-lg p-6 lg:col-span-1">
-      <h3 class="text-lg font-bold text-base-content mb-1">Comparativo Acumulado</h3>
+      <h3 class="text-lg font-bold text-base-content mb-1">Tiempo promedio de disponibilidad por distrito</h3>
       <div class="relative w-full" style="height: 350px;">
         <canvas id="chartBarras"></canvas>
       </div>
@@ -77,15 +86,15 @@
 
   <!-- Tabla de Datos -->
   <div class="card border border-base-300 bg-base-100 shadow-lg p-6">
-    <h3 class="text-lg font-bold text-base-content mb-4">Desglose Semanal por Distrito</h3>
+    <h3 class="text-lg font-bold text-base-content mb-4">Tiempo promedio de disponibilidad por semana y distrito</h3>
     <div class="overflow-x-auto">
       <table class="table table-zebra w-full text-center">
         <thead>
           <tr>
-            <th class="text-left font-bold text-sm">Semana (inicio - fin)</th>
-            <th class="font-bold text-sm">01</th>
-            <th class="font-bold text-sm">02</th>
-            <th class="font-bold text-sm">03</th>
+            <th class="text-left font-bold text-sm">Semana</th>
+            <th class="font-bold text-sm">Distrito 01<br><span class="font-normal text-xs">(días)</span></th>
+            <th class="font-bold text-sm">Distrito 02<br><span class="font-normal text-xs">(días)</span></th>
+            <th class="font-bold text-sm">Distrito 03<br><span class="font-normal text-xs">(días)</span></th>
           </tr>
         </thead>
         <tbody>
@@ -104,7 +113,7 @@
 
   <!-- Botón de Exportación -->
   <div class="flex justify-end mt-4">
-    <button id="btn-exportar" class="btn btn-error text-white shadow-md gap-2 px-8" onclick="exportarPDF()">
+    <button id="btn-exportar" class="btn bg-[#454248] hover:bg-black text-white border-[#454248] shadow-md gap-2 px-8" onclick="exportarPDF()">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
       Exportar a PDF
     </button>
@@ -149,9 +158,9 @@
       data: {
         labels: labelsSemanas,
         datasets: [
-          { label: 'Distrito 1', data: d1, borderColor: '#ec4899', backgroundColor: '#ec4899', tension: 0.4, borderWidth: 3 },
-          { label: 'Distrito 2', data: d2, borderColor: '#a855f7', backgroundColor: '#a855f7', tension: 0.4, borderWidth: 3 },
-          { label: 'Distrito 3', data: d3, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.4, borderWidth: 3 }
+        { label: 'Distrito 1', data: d1, borderColor: '#454248', backgroundColor: '#454248', tension: 0.4, borderWidth: 3 },
+        { label: 'Distrito 2', data: d2, borderColor: '#828A91', backgroundColor: '#828A91', tension: 0.4, borderWidth: 3 },
+        { label: 'Distrito 3', data: d3, borderColor: '#B2B2B2', backgroundColor: '#B2B2B2', tension: 0.4, borderWidth: 3 }
         ]
       },
       options: {
@@ -177,7 +186,7 @@
         datasets: [{
           label: 'Promedio Global (Días)',
           data: promediosDistritos,
-          backgroundColor: ['#ec4899', '#a855f7', '#3b82f6'],
+          backgroundColor: ['#454248', '#828A91', '#B2B2B2'],
           borderRadius: 4,
           barPercentage: 0.7
         }]
