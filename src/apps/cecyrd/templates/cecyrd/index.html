@@ -20,13 +20,16 @@
         </div>
       </div>
       <div class="flex flex-col items-stretch gap-3 text-right">
-        <div class="flex items-center justify-end gap-2">
-          <span class="badge badge-outline badge-primary badge-lg">SGC</span>
-          <span class="text-sm text-base-content/60" id="header-status">Consultando datos...</span>
-        </div>
-        <a href="{% url 'cecyrd:carga' %}" class="btn btn-primary btn-sm mt-1 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4 mr-1">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+        <a href="{% url 'cecyrd:carga' %}" class="btn btn-primary btn-sm shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke-width="1.5"
+               stroke="currentColor"
+               class="size-4 mr-1">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
           </svg>
           Subir archivo de trámites
         </a>
@@ -312,8 +315,6 @@
   }
 
   async function fetchDashboardData(start, end, tipoTab) {
-    document.getElementById('header-status').innerText = "Masticando millones de filas...";
-
     let url = "{% url 'cecyrd:api_dashboard' %}";
 
     currentPeriodoId = null;
@@ -402,10 +403,8 @@
         renderCharts(res.labels, res.datasets, res.distribucion);
       }
 
-      document.getElementById('header-status').innerText = "Base de datos lista";
     } catch (err) {
       console.error("Error al obtener datos:", err);
-      document.getElementById('header-status').innerText = "Error al consultar indicadores.";
     }
   }
 
