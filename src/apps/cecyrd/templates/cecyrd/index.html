@@ -73,7 +73,7 @@
 
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div class="card border border-base-300 bg-base-100 shadow-md p-4 flex flex-row items-center gap-3 min-w-0">
-          <div class="p-2.5 bg-slate-100 text-slate-600 rounded-xl shrink-0">
+          <div class="p-2.5 bg-[#C5C9CC]/40 text-[#454248] rounded-xl shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
           </svg>
@@ -85,7 +85,7 @@
       </div>
 
 <div class="card border border-base-300 bg-base-100 shadow-md p-4 flex flex-row items-center gap-3 min-w-0">
-  <div class="p-2.5 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+  <div class="p-2.5 bg-[#B2B2B2]/30 text-[#454248] rounded-xl shrink-0">
     <svg xmlns="http://www.w3.org/2000/svg"
          fill="none"
          viewBox="0 0 24 24"
@@ -111,7 +111,7 @@
 </div>
 
       <div class="card border border-base-300 bg-base-100 shadow-md p-4 flex flex-row items-center gap-3 min-w-0">
-        <div class="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl shrink-0">
+        <div class="p-2.5 bg-[#828A91]/25 text-[#454248] rounded-xl shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -125,19 +125,19 @@
       </div>
 
       <div class="card border border-base-300 bg-base-100 shadow-md p-4 flex flex-row items-center gap-3 min-w-0">
-        <div class="p-2.5 bg-green-100 text-green-600 rounded-xl shrink-0">
+        <div class="p-2.5 bg-[#C5C9CC]/40 text-[#454248] rounded-xl shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
         </div>
         <div class="min-w-0 flex-1">
           <p class="text-[11px] font-bold uppercase leading-tight tracking-wide text-base-content/50 break-words">Cumplimiento de la Meta</p>
-          <h3 class="text-2xl font-black text-success mt-1" id="kpi-pct">0%</h3>
+          <h3 class="text-2xl font-black text-[#454248] mt-1" id="kpi-pct">0%</h3>
         </div>
       </div>
 
       <div class="card border border-base-300 bg-base-100 shadow-md p-4 flex flex-row items-center gap-3 min-w-0">
-        <div id="kpi-fugas-icon" class="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl shrink-0">
+        <div id="kpi-fugas-icon" class="p-2.5 bg-[#C5A989]/25 text-[#C5A989] rounded-xl shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path>
           </svg>
@@ -378,9 +378,9 @@
 
       const fugasIcon = document.getElementById('kpi-fugas-icon');
       if (res.kpis.rezago > 0) {
-        fugasIcon.className = "p-2.5 bg-red-100 text-error rounded-xl shrink-0";
+        fugasIcon.className = "p-2.5 bg-[#C5A989]/25 text-[#C5A989] rounded-xl shrink-0";
       } else {
-        fugasIcon.className = "p-2.5 bg-emerald-100 text-emerald-600 rounded-xl shrink-0";
+        fugasIcon.className = "p-2.5 bg-[#C5C9CC]/40 text-[#454248] rounded-xl shrink-0";
       }
 
       if (tipoTab === 'sem1' || tipoTab === 'sem2') {
@@ -528,11 +528,10 @@ async function guardarRevision(event) {
     const ctxTrama = canvasTrama.getContext('2d');
 
     // Fondo rojo claro
-    ctxTrama.fillStyle = '#fee2e2';
+    ctxTrama.fillStyle = '#DDD4CE';
     ctxTrama.fillRect(0, 0, 12, 12);
 
-    // Líneas diagonales rojas
-    ctxTrama.strokeStyle = '#dc2626';
+    ctxTrama.strokeStyle = '#C5A989';
     ctxTrama.lineWidth = 2;
     ctxTrama.beginPath();
     ctxTrama.moveTo(-3, 3);
@@ -559,8 +558,8 @@ async function guardarRevision(event) {
         {
           label: 'Días promedio de disponibilidad',
           data: datasets.promedios,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderColor: '#454248',
+          backgroundColor: 'rgba(69, 66, 72, 0.10)',
           borderWidth: 3,
           tension: 0.2,
           fill: true
@@ -568,12 +567,12 @@ async function guardarRevision(event) {
         {
           label: 'Meta SGC',
           data: datasets.metas,
-          borderColor: '#ef4444',
+          borderColor: '#828A91',
           borderWidth: 2,
           stepped: true,
           borderDash: [5, 5],
           pointRadius: 4,
-          pointBackgroundColor: '#ef4444',
+          pointBackgroundColor: '#828A91',
           fill: false
         }
       ]
@@ -618,10 +617,10 @@ async function guardarRevision(event) {
         {
           label: 'Trámites totales',
           data: datasets.totales,
-          backgroundColor: 'rgba(219, 39, 119, 0.72)',
-          borderColor: '#9d174d',
-          hoverBackgroundColor: 'rgba(219, 39, 119, 0.88)',
-          hoverBorderColor: '#831843',
+          backgroundColor: 'rgba(69, 66, 72, 0.72)',
+          borderColor: '#454248',
+          hoverBackgroundColor: 'rgba(69, 66, 72, 0.88)',
+          hoverBorderColor: '#000000',
           borderWidth: 2,
           borderRadius: 3,
           stack: 'GrupoTotal',
@@ -631,10 +630,10 @@ async function guardarRevision(event) {
         {
           label: 'Recibidas en tiempo',
           data: datasets.en_tiempo,
-          backgroundColor: 'rgba(124, 58, 237, 0.68)',
-          borderColor: '#5b21b6',
-          hoverBackgroundColor: 'rgba(124, 58, 237, 0.85)',
-          hoverBorderColor: '#4c1d95',
+          backgroundColor: 'rgba(130, 138, 145, 0.68)',
+          borderColor: '#828A91',
+          hoverBackgroundColor: 'rgba(130, 138, 145, 0.85)',
+          hoverBorderColor: '#454248',
           borderWidth: 2,
           borderRadius: 3,
           stack: 'GrupoAnalizado',
@@ -645,8 +644,8 @@ async function guardarRevision(event) {
           label: 'Recibidas con retraso',
           data: datasets.rezago,
           backgroundColor: patronRetraso,
-          borderColor: '#b91c1c',
-          hoverBorderColor: '#991b1b',
+          borderColor: '#C5A989',
+          hoverBorderColor: '#454248',
           borderWidth: 2,
           borderRadius: 3,
           stack: 'GrupoAnalizado',
@@ -657,11 +656,11 @@ async function guardarRevision(event) {
           type: 'line',
           label: '% Cumplimiento de Meta',
           data: datasets.cumplimiento,
-          borderColor: '#059669',
-          backgroundColor: '#059669',
+          borderColor: '#B2B2B2',
+          backgroundColor: '#B2B2B2',
           borderWidth: 3,
           pointRadius: 3,
-          pointBackgroundColor: '#059669',
+          pointBackgroundColor: '#B2B2B2',
           pointBorderColor: '#ffffff',
           pointBorderWidth: 2,
           tension: 0.1,
@@ -708,7 +707,7 @@ async function guardarRevision(event) {
             type: 'line', // La curva de Gauss
             label: 'Tendencia de entrega',
             data: distribucion.data,
-            borderColor: '#1e40af', // Un azul más oscuro para que contraste
+            borderColor: '#454248',
             borderWidth: 3,
             tension: 0.4, // Suavizado de la curva
             pointRadius: 1,
@@ -720,8 +719,8 @@ async function guardarRevision(event) {
             type: 'bar', // Las barras de volumen
             label: 'Volumen de Credenciales',
             data: distribucion.data,
-            backgroundColor: 'rgba(59, 130, 246, 0.4)', // Azul suave con transparencia
-            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(178, 178, 178, 0.45)',
+            borderColor: '#828A91',
             borderWidth: 1,
             borderRadius: 4,
             barPercentage: 0.9,
