@@ -94,8 +94,7 @@
          class="w-6 h-6">
       <path stroke-linecap="round"
             stroke-linejoin="round"
-            d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 15.75h16.5m-16.5 3.75h16.5M3.75 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18M20.25 6v.75m0 3v.75m0 3v.75m0 3v.75m0 3V18">
-      </path>
+            d="m21 21-4.35-4.35m1.35-5.4a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
     </svg>
   </div>
 
@@ -379,9 +378,9 @@
 
       const fugasIcon = document.getElementById('kpi-fugas-icon');
       if (res.kpis.rezago > 0) {
-        fugasIcon.className = "p-3 bg-red-100 text-error rounded-2xl";
+        fugasIcon.className = "p-2.5 bg-red-100 text-error rounded-xl shrink-0";
       } else {
-        fugasIcon.className = "p-3 bg-emerald-100 text-emerald-600 rounded-2xl";
+        fugasIcon.className = "p-2.5 bg-emerald-100 text-emerald-600 rounded-xl shrink-0";
       }
 
       if (tipoTab === 'sem1' || tipoTab === 'sem2') {
