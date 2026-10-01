@@ -18,7 +18,7 @@
         }
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #27272a;
+            color: #454248;
             line-height: 1.5;
             font-size: 10.5pt;
         }
@@ -58,7 +58,7 @@
             text-align: left;
         }
         .header-text-cell h1 {
-            color: #0f172a;
+            color: #454248;
             margin: 0;
             font-size: 16pt;
             text-transform: uppercase;
@@ -75,7 +75,7 @@
             font-size: 11pt;
             margin-top: 20px;
             margin-bottom: 12px;
-            border-left: 4px solid #3b82f6;
+            border-left: 4px solid #454248;
             page-break-after: avoid;
         }
         .kpi-grid {
@@ -97,7 +97,7 @@
         .kpi-value {
             font-size: 16pt;
             font-weight: bold;
-            color: #0f172a;
+            color: #454248;
         }
         .kpi-label {
             font-size: 8.5pt;
@@ -153,7 +153,9 @@
 
   <div class="header-table">
     <div class="header-logo-cell">
-      <img src="{% static 'img/ine_150x53.png' %}" alt="Logo INE" style="display: block; max-width: 100%; height: auto;" />
+      <img src="{% static 'img/logo2026/LOGO-COLOR-1.png' %}"
+       alt="Instituto Nacional Electoral"
+       style="display: block; width: 140px; height: auto;" />
     </div>
     <div class="header-text-cell">
       <h1>Evaluación de Desempeño CECyRD</h1>
@@ -188,7 +190,7 @@
                 <div class="kpi-label">Recibidas en Tiempo</div>
             </div>
             <div class="kpi-box">
-                <div class="kpi-value" style="color: {% if revision.rezago > 0 %}#dc2626{% else %}#16a34a{% endif %};">{{ revision.rezago | intcomma }}</div>
+                <div class="kpi-value" style="color: {% if revision.rezago > 0 %}#77747A{% else %}#454248{% endif %};">{{ revision.rezago | intcomma }}</div>
                 <div class="kpi-label">Recibidas con Retraso</div>
             </div>
         </div>

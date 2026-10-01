@@ -13,7 +13,7 @@
   }
 </style>
 
-<nav class="navbar bg-base-100 border-b border-base-300 shadow-sm">
+<nav class="navbar bg-base-100 border-b border-base-300 shadow-sm relative z-50">
   <div class="navbar-start">
     <div class="dropdown">
       <div tabindex="0" role="button" class="btn btn-ghost 2xl:hidden">
@@ -98,7 +98,7 @@
         </div>
 
         <ul tabindex="-1"
-            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-44 p-2 shadow">
+            class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[60] mt-3 w-44 p-2 shadow">
           {% if request.user.is_authenticated %}
             <li>
               <form method="post" action="{% url 'logout' %}">

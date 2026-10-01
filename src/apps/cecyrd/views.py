@@ -12,6 +12,7 @@ from django.core.cache import cache
 from .etl import iniciar_etl_thread
 from django.http import HttpResponse
 from django.views import View
+from django.utils import timezone
 from weasyprint import HTML
 
 from .models import Tramite, RevisionDireccion
@@ -40,7 +41,12 @@ class IndexCecyrd(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Mandamos la meta al contexto para usarla en el HTML con {{ sla_ordinario }}
+
+        hoy = timezone.localdate()
+
+        context["mostrar_sem1_2026"] = hoy >= datetime(2026, 7, 1).date()
+        context["mostrar_sem2_2026"] = hoy >= datetime(2027, 1, 1).date()
+
         context["sla_ordinario"] = SLA_ORDINARIO
         return context
 
