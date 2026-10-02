@@ -94,13 +94,162 @@
     Planes
   </a>
 </li>
-<li>
-  <a class="flex items-center gap-2 {{ cartografia_active }} {% if cartografia_active %}is-active{% endif %}" href="{% url 'pusinex:index' %}" {% if cartografia_active %}aria-current="page" {% endif %}>
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
-    </svg>
-    Cartografía
-  </a>
+<li class="lg:relative">
+  <details>
+    <summary class="flex items-center gap-2 transition-all {% if cartografia_active %}active is-active bg-gradient-to-r from-primary to-secondary text-primary-content rounded-btn font-semibold shadow-md{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="1.5"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="size-6">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+      </svg>
+      Cartografía
+    </summary>
+
+    <ul class="menu menu-sm bg-base-100 rounded-box shadow-lg p-2 mt-2 lg:absolute lg:left-0 lg:top-full lg:mt-2 lg:w-72 lg:z-20">
+
+      {# Marco Geográfico Electoral #}
+      <li>
+        <a href="{% url 'pusinex:index' %}"
+           class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-6 shrink-0">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M9.718 17.359l-.718 -.359l-6 3v-13l6 -3l6 3l6 -3v7.5" />
+            <path d="M9 4v13" />
+            <path d="M15 7v4" />
+            <path d="M17.8 20.817l-2.172 1.138a.392 .392 0 0 1 -.568 -.41l.415 -2.411l-1.757 -1.707a.389 .389 0 0 1 .217 -.665l2.428 -.352l1.086 -2.193a.392 .392 0 0 1 .702 0l1.086 2.193l2.428 .352a.39 .39 0 0 1 .217 .665l-1.757 1.707l.414 2.41a.39 .39 0 0 1 -.567 .411l-2.172 -1.138" />
+          </svg>
+          Marco Geográfico Electoral
+        </a>
+      </li>
+
+      {# VNM 2026 #}
+      <li>
+        <a href="{% url 'pusinex:vnm2026' %}"
+           class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="1"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-6 shrink-0">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 7l6 -3l6 3l6 -3v13l-6 3l-6 -3l-6 3v-13" />
+            <path d="M9 12v.01" />
+            <path d="M6 13v.01" />
+            <path d="M17 15l-4 -4" />
+            <path d="M13 15l4 -4" />
+          </svg>
+          VNM 2026
+        </a>
+      </li>
+
+      {# Gestión de PUSINEX #}
+      <li>
+        <a href="{% url 'pusinex:administration' %}"
+           class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="1"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-6 shrink-0">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M16 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M4 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M4 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M16 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M8 18h8" />
+            <path d="M18 20v1" />
+            <path d="M18 3v1" />
+            <path d="M6 20v1" />
+            <path d="M6 10v-7" />
+            <path d="M12 3v18" />
+            <path d="M18 8v8" />
+            <path d="M8 12h13" />
+            <path d="M21 6h-1" />
+            <path d="M16 6h-13" />
+            <path d="M3 12h1" />
+            <path d="M20 18h1" />
+            <path d="M3 18h1" />
+            <path d="M6 14v2" />
+          </svg>
+          Gestión de PUSINEX
+        </a>
+      </li>
+
+      {# Localidades — próximo desarrollo #}
+      <li>
+        <span class="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-6 shrink-0">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M14.828 10.828a4 4 0 1 0 -5.656 0l2.828 2.829l2.828 -2.829" />
+            <path d="M12 8v.01" />
+            <path d="M6 12h-.142a2 2 0 0 0 -1.923 1.45l-.858 3a2 2 0 0 0 1.924 2.55h13.999a2 2 0 0 0 1.923 -2.55l-.857 -3a2 2 0 0 0 -1.923 -1.45h-.143" />
+          </svg>
+          Localidades
+        </span>
+      </li>
+
+      {# Comunidades — próximo desarrollo #}
+      <li>
+        <span class="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-6 shrink-0">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M8 9l5 5v7h-5v-4m0 4h-5v-7l5 -5m1 1v-6a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v17h-8" />
+            <path d="M13 7l0 .01" />
+            <path d="M17 7l0 .01" />
+            <path d="M17 11l0 .01" />
+            <path d="M17 15l0 .01" />
+          </svg>
+          Comunidades
+        </span>
+      </li>
+
+    </ul>
+  </details>
 </li>
 <li>
   <a class="flex items-center gap-2 {{ ideas_active }} {% if ideas_active %}is-active{% endif %}" href="{% url 'ideas:index' %}" {% if ideas_active %}aria-current="page" {% endif %}>
