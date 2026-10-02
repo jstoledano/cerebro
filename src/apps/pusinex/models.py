@@ -37,7 +37,7 @@ def pusinex_file(p, file):
 class Entidad(models.Model):
     entidad = models.PositiveSmallIntegerField(primary_key=True)
     nombre = models.TextField()
-    circunscripcion = models.PositiveSmallIntegerField()
+    circunscripcion = models.PositiveSmallIntegerField(default=4)
     ubica = models.TextField(help_text="Coordenadas geográficas de la Junta Local", default='')
     pe = models.PositiveIntegerField(
         default=0, help_text="Padrón Electoral precalculado"
@@ -54,6 +54,48 @@ class Entidad(models.Model):
 
     def __str__(self):
         return f'{self.entidad:02} {self.nombre}'
+
+
+class ActualizacionMGE(models.Model):
+    TIPO_CHOICES = (
+        ("DOCTOR", "Diagnóstico"),
+        ("ACTUALIZACION", "Actualización"),
+    )
+
+    ESTADO_CHOICES = (
+        ("INICIADA", "Iniciada"),
+        ("APTO", "Apto"),
+        ("NO_APTO", "No apto"),
+        ("COMPLETADA", "Completada"),
+        ("ERROR", "Error"),
+    )
+
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES)
+
+    usuario = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    actor = models.CharField(max_length=150)
+    origen = models.TextField()
+
+    inicio = models.DateTimeField(auto_now_add=True)
+    fin = models.DateTimeField(null=True, blank=True)
+
+    reporte = models.JSONField(default=dict, blank=True)
+    mensaje_error = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Actualización MGE"
+        verbose_name_plural = "Actualizaciones MGE"
+        ordering = ["-inicio"]
+
+    def __str__(self):
+        return f"{self.tipo} - {self.estado} - {self.inicio:%Y-%m-%d %H:%M}"
 
 
 class Distrito(models.Model):
