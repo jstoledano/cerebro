@@ -253,3 +253,50 @@ class Manzana(models.Model):
 
     def __str__(self):
         return f"Sec: {self.seccion_id} | Loc: {self.localidad} | Mz: {self.manzana}"
+
+
+class CambioMGE(models.Model):
+    TIPO_CHOICES = (
+        ("GEOMETRIA", "Geometría"),
+        ("ALTA", "Alta"),
+        ("BAJA", "Baja"),
+    )
+
+    actualizacion = models.ForeignKey(
+        ActualizacionMGE,
+        on_delete=models.CASCADE,
+        related_name="cambios",
+    )
+
+    capa = models.CharField(max_length=50)
+    clave = models.CharField(max_length=50)
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_CHOICES,
+    )
+
+    geom_anterior = models.MultiPolygonField(
+        srid=32614,
+        null=True,
+        blank=True,
+    )
+
+    geom_nueva = models.MultiPolygonField(
+        srid=32614,
+        null=True,
+        blank=True,
+    )
+
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Cambio MGE"
+        verbose_name_plural = "Cambios MGE"
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return (
+            f"{self.capa} {self.clave} "
+            f"- {self.tipo}"
+        )
