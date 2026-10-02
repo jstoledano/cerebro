@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -48,16 +49,86 @@ CAPAS = {
         },
         "campos_opcionales": set(),
     },
+
+    "seccion": {
+        "archivo": "seccion.shp",
+        "campos_obligatorios": {
+            "entidad",
+            "distrito",
+            "distrito_l",
+            "municipio",
+            "seccion",
+            "tipo",
+        },
+        "campos_opcionales": set(),
+    },
 }
+
+
+def _ruta_seccion(raiz_entidad):
+    candidatos = []
+
+    patron = re.compile(
+        r"^seccion(?:_(\d+))?$"
+    )
+
+    for ruta in raiz_entidad.iterdir():
+        if not ruta.is_dir():
+            continue
+
+        match = patron.match(ruta.name)
+
+        if not match:
+            continue
+
+        shape = ruta / "seccion.shp"
+
+        if shape.exists():
+            numero = match.group(1)
+
+            prioridad = (
+                0
+                if numero is None
+                else int(numero)
+            )
+
+            candidatos.append(
+                (prioridad, ruta)
+            )
+
+    if not candidatos:
+        raise FileNotFoundError(
+            "No se encontró un directorio de sección "
+            "válido. Se esperaba 'seccion' o "
+            "'seccion_<n>' con seccion.shp."
+        )
+
+    candidatos.sort(
+        key=lambda item: item[0]
+    )
+
+    carpeta = candidatos[0][1]
+
+    return carpeta / "seccion.shp"
 
 
 def ruta_capa(raiz_bged, capa):
     raiz = Path(raiz_bged)
+
+    raiz_entidad = (
+        raiz
+        / str(ENTIDAD_INE)
+    )
+
+    if capa == "seccion":
+        return _ruta_seccion(
+            raiz_entidad
+        )
+
     config = CAPAS[capa]
 
     return (
-        raiz
-        / str(ENTIDAD_INE)
+        raiz_entidad
         / config["carpeta"]
         / config["archivo"]
     )

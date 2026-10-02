@@ -58,8 +58,10 @@ class Entidad(models.Model):
 
 class ActualizacionMGE(models.Model):
     TIPO_CHOICES = (
-        ("DOCTOR", "Diagnóstico"),
-        ("ACTUALIZACION", "Actualización"),
+        ("GEOMETRIA", "Geometría"),
+        ("ALTA", "Alta"),
+        ("BAJA", "Baja"),
+        ("REACTIVACION", "Reactivación"),
     )
 
     ESTADO_CHOICES = (

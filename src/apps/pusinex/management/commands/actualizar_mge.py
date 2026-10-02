@@ -12,6 +12,7 @@ from apps.pusinex.mge.doctor import (
     revisar_distrito,
     revisar_distrito_local,
     revisar_municipio,
+    revisar_seccion,
 )
 from apps.pusinex.mge.entidad import (
     actualizar_entidad,
@@ -24,6 +25,9 @@ from apps.pusinex.mge.distrito_local import (
 )
 from apps.pusinex.mge.municipio import (
     actualizar_municipio,
+)
+from apps.pusinex.mge.seccion import (
+    actualizar_seccion,
 )
 from apps.pusinex.models import ActualizacionMGE
 
@@ -87,12 +91,16 @@ class Command(BaseCommand):
             )
 
             diagnosticos = {
-                "entidad": revisar_entidad(ruta),
-                "distrito": revisar_distrito(ruta),
+                "entidad":
+                    revisar_entidad(ruta),
+                "distrito":
+                    revisar_distrito(ruta),
                 "distrito_local":
                     revisar_distrito_local(ruta),
                 "municipio":
                     revisar_municipio(ruta),
+                "seccion":
+                    revisar_seccion(ruta),
             }
 
             self._mostrar_diagnosticos(
@@ -243,6 +251,25 @@ class Command(BaseCommand):
                 )
             )
 
+            self.stdout.write("")
+            self.stdout.write(
+                "Actualizando Sección..."
+            )
+
+            resultados["seccion"] = (
+                actualizar_seccion(
+                    ruta,
+                    ejecucion,
+                )
+            )
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Sección actualizada "
+                    "correctamente."
+                )
+            )
+
             ejecucion.estado = "COMPLETADA"
             ejecucion.fin = timezone.now()
             ejecucion.reporte = {
@@ -293,6 +320,7 @@ class Command(BaseCommand):
             diagnosticos.items()
         ):
             self.stdout.write("")
+
             self.stdout.write(
                 self.style.NOTICE(
                     f"Capa: {nombre_capa}"
@@ -300,7 +328,9 @@ class Command(BaseCommand):
             )
 
             for prueba in (
-                diagnostico["comprobaciones"]
+                diagnostico[
+                    "comprobaciones"
+                ]
             ):
                 simbolo = (
                     "OK"
@@ -373,6 +403,16 @@ class Command(BaseCommand):
                 0,
             )
 
+            reactivados = resultado.get(
+                "reactivados",
+                0,
+            )
+
+            desactivados = resultado.get(
+                "desactivados",
+                0,
+            )
+
             cambios_registrados = resultado.get(
                 "cambios_registrados",
                 0,
@@ -390,6 +430,16 @@ class Command(BaseCommand):
                 f"  Sin cambios: {sin_cambios}"
             )
 
+            if reactivados:
+                self.stdout.write(
+                    f"  Reactivados: {reactivados}"
+                )
+
+            if desactivados:
+                self.stdout.write(
+                    f"  Desactivados: {desactivados}"
+                )
+
             if cambios_registrados:
                 self.stdout.write(
                     "  Cambios MGE registrados: "
@@ -402,6 +452,6 @@ class Command(BaseCommand):
 
             if campos_modificados:
                 self.stdout.write(
-                    f"  Campos modificados: "
+                    "  Campos modificados: "
                     f"{campos_modificados}"
                 )

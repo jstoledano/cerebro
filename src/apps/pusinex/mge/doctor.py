@@ -2,12 +2,17 @@ from pathlib import Path
 
 from django.contrib.gis.gdal import DataSource
 
-from .registry import CAPAS, ENTIDAD_INE, ruta_capa
+from apps.pusinex.models import (
+    Distrito,
+    DistritoLocal,
+    Municipio,
+)
 
-
-class DoctorError(Exception):
-    pass
-
+from .registry import (
+    CAPAS,
+    ENTIDAD_INE,
+    ruta_capa,
+)
 
 def revisar_entidad(raiz_bged):
     resultado = {
@@ -673,6 +678,261 @@ def revisar_municipio(raiz_bged):
         resultado["errores"].append(
             "Las claves de municipio "
             "no son únicas."
+        )
+
+    return resultado
+
+def revisar_seccion(raiz_bged):
+    resultado = {
+        "capa": "seccion",
+        "apto": True,
+        "comprobaciones": [],
+        "errores": [],
+    }
+
+    try:
+        shape = ruta_capa(
+            raiz_bged,
+            "seccion",
+        )
+    except Exception as exc:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            str(exc)
+        )
+        return resultado
+
+    base = shape.with_suffix("")
+
+    archivos = {
+        ".shp": base.with_suffix(".shp"),
+        ".shx": base.with_suffix(".shx"),
+        ".dbf": base.with_suffix(".dbf"),
+        ".prj": base.with_suffix(".prj"),
+    }
+
+    for extension, ruta in archivos.items():
+        existe = ruta.exists()
+
+        resultado[
+            "comprobaciones"
+        ].append(
+            {
+                "prueba":
+                    f"Archivo {extension}",
+                "ok": existe,
+                "detalle": str(ruta),
+            }
+        )
+
+        if not existe:
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Falta el archivo requerido: "
+                f"{ruta}"
+            )
+
+    if not resultado["apto"]:
+        return resultado
+
+    try:
+        ds = DataSource(str(shape))
+    except Exception as exc:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"No fue posible abrir "
+            f"el shapefile: {exc}"
+        )
+        return resultado
+
+    if len(ds) != 1:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Se esperaba una capa y "
+            f"se encontraron {len(ds)}."
+        )
+        return resultado
+
+    layer = ds[0]
+
+    cantidad = len(layer)
+
+    resultado[
+        "comprobaciones"
+    ].append(
+        {
+            "prueba":
+                "Cantidad de registros",
+            "ok": cantidad > 0,
+            "detalle": cantidad,
+        }
+    )
+
+    campos = set(layer.fields)
+
+    requeridos = CAPAS[
+        "seccion"
+    ]["campos_obligatorios"]
+
+    faltantes = (
+        requeridos - campos
+    )
+
+    resultado[
+        "comprobaciones"
+    ].append(
+        {
+            "prueba":
+                "Campos obligatorios",
+            "ok": not faltantes,
+            "detalle": sorted(campos),
+        }
+    )
+
+    if faltantes:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Faltan campos obligatorios: "
+            f"{', '.join(sorted(faltantes))}"
+        )
+
+    srid = (
+        layer.srs.srid
+        if layer.srs
+        else None
+    )
+
+    resultado[
+        "comprobaciones"
+    ].append(
+        {
+            "prueba": "SRID",
+            "ok": srid == 32614,
+            "detalle": srid,
+        }
+    )
+
+    if srid != 32614:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Se esperaba EPSG:32614 "
+            f"y se encontró {srid}."
+        )
+
+    claves = set()
+    duplicadas = set()
+
+    for feature in layer:
+        entidad = int(
+            feature.get("entidad")
+        )
+
+        distrito = int(
+            feature.get("distrito")
+        )
+
+        distrito_local = int(
+            feature.get("distrito_l")
+        )
+
+        municipio = int(
+            feature.get("municipio")
+        )
+
+        seccion = int(
+            feature.get("seccion")
+        )
+
+        if seccion in claves:
+            duplicadas.add(
+                seccion
+            )
+
+        claves.add(
+            seccion
+        )
+
+        if entidad != ENTIDAD_INE:
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                f"entidad {entidad}."
+            )
+
+        if not Distrito.objects.filter(
+            distrito=distrito
+        ).exists():
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                f"distrito federal "
+                f"{distrito:02} inexistente."
+            )
+
+        if not DistritoLocal.objects.filter(
+            distrito_local=distrito_local
+        ).exists():
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                f"distrito local "
+                f"{distrito_local:02} "
+                "inexistente."
+            )
+
+        if not Municipio.objects.filter(
+            municipio=municipio
+        ).exists():
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                f"municipio "
+                f"{municipio:03} "
+                "inexistente."
+            )
+
+        geom = feature.geom.geos
+        geom.srid = 32614
+
+        if geom.geom_type not in (
+            "Polygon",
+            "MultiPolygon",
+        ):
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                f"geometría inesperada "
+                f"{geom.geom_type}."
+            )
+
+        if not geom.valid:
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Sección {seccion:04}: "
+                "geometría inválida."
+            )
+
+    resultado[
+        "comprobaciones"
+    ].append(
+        {
+            "prueba":
+                "Claves únicas de sección",
+            "ok": not duplicadas,
+            "detalle": (
+                len(claves)
+                if not duplicadas
+                else sorted(duplicadas)
+            ),
+        }
+    )
+
+    if duplicadas:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            "Existen claves de sección "
+            f"duplicadas: "
+            f"{sorted(duplicadas)}"
         )
 
     return resultado
