@@ -12,6 +12,9 @@ from apps.pusinex.models import (
 )
 
 from .registry import ruta_capa
+from .utils import (
+    geometria_cambio_informativo,
+)
 
 
 def actualizar_seccion(
@@ -199,14 +202,22 @@ def actualizar_seccion(
             # GEOMETRÍA
             # ---------------------------------
 
-            geometria_cambio = (
+            geometria_distinta = (
                 seccion.geom is None
-                or not seccion.geom.equals(
-                    geom
+                or not seccion.geom.equals_exact(
+                geom,
+                0.0,
+            )
+            )
+
+            cambio_informativo = (
+                geometria_cambio_informativo(
+                    seccion.geom,
+                    geom,
                 )
             )
 
-            if geometria_cambio:
+            if cambio_informativo:
                 geom_anterior = (
                     seccion.geom.clone()
                     if seccion.geom
@@ -226,6 +237,7 @@ def actualizar_seccion(
                     "cambios_registrados"
                 ] += 1
 
+            if geometria_distinta:
                 seccion.geom = geom
                 cambios.append("geom")
 

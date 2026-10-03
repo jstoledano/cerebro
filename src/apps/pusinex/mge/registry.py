@@ -62,6 +62,27 @@ CAPAS = {
         },
         "campos_opcionales": set(),
     },
+    "manzana": {
+        "carpeta": "manzana",
+        "archivo": "manzana.shp",
+        "campos_obligatorios": {
+            "entidad",
+            "distrito",
+            "municipio",
+            "seccion",
+            "localidad",
+            "manzana",
+            "distrito_l",
+        },
+        "campos_opcionales": {
+            "status",
+            "control",
+            "caso_captu",
+            "disperso",
+            "id",
+            "tipo_manza",
+        },
+    },
 }
 
 

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from django.contrib.gis.gdal import DataSource
 
 from apps.pusinex.models import (
@@ -933,6 +931,290 @@ def revisar_seccion(raiz_bged):
             "Existen claves de sección "
             f"duplicadas: "
             f"{sorted(duplicadas)}"
+        )
+
+    return resultado
+
+def revisar_manzana(raiz_bged):
+    resultado = {
+        "capa": "manzana",
+        "apto": True,
+        "comprobaciones": [],
+        "errores": [],
+    }
+
+    shape = ruta_capa(
+        raiz_bged,
+        "manzana",
+    )
+
+    base = shape.with_suffix("")
+
+    archivos = {
+        ".shp": base.with_suffix(".shp"),
+        ".shx": base.with_suffix(".shx"),
+        ".dbf": base.with_suffix(".dbf"),
+        ".prj": base.with_suffix(".prj"),
+    }
+
+    # ---------------------------------
+    # ARCHIVOS
+    # ---------------------------------
+
+    for extension, ruta in archivos.items():
+        existe = ruta.exists()
+
+        resultado["comprobaciones"].append(
+            {
+                "prueba": f"Archivo {extension}",
+                "ok": existe,
+                "detalle": str(ruta),
+            }
+        )
+
+        if not existe:
+            resultado["apto"] = False
+            resultado["errores"].append(
+                f"Falta el archivo requerido: {ruta}"
+            )
+
+    if not resultado["apto"]:
+        return resultado
+
+    # ---------------------------------
+    # ABRIR CAPA
+    # ---------------------------------
+
+    try:
+        ds = DataSource(str(shape))
+    except Exception as exc:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"No fue posible abrir el shapefile: {exc}"
+        )
+        return resultado
+
+    if len(ds) != 1:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Se esperaba una capa y se encontraron {len(ds)}."
+        )
+        return resultado
+
+    layer = ds[0]
+
+    # ---------------------------------
+    # CANTIDAD
+    # ---------------------------------
+
+    cantidad = len(layer)
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "Cantidad de registros",
+            "ok": cantidad > 0,
+            "detalle": cantidad,
+        }
+    )
+
+    if cantidad == 0:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            "La capa de manzana no contiene registros."
+        )
+
+    # ---------------------------------
+    # CAMPOS OBLIGATORIOS
+    # ---------------------------------
+
+    campos = set(layer.fields)
+
+    requeridos = CAPAS[
+        "manzana"
+    ]["campos_obligatorios"]
+
+    faltantes = requeridos - campos
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "Campos obligatorios",
+            "ok": not faltantes,
+            "detalle": sorted(campos),
+        }
+    )
+
+    if faltantes:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            "Faltan campos obligatorios: "
+            + ", ".join(sorted(faltantes))
+        )
+
+    # ---------------------------------
+    # SRID
+    # ---------------------------------
+
+    srid = (
+        layer.srs.srid
+        if layer.srs
+        else None
+    )
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "SRID",
+            "ok": srid == 32614,
+            "detalle": srid,
+        }
+    )
+
+    if srid != 32614:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Se esperaba EPSG:32614 y se encontró {srid}."
+        )
+
+    # ---------------------------------
+    # SECCIONES DE LA MISMA BGD
+    # ---------------------------------
+
+    shape_seccion = ruta_capa(
+        raiz_bged,
+        "seccion",
+    )
+
+    try:
+        ds_seccion = DataSource(
+            str(shape_seccion)
+        )
+    except Exception as exc:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"No fue posible abrir la capa de sección: {exc}"
+        )
+        return resultado
+
+    layer_seccion = ds_seccion[0]
+
+    secciones_bgd = {
+        int(feature.get("seccion"))
+        for feature in layer_seccion
+    }
+
+    # ---------------------------------
+    # VALIDAR REGISTROS
+    #
+    # La BGD es la fuente de verdad.
+    # Para Manzana solo se comprueba que
+    # la sección referida exista en la
+    # capa Sección de la misma BGD.
+    # ---------------------------------
+
+    claves = set()
+    duplicadas = set()
+    secciones_inexistentes = set()
+    geometrias_invalidas = 0
+
+    for feature in layer:
+        seccion_id = int(
+            feature.get("seccion")
+        )
+
+        localidad = int(
+            feature.get("localidad")
+        )
+
+        manzana = int(
+            feature.get("manzana")
+        )
+
+        clave = (
+            seccion_id,
+            localidad,
+            manzana,
+        )
+
+        if clave in claves:
+            duplicadas.add(clave)
+
+        claves.add(clave)
+
+        if seccion_id not in secciones_bgd:
+            secciones_inexistentes.add(
+                seccion_id
+            )
+
+        geom = feature.geom.geos
+        geom.srid = 32614
+
+        if (
+            geom.geom_type not in (
+                "Polygon",
+                "MultiPolygon",
+            )
+            or not geom.valid
+        ):
+            geometrias_invalidas += 1
+
+    # ---------------------------------
+    # CLAVES ÚNICAS
+    # ---------------------------------
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "Claves únicas de manzana",
+            "ok": not duplicadas,
+            "detalle": len(claves),
+        }
+    )
+
+    if duplicadas:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Existen {len(duplicadas)} "
+            "claves de manzana duplicadas."
+        )
+
+    # ---------------------------------
+    # SECCIONES EXISTENTES
+    # ---------------------------------
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "Secciones existentes",
+            "ok": not secciones_inexistentes,
+            "detalle": (
+                "OK"
+                if not secciones_inexistentes
+                else sorted(secciones_inexistentes)
+            ),
+        }
+    )
+
+    if secciones_inexistentes:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            "Hay manzanas asociadas a "
+            "secciones inexistentes en seccion.shp."
+        )
+
+    # ---------------------------------
+    # GEOMETRÍAS
+    # ---------------------------------
+
+    resultado["comprobaciones"].append(
+        {
+            "prueba": "Geometrías válidas",
+            "ok": geometrias_invalidas == 0,
+            "detalle": geometrias_invalidas,
+        }
+    )
+
+    if geometrias_invalidas:
+        resultado["apto"] = False
+        resultado["errores"].append(
+            f"Se encontraron {geometrias_invalidas} "
+            "geometrías inválidas."
         )
 
     return resultado

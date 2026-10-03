@@ -235,26 +235,46 @@ class Pusinex(models.Model):
 
 
 class Manzana(models.Model):
-    # Relacionamos directamente con la Sección.
-    # Usamos related_name="manzanas" para poder hacer: mi_seccion.manzanas.all()
     seccion = models.ForeignKey(
-        Seccion, on_delete=models.CASCADE, related_name="manzanas"
+        Seccion,
+        on_delete=models.CASCADE,
+        related_name="manzanas",
     )
 
     localidad = models.PositiveSmallIntegerField()
     manzana = models.PositiveSmallIntegerField()
+
     padron = models.PositiveIntegerField(default=0)
     lista_nominal = models.PositiveIntegerField(default=0)
+
+    geom = models.MultiPolygonField(
+        srid=32614,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name = "Manzana"
         verbose_name_plural = "Manzanas"
-        # Esto evita que haya manzanas duplicadas en la misma localidad y sección
-        unique_together = ("seccion", "localidad", "manzana")
-        ordering = ["seccion", "localidad", "manzana"]
+
+        unique_together = (
+            "seccion",
+            "localidad",
+            "manzana",
+        )
+
+        ordering = [
+            "seccion",
+            "localidad",
+            "manzana",
+        ]
 
     def __str__(self):
-        return f"Sec: {self.seccion_id} | Loc: {self.localidad} | Mz: {self.manzana}"
+        return (
+            f"Sec: {self.seccion_id} | "
+            f"Loc: {self.localidad} | "
+            f"Mz: {self.manzana}"
+        )
 
 
 class CambioMGE(models.Model):

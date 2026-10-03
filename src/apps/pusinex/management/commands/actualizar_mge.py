@@ -13,6 +13,7 @@ from apps.pusinex.mge.doctor import (
     revisar_distrito_local,
     revisar_municipio,
     revisar_seccion,
+    revisar_manzana,
 )
 from apps.pusinex.mge.entidad import (
     actualizar_entidad,
@@ -28,6 +29,9 @@ from apps.pusinex.mge.municipio import (
 )
 from apps.pusinex.mge.seccion import (
     actualizar_seccion,
+)
+from apps.pusinex.mge.manzana import (
+    actualizar_manzana,
 )
 from apps.pusinex.models import ActualizacionMGE
 
@@ -82,6 +86,10 @@ class Command(BaseCommand):
         )
 
         try:
+            # ---------------------------------
+            # DOCTOR
+            # ---------------------------------
+
             self.stdout.write("")
             self.stdout.write(
                 self.style.NOTICE(
@@ -101,6 +109,8 @@ class Command(BaseCommand):
                     revisar_municipio(ruta),
                 "seccion":
                     revisar_seccion(ruta),
+                "manzana":
+                    revisar_manzana(ruta),
             }
 
             self._mostrar_diagnosticos(
@@ -112,6 +122,10 @@ class Command(BaseCommand):
                 for diagnostico
                 in diagnosticos.values()
             )
+
+            # ---------------------------------
+            # BGD NO APTA
+            # ---------------------------------
 
             if not apto:
                 errores = []
@@ -159,6 +173,10 @@ class Command(BaseCommand):
                 )
             )
 
+            # ---------------------------------
+            # SOLO DOCTOR
+            # ---------------------------------
+
             if solo_doctor:
                 ejecucion.estado = "APTO"
                 ejecucion.fin = timezone.now()
@@ -178,6 +196,10 @@ class Command(BaseCommand):
 
             resultados = {}
 
+            # ---------------------------------
+            # ENTIDAD
+            # ---------------------------------
+
             self.stdout.write("")
             self.stdout.write(
                 "Actualizando Entidad..."
@@ -193,6 +215,10 @@ class Command(BaseCommand):
                     "correctamente."
                 )
             )
+
+            # ---------------------------------
+            # DISTRITO
+            # ---------------------------------
 
             self.stdout.write("")
             self.stdout.write(
@@ -213,6 +239,10 @@ class Command(BaseCommand):
                 )
             )
 
+            # ---------------------------------
+            # DISTRITO LOCAL
+            # ---------------------------------
+
             self.stdout.write("")
             self.stdout.write(
                 "Actualizando Distrito Local..."
@@ -231,6 +261,10 @@ class Command(BaseCommand):
                     "correctamente."
                 )
             )
+
+            # ---------------------------------
+            # MUNICIPIO
+            # ---------------------------------
 
             self.stdout.write("")
             self.stdout.write(
@@ -251,6 +285,10 @@ class Command(BaseCommand):
                 )
             )
 
+            # ---------------------------------
+            # SECCIÓN
+            # ---------------------------------
+
             self.stdout.write("")
             self.stdout.write(
                 "Actualizando Sección..."
@@ -269,6 +307,30 @@ class Command(BaseCommand):
                     "correctamente."
                 )
             )
+
+            # ---------------------------------
+            # MANZANA
+            # ---------------------------------
+
+            self.stdout.write("")
+            self.stdout.write(
+                "Actualizando Manzana..."
+            )
+
+            resultados["manzana"] = (
+                actualizar_manzana(ruta)
+            )
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Manzana actualizada "
+                    "correctamente."
+                )
+            )
+
+            # ---------------------------------
+            # FINALIZAR EJECUCIÓN
+            # ---------------------------------
 
             ejecucion.estado = "COMPLETADA"
             ejecucion.fin = timezone.now()
@@ -297,6 +359,10 @@ class Command(BaseCommand):
                 resultados
             )
 
+        # ---------------------------------
+        # ERROR
+        # ---------------------------------
+
         except Exception as exc:
             ejecucion.estado = "ERROR"
             ejecucion.fin = timezone.now()
@@ -316,6 +382,10 @@ class Command(BaseCommand):
         self,
         diagnosticos,
     ):
+        # ---------------------------------
+        # MOSTRAR DOCTOR
+        # ---------------------------------
+
         for nombre_capa, diagnostico in (
             diagnosticos.items()
         ):
@@ -373,6 +443,10 @@ class Command(BaseCommand):
         self,
         resultados,
     ):
+        # ---------------------------------
+        # MOSTRAR RESULTADOS
+        # ---------------------------------
+
         for nombre_capa, resultado in (
             resultados.items()
         ):
@@ -395,6 +469,11 @@ class Command(BaseCommand):
 
             actualizados = resultado.get(
                 "actualizados",
+                0,
+            )
+
+            eliminados = resultado.get(
+                "eliminados",
                 0,
             )
 
@@ -425,6 +504,11 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"  Actualizados: {actualizados}"
             )
+
+            if eliminados:
+                self.stdout.write(
+                    f"  Eliminados: {eliminados}"
+                )
 
             self.stdout.write(
                 f"  Sin cambios: {sin_cambios}"

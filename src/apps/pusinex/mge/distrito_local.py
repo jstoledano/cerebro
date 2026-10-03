@@ -9,12 +9,17 @@ from apps.pusinex.models import (
 )
 
 from .registry import ruta_capa
+from .utils import geometria_cambio_informativo
 
 
 def actualizar_distrito_local(
     raiz_bged,
     actualizacion,
 ):
+    # ---------------------------------
+    # ABRIR CAPA BGD
+    # ---------------------------------
+
     shape = ruta_capa(
         raiz_bged,
         "distrito_local",
@@ -22,6 +27,10 @@ def actualizar_distrito_local(
 
     ds = DataSource(str(shape))
     layer = ds[0]
+
+    # ---------------------------------
+    # RESULTADO DE LA ACTUALIZACIÓN
+    # ---------------------------------
 
     resultado = {
         "insertados": 0,
@@ -31,8 +40,16 @@ def actualizar_distrito_local(
         "campos_modificados": {},
     }
 
+    # ---------------------------------
+    # PROCESAR DISTRITOS LOCALES
+    # ---------------------------------
+
     with transaction.atomic():
         for feature in layer:
+            # ---------------------------------
+            # ATRIBUTOS DE LA BGD
+            # ---------------------------------
+
             entidad_id = int(
                 feature.get("entidad")
             )
@@ -45,12 +62,20 @@ def actualizar_distrito_local(
                 entidad=entidad_id
             )
 
+            # ---------------------------------
+            # GEOMETRÍA DE LA BGD
+            # ---------------------------------
+
             geom = feature.geom.geos
             geom.srid = 32614
 
             if geom.geom_type == "Polygon":
                 geom = MultiPolygon(geom)
                 geom.srid = 32614
+
+            # ---------------------------------
+            # DISTRITO LOCAL ACTUAL EN LA BD
+            # ---------------------------------
 
             distrito_local = (
                 DistritoLocal.objects.filter(
@@ -68,23 +93,51 @@ def actualizar_distrito_local(
 
             cambios = []
 
+            # ---------------------------------
+            # ADSCRIPCIÓN A ENTIDAD
+            # ---------------------------------
+
             if distrito_local.entidad_id != entidad_id:
                 distrito_local.entidad = entidad
                 cambios.append("entidad")
 
-            geometria_cambio = (
+            # ---------------------------------
+            # GEOMETRÍA
+            #
+            # geometria_distinta:
+            # determina si la geometría vigente
+            # debe sincronizarse con la BGD.
+            #
+            # cambio_informativo:
+            # determina si la diferencia merece
+            # registrarse en CambioMGE.
+            # ---------------------------------
+
+            geometria_distinta = (
                 distrito_local.geom is None
-                or not distrito_local.geom.equals(geom)
+                or not distrito_local.geom.equals_exact(
+                    geom,
+                    0.0,
+                )
             )
 
-            if geometria_cambio:
+            cambio_informativo = (
+                geometria_cambio_informativo(
+                    distrito_local.geom,
+                    geom,
+                )
+            )
+
+            # ---------------------------------
+            # REGISTRAR CAMBIO INFORMATIVO
+            # ---------------------------------
+
+            if cambio_informativo:
                 geom_anterior = (
                     distrito_local.geom.clone()
                     if distrito_local.geom
                     else None
                 )
-
-                geom_nueva = geom.clone()
 
                 CambioMGE.objects.create(
                     actualizacion=actualizacion,
@@ -92,13 +145,24 @@ def actualizar_distrito_local(
                     clave=str(distrito_local_id),
                     tipo="GEOMETRIA",
                     geom_anterior=geom_anterior,
-                    geom_nueva=geom_nueva,
+                    geom_nueva=geom.clone(),
                 )
 
-                resultado["cambios_registrados"] += 1
+                resultado[
+                    "cambios_registrados"
+                ] += 1
 
+            # ---------------------------------
+            # SINCRONIZAR GEOMETRÍA VIGENTE
+            # ---------------------------------
+
+            if geometria_distinta:
                 distrito_local.geom = geom
                 cambios.append("geom")
+
+            # ---------------------------------
+            # GUARDAR CAMBIOS
+            # ---------------------------------
 
             if cambios:
                 distrito_local.save(
@@ -108,13 +172,21 @@ def actualizar_distrito_local(
                     ]
                 )
 
-                resultado["actualizados"] += 1
+                resultado[
+                    "actualizados"
+                ] += 1
 
-                resultado["campos_modificados"][
-                    str(distrito_local_id)
-                ] = cambios
+                resultado[
+                    "campos_modificados"
+                ][str(distrito_local_id)] = cambios
 
             else:
-                resultado["sin_cambios"] += 1
+                resultado[
+                    "sin_cambios"
+                ] += 1
+
+    # ---------------------------------
+    # RESULTADO FINAL
+    # ---------------------------------
 
     return resultado

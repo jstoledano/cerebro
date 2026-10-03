@@ -9,12 +9,17 @@ from apps.pusinex.models import (
 )
 
 from .registry import ruta_capa
+from .utils import geometria_cambio_informativo
 
 
 def actualizar_municipio(
     raiz_bged,
     actualizacion,
 ):
+    # ---------------------------------
+    # ABRIR CAPA BGD
+    # ---------------------------------
+
     shape = ruta_capa(
         raiz_bged,
         "municipio",
@@ -22,6 +27,10 @@ def actualizar_municipio(
 
     ds = DataSource(str(shape))
     layer = ds[0]
+
+    # ---------------------------------
+    # RESULTADO DE LA ACTUALIZACIÓN
+    # ---------------------------------
 
     resultado = {
         "insertados": 0,
@@ -31,8 +40,16 @@ def actualizar_municipio(
         "campos_modificados": {},
     }
 
+    # ---------------------------------
+    # PROCESAR MUNICIPIOS
+    # ---------------------------------
+
     with transaction.atomic():
         for feature in layer:
+            # ---------------------------------
+            # ATRIBUTOS DE LA BGD
+            # ---------------------------------
+
             entidad_id = int(
                 feature.get("entidad")
             )
@@ -49,6 +66,10 @@ def actualizar_municipio(
                 entidad=entidad_id
             )
 
+            # ---------------------------------
+            # GEOMETRÍA DE LA BGD
+            # ---------------------------------
+
             geom = feature.geom.geos
             geom.srid = 32614
 
@@ -56,9 +77,17 @@ def actualizar_municipio(
                 geom = MultiPolygon(geom)
                 geom.srid = 32614
 
+            # ---------------------------------
+            # MUNICIPIO ACTUAL EN LA BD
+            # ---------------------------------
+
             municipio = Municipio.objects.filter(
                 municipio=municipio_id
             ).first()
+
+            # ---------------------------------
+            # MUNICIPIO NUEVO
+            # ---------------------------------
 
             if municipio is None:
                 Municipio.objects.create(
@@ -68,32 +97,67 @@ def actualizar_municipio(
                     geom=geom,
                 )
 
-                resultado["insertados"] += 1
+                resultado[
+                    "insertados"
+                ] += 1
+
                 continue
 
             cambios = []
+
+            # ---------------------------------
+            # ADSCRIPCIÓN A ENTIDAD
+            # ---------------------------------
 
             if municipio.entidad_id != entidad_id:
                 municipio.entidad = entidad
                 cambios.append("entidad")
 
+            # ---------------------------------
+            # NOMBRE
+            # ---------------------------------
+
             if municipio.nombre != nombre:
                 municipio.nombre = nombre
                 cambios.append("nombre")
 
-            geometria_cambio = (
+            # ---------------------------------
+            # GEOMETRÍA
+            #
+            # geometria_distinta:
+            # determina si la geometría vigente
+            # debe sincronizarse con la BGD.
+            #
+            # cambio_informativo:
+            # determina si la diferencia merece
+            # registrarse en CambioMGE.
+            # ---------------------------------
+
+            geometria_distinta = (
                 municipio.geom is None
-                or not municipio.geom.equals(geom)
+                or not municipio.geom.equals_exact(
+                    geom,
+                    0.0,
+                )
             )
 
-            if geometria_cambio:
+            cambio_informativo = (
+                geometria_cambio_informativo(
+                    municipio.geom,
+                    geom,
+                )
+            )
+
+            # ---------------------------------
+            # REGISTRAR CAMBIO INFORMATIVO
+            # ---------------------------------
+
+            if cambio_informativo:
                 geom_anterior = (
                     municipio.geom.clone()
                     if municipio.geom
                     else None
                 )
-
-                geom_nueva = geom.clone()
 
                 CambioMGE.objects.create(
                     actualizacion=actualizacion,
@@ -101,13 +165,24 @@ def actualizar_municipio(
                     clave=str(municipio_id),
                     tipo="GEOMETRIA",
                     geom_anterior=geom_anterior,
-                    geom_nueva=geom_nueva,
+                    geom_nueva=geom.clone(),
                 )
 
-                resultado["cambios_registrados"] += 1
+                resultado[
+                    "cambios_registrados"
+                ] += 1
 
+            # ---------------------------------
+            # SINCRONIZAR GEOMETRÍA VIGENTE
+            # ---------------------------------
+
+            if geometria_distinta:
                 municipio.geom = geom
                 cambios.append("geom")
+
+            # ---------------------------------
+            # GUARDAR CAMBIOS
+            # ---------------------------------
 
             if cambios:
                 municipio.save(
@@ -118,13 +193,21 @@ def actualizar_municipio(
                     ]
                 )
 
-                resultado["actualizados"] += 1
+                resultado[
+                    "actualizados"
+                ] += 1
 
-                resultado["campos_modificados"][
-                    str(municipio_id)
-                ] = cambios
+                resultado[
+                    "campos_modificados"
+                ][str(municipio_id)] = cambios
 
             else:
-                resultado["sin_cambios"] += 1
+                resultado[
+                    "sin_cambios"
+                ] += 1
+
+    # ---------------------------------
+    # RESULTADO FINAL
+    # ---------------------------------
 
     return resultado
