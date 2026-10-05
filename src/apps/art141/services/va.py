@@ -1,4 +1,4 @@
-from django.db.models import Count, F, Window
+from django.db.models import Count, F, Subquery, Window
 from django.db.models.functions import RowNumber
 
 from apps.art141.models import RegistroArt141
@@ -12,11 +12,13 @@ def get_universo_va():
     Reglas:
     - ESTATUSCIUDADANO_ID = 2
     - 1 CIUDADANO_ID = 1 persona
-    - Si existen varios registros de la misma persona, se conserva
-      el de fecha de entrega de credencial más reciente.
+    - Si existen varios registros de la misma persona, se conserva:
+        1. La fecha de entrega de credencial más reciente.
+        2. En empate, la fecha de solicitud más reciente.
+        3. En empate, el registro con ID más alto.
     """
 
-    return (
+    registros_seleccionados = (
         RegistroArt141.objects
         .filter(estatusciudadano_id=2)
         .annotate(
@@ -37,6 +39,11 @@ def get_universo_va():
             )
         )
         .filter(orden_va=1)
+        .values("id")
+    )
+
+    return RegistroArt141.objects.filter(
+        id__in=Subquery(registros_seleccionados)
     )
 
 
