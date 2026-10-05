@@ -25,7 +25,7 @@ DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 SITE_URL = env(
     "SITE_URL",
-    default="http://127.0.0.1:8000",
+    default="http://10.29.0.35",
 ).rstrip("/")
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
@@ -73,6 +73,7 @@ LOCAL_APPS = [
     "apps.vozmac.config.VozmacConfig",
     "apps.pmml.config.PmmlConfig",
     "apps.cecyrd.config.CecyrdConfig",
+    "apps.art141.config.Art141Config",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
