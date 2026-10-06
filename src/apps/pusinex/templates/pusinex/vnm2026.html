@@ -55,12 +55,26 @@
         </div>
       </div>
 
-      <a
-        href="{% url 'pusinex:index' %}"
-        class="btn btn-ghost self-start lg:self-auto"
-      >
-        ← Volver a cartografía
-      </a>
+      <div class="flex flex-wrap gap-2 self-start lg:self-auto">
+        <a
+          href="{% url 'pusinex:index' %}"
+          class="btn btn-ghost"
+        >
+          ← Volver a cartografía
+        </a>
+
+        <a
+          href="{% url 'pusinex:vnm2026' %}"
+          class="btn font-bold"
+          style="
+            background-color: var(--ine-gris-oxford);
+            color: var(--ine-blanco);
+            border-color: var(--ine-gris-oxford);
+          "
+        >
+          VNM 2026
+        </a>
+      </div>
     </div>
   </header>
 
