@@ -444,7 +444,12 @@ class SeccionDetail(DetailView):
                 "es_urbana": es_urbana,
                 "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
                 "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
-                "vnm_2026": self.object.seccion in SECCIONES_VNM2026_COBERTURA,
+                "vnm_2026_cobertura": (
+                    self.object.seccion in SECCIONES_VNM2026_COBERTURA
+                ),
+                "vnm_2026_actualizacion": (
+                    self.object.seccion in SECCIONES_VNM2026_ACTUALIZACION
+                ),
                 "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
@@ -486,7 +491,8 @@ class DistritoDetail(DetailView):
             "distrito", "municipio", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM2026_COBERTURA)
+        vnm2026_cobertura_sections = set(SECCIONES_VNM2026_COBERTURA)
+        vnm2026_actualizacion_sections = set(SECCIONES_VNM2026_ACTUALIZACION)
 
         # Generación de GeoJSON del Distrito
         distrito_geo = serialize(
@@ -559,7 +565,12 @@ class DistritoDetail(DetailView):
                 "municipios_geojson": json.dumps(municipios_geo_dict),
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
-                "vnm2026_sections": vnm2026_sections,
+                "vnm2026_cobertura_sections": (
+                    vnm2026_cobertura_sections
+                ),
+                "vnm2026_actualizacion_sections": (
+                    vnm2026_actualizacion_sections
+                ),
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
                 "district_package": get_pusinex_package_metadata(
@@ -588,7 +599,9 @@ class MunicipioDetail(DetailView):
             "distrito", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM2026_COBERTURA)
+        vnm2026_cobertura_sections = set(SECCIONES_VNM2026_COBERTURA)
+
+        vnm2026_actualizacion_sections = set(SECCIONES_VNM2026_ACTUALIZACION)
 
         # Generación de GeoJSON del contorno del Municipio
         municipio_geo = serialize(
@@ -611,7 +624,12 @@ class MunicipioDetail(DetailView):
                 "secciones_geojson": secciones_geo,
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
-                "vnm2026_sections": vnm2026_sections,
+                "vnm2026_cobertura_sections": (
+                    vnm2026_cobertura_sections
+                ),
+                "vnm2026_actualizacion_sections": (
+                    vnm2026_actualizacion_sections
+                ),
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
                 "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
