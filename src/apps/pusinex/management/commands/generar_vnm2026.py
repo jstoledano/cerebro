@@ -7,7 +7,10 @@ from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.pusinex.views import get_vnm2026_statistics
+from apps.pusinex.views import (
+    SECCIONES_VNM2026_COBERTURA,
+    get_vnm2026_statistics,
+)
 
 
 VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
@@ -82,7 +85,7 @@ class Command(BaseCommand):
             exist_ok=True,
         )
 
-        districts = get_vnm2026_statistics()
+        districts = get_vnm2026_statistics(SECCIONES_VNM2026_COBERTURA)
 
         if not districts:
             raise CommandError(

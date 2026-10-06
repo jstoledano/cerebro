@@ -444,7 +444,7 @@ class SeccionDetail(DetailView):
                 "es_urbana": es_urbana,
                 "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
                 "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
-                "vnm_2026": self.object.seccion in SECCIONES_VNM_2026,
+                "vnm_2026": self.object.seccion in SECCIONES_VNM2026_COBERTURA,
                 "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
@@ -486,7 +486,7 @@ class DistritoDetail(DetailView):
             "distrito", "municipio", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM_2026)
+        vnm2026_sections = set(SECCIONES_VNM2026_COBERTURA)
 
         # Generación de GeoJSON del Distrito
         distrito_geo = serialize(
@@ -588,7 +588,7 @@ class MunicipioDetail(DetailView):
             "distrito", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM_2026)
+        vnm2026_sections = set(SECCIONES_VNM2026_COBERTURA)
 
         # Generación de GeoJSON del contorno del Municipio
         municipio_geo = serialize(
@@ -720,7 +720,7 @@ SECCIONES_VNM_2024 = (
     639, 374, 375, 381, 382, 384, 561, 572, 597, 599, 154,
 )
 
-SECCIONES_VNM_2026 = (
+SECCIONES_VNM2026_COBERTURA = (
     3, 4, 16, 17, 26, 27, 40, 42, 66, 80, 82, 86, 92, 106, 107, 115,
     134, 144, 152, 153, 182, 183, 187, 200, 203, 204, 214, 215, 218, 222,
     232, 243, 245, 247, 253, 265, 276, 290, 311, 314, 321, 339, 352, 354,
@@ -729,18 +729,25 @@ SECCIONES_VNM_2026 = (
     614, 622, 627, 628, 633, 648,
 )
 
+SECCIONES_VNM2026_ACTUALIZACION = (
+    1, 5, 32, 40, 43, 47, 58, 61, 74, 78, 82, 90, 107, 124, 134, 139,
+    191, 194, 204, 217, 247, 254, 271, 286, 326, 337, 351, 360, 363, 364,
+    368, 371, 372, 386, 398, 404, 411, 414, 424, 427, 430, 439, 536, 539,
+    543, 555, 558, 560, 567, 569, 573, 574, 585, 621, 627, 629, 632, 639,
+)
+
 VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
 VNM2026_PACKAGE_FILENAME = "29_vnm2026_distrito_{district:02d}.zip"
 
-def get_vnm2026_sections():
+def get_vnm2026_sections(section_ids):
     """
-    Devuelve las 78 secciones seleccionadas para la VNM 2026.
+    Devuelve las secciones seleccionadas para una etapa de la VNM 2026.
     """
     return (
         Seccion.objects
         .filter(
             entidad_id=TLAXCALA,
-            seccion__in=SECCIONES_VNM_2026,
+            seccion__in=section_ids,
         )
         .select_related(
             "distrito",
@@ -753,7 +760,7 @@ def get_vnm2026_sections():
         )
     )
 
-def get_vnm2026_entries():
+def get_vnm2026_entries(section_ids):
     """
     Clasifica las secciones seleccionadas de la VNM 2026.
 
@@ -772,7 +779,7 @@ def get_vnm2026_entries():
     )
 
     sections = list(
-        get_vnm2026_sections().annotate(
+        get_vnm2026_sections(section_ids).annotate(
             latest_pusinex_id=Subquery(
                 latest_revision.values("pk")[:1]
             )
@@ -847,8 +854,8 @@ def get_vnm2026_entries():
 
     return entries
 
-def get_vnm2026_statistics():
-    entries = get_vnm2026_entries()
+def get_vnm2026_statistics(section_ids):
+    entries = get_vnm2026_entries(section_ids)
 
     districts = {}
 
@@ -892,11 +899,11 @@ def get_vnm2026_statistics():
         for number in sorted(districts)
     ]
 
-def get_vnm2026_validation():
-    sections = list(get_vnm2026_sections())
+def get_vnm2026_validation(section_ids):
+    sections = list(get_vnm2026_sections(section_ids))
 
     found_ids = {section.seccion for section in sections}
-    expected_ids = set(SECCIONES_VNM_2026)
+    expected_ids = set(section_ids)
 
     missing_ids = sorted(expected_ids - found_ids)
     unexpected_ids = sorted(found_ids - expected_ids)
@@ -963,7 +970,7 @@ class VNM2026Cobertura(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        districts = get_vnm2026_statistics()
+        districts = get_vnm2026_statistics(SECCIONES_VNM2026_COBERTURA)
 
         context.update(
             {
