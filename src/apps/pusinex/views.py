@@ -952,7 +952,12 @@ def get_vnm2026_package_metadata(district):
 
     return metadata
 
-class VNM2026(TemplateView):
+
+class VNM2026Index(TemplateView):
+    template_name = "pusinex/vnm2026_index.html"
+
+
+class VNM2026Cobertura(TemplateView):
     template_name = "pusinex/vnm2026.html"
 
     def get_context_data(self, **kwargs):

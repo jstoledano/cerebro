@@ -13,14 +13,24 @@ from apps.pusinex.views import (
     PusinexDetail,
     SeccionDetail,
     StatePUSINEXPackageDownload,
-    VNM2026,
+    VNM2026Cobertura,
+    VNM2026Index,
     VNM2026PackageDownload,
 )
 
 app_name = "pusinex"
 
 urlpatterns = [
-    path("vnm2026/", VNM2026.as_view(), name="vnm2026",),
+    path(
+        "vnm2026/",
+        VNM2026Index.as_view(),
+        name="vnm2026",
+    ),
+    path(
+        "vnm2026/cobertura/",
+        VNM2026Cobertura.as_view(),
+        name="vnm2026_cobertura",
+    ),
     path(
         "vnm2026/distrito/<int:district>/descargar/",
         VNM2026PackageDownload.as_view(),
@@ -31,7 +41,6 @@ urlpatterns = [
     path("municipio/<int:pk>", MunicipioDetail.as_view(), name="municipio"),
     path("distrito/<int:pk>", DistritoDetail.as_view(), name="distrito"),
     path("latest/", PUSINEXLastUpdate.as_view(), name="latest"),
-
     # Rutas canonicas de gestion.
     path("gestion/", Administration.as_view(), name="administration"),
     path("gestion/subir/", CreatePUSINEX.as_view(), name="create"),
@@ -40,7 +49,6 @@ urlpatterns = [
         GeneratePUSINEXPackages.as_view(),
         name="generate_packages",
     ),
-
     # Descargas publicas de paquetes previamente generados.
     path(
         "paquetes/estatal/",
@@ -52,7 +60,6 @@ urlpatterns = [
         DistrictPUSINEXPackageDownload.as_view(),
         name="district_package",
     ),
-
     # Compatibilidad temporal con enlaces anteriores.
     path(
         "bgd/",

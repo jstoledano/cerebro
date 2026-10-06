@@ -1,0 +1,160 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}VNM 2026{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-sm">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+      <div class="flex items-center gap-4">
+        <div
+          class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl"
+          style="
+            background-color: color-mix(
+              in srgb,
+              var(--ine-beige) 20%,
+              white
+            );
+            color: var(--ine-gris-oxford);
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            class="size-7"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 6.75V15m6-6v8.25M3.75 6.75 9 4.125l6 3 5.25-2.625v12.75L15 19.875l-6-3-5.25 2.625V6.75Z"
+            />
+          </svg>
+        </div>
+
+        <div>
+          <p
+            class="text-xs font-bold uppercase tracking-widest"
+            style="color: var(--ine-beige);"
+          >
+            Cartografía electoral
+          </p>
+
+          <h1 class="mt-1 text-3xl font-extrabold tracking-tight text-base-content md:text-4xl">
+            Verificación Nacional Muestral 2026
+          </h1>
+
+          <p class="mt-2 text-sm font-medium text-base-content/65">
+            Seguimiento de las secciones seleccionadas para la VNM 2026 en la entidad 29.
+          </p>
+        </div>
+      </div>
+
+      <a
+        href="{% url 'pusinex:index' %}"
+        class="btn btn-ghost self-start lg:self-auto"
+      >
+        ← Volver a cartografía
+      </a>
+
+    </div>
+  </header>
+
+
+  <section class="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+    {# Cobertura #}
+    <a
+      href="{% url 'pusinex:vnm2026_cobertura' %}"
+      class="group card min-h-64 border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+    >
+      <div class="card-body items-center justify-center text-center">
+
+        <div
+          class="grid h-20 w-20 place-items-center rounded-2xl transition-transform group-hover:scale-105"
+          style="
+            background-color: color-mix(
+              in srgb,
+              var(--ine-beige) 20%,
+              white
+            );
+            color: var(--ine-gris-oxford);
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.25"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-10"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+            <path d="M14 10a2 2 0 1 0 -4 0v4a2 2 0 1 0 4 0" />
+          </svg>
+        </div>
+
+        <h2 class="mt-4 text-2xl font-extrabold text-base-content">
+          Cobertura
+        </h2>
+
+      </div>
+    </a>
+
+
+    {# Actualización #}
+    <div
+      class="card min-h-64 border border-base-300 bg-base-100 shadow-sm"
+    >
+      <div class="card-body items-center justify-center text-center">
+
+        <div
+          class="grid h-20 w-20 place-items-center rounded-2xl"
+          style="
+            background-color: color-mix(
+              in srgb,
+              var(--ine-gris-claro) 35%,
+              white
+            );
+            color: var(--ine-gris-oxford);
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.25"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-10"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M10 16v-6a2 2 0 1 1 4 0v6" />
+            <path d="M10 13h4" />
+            <path d="M12 3c7.2 0 9 1.8 9 9c0 7.2 -1.8 9 -9 9c-7.2 0 -9 -1.8 -9 -9c0 -7.2 1.8 -9 9 -9" />
+          </svg>
+        </div>
+
+        <h2 class="mt-4 text-2xl font-extrabold text-base-content">
+          Actualización
+        </h2>
+
+      </div>
+    </div>
+
+  </section>
+
+</section>
+{% endblock %}
