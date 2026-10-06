@@ -15,7 +15,11 @@ from apps.pusinex.views import (
     StatePUSINEXPackageDownload,
     VNM2026Cobertura,
     VNM2026Index,
-    VNM2026PackageDownload,
+    VNM2026ActualizacionPackageDownload,
+    VNM2026CoberturaPackageDownload,
+    VNM2026Actualizacion,
+    VNM2026Cobertura,
+    VNM2026Index,
 )
 
 app_name = "pusinex"
@@ -32,9 +36,19 @@ urlpatterns = [
         name="vnm2026_cobertura",
     ),
     path(
-        "vnm2026/distrito/<int:district>/descargar/",
-        VNM2026PackageDownload.as_view(),
-        name="vnm2026_package",
+        "vnm2026/actualizacion/",
+        VNM2026Actualizacion.as_view(),
+        name="vnm2026_actualizacion",
+    ),
+    path(
+        "vnm2026/cobertura/distrito/<int:district>/descargar/",
+        VNM2026CoberturaPackageDownload.as_view(),
+        name="vnm2026_cobertura_package",
+    ),
+    path(
+        "vnm2026/actualizacion/distrito/<int:district>/descargar/",
+        VNM2026ActualizacionPackageDownload.as_view(),
+        name="vnm2026_actualizacion_package",
     ),
     path("pusinex/<int:pk>", PusinexDetail.as_view(), name="pusinex"),
     path("seccion/<int:pk>", SeccionDetail.as_view(), name="seccion"),

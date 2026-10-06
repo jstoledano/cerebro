@@ -112,13 +112,14 @@
 
 
     {# Actualización #}
-    <div
-      class="card min-h-64 border border-base-300 bg-base-100 shadow-sm"
+    <a
+      href="{% url 'pusinex:vnm2026_actualizacion' %}"
+      class="group card min-h-64 border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
     >
       <div class="card-body items-center justify-center text-center">
 
         <div
-          class="grid h-20 w-20 place-items-center rounded-2xl"
+          class="grid h-20 w-20 place-items-center rounded-2xl transition-transform group-hover:scale-105"
           style="
             background-color: color-mix(
               in srgb,
@@ -152,7 +153,7 @@
         </h2>
 
       </div>
-    </div>
+    </a>
 
   </section>
 

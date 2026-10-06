@@ -737,7 +737,17 @@ SECCIONES_VNM2026_ACTUALIZACION = (
 )
 
 VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
-VNM2026_PACKAGE_FILENAME = "29_vnm2026_distrito_{district:02d}.zip"
+
+VNM2026_COBERTURA_DIRECTORY = VNM2026_DIRECTORY / "cobertura"
+VNM2026_ACTUALIZACION_DIRECTORY = VNM2026_DIRECTORY / "actualizacion"
+
+VNM2026_COBERTURA_PACKAGE_FILENAME = (
+    "29_vnm2026_cobertura_distrito_{district:02d}.zip"
+)
+
+VNM2026_ACTUALIZACION_PACKAGE_FILENAME = (
+    "29_vnm2026_actualizacion_distrito_{district:02d}.zip"
+)
 
 def get_vnm2026_sections(section_ids):
     """
@@ -854,7 +864,10 @@ def get_vnm2026_entries(section_ids):
 
     return entries
 
-def get_vnm2026_statistics(section_ids):
+def get_vnm2026_statistics(
+    section_ids,
+    package_metadata_getter=None,
+):
     entries = get_vnm2026_entries(section_ids)
 
     districts = {}
@@ -892,7 +905,12 @@ def get_vnm2026_statistics(section_ids):
             stats["missing_sections"].append(entry)
 
     for district_number, stats in districts.items():
-        stats["package"] = get_vnm2026_package_metadata(district_number)
+        if package_metadata_getter:
+            stats["package"] = package_metadata_getter(district_number)
+        else:
+            stats["package"] = {
+                "exists": False,
+            }
 
     return [
         districts[number]
@@ -925,17 +943,44 @@ def get_vnm2026_section_type(section):
 
     return "REQUIERE_PUSINEX"
 
-def get_vnm2026_package_path(district):
+def get_vnm2026_package_path(etapa, district):
+    if etapa == "cobertura":
+        directory = VNM2026_COBERTURA_DIRECTORY
+        filename = VNM2026_COBERTURA_PACKAGE_FILENAME
+
+    elif etapa == "actualizacion":
+        directory = VNM2026_ACTUALIZACION_DIRECTORY
+        filename = VNM2026_ACTUALIZACION_PACKAGE_FILENAME
+
+    else:
+        raise ValueError(
+            f"Etapa VNM 2026 no válida: {etapa}"
+        )
+
     return (
-        VNM2026_DIRECTORY
-        / VNM2026_PACKAGE_FILENAME.format(
+        directory
+        / filename.format(
             district=int(district)
         )
     )
 
 
-def get_vnm2026_package_metadata(district):
-    package_path = get_vnm2026_package_path(district)
+def get_vnm2026_package_metadata(etapa, district):
+    package_path = get_vnm2026_package_path(
+        etapa,
+        district,
+    )
+
+    if etapa == "cobertura":
+        url_name = "pusinex:vnm2026_cobertura_package"
+
+    elif etapa == "actualizacion":
+        url_name = "pusinex:vnm2026_actualizacion_package"
+
+    else:
+        raise ValueError(
+            f"Etapa VNM 2026 no válida: {etapa}"
+        )
 
     metadata = {
         "exists": package_path.is_file(),
@@ -943,7 +988,7 @@ def get_vnm2026_package_metadata(district):
         "size": None,
         "modified": None,
         "download_url": reverse(
-            "pusinex:vnm2026_package",
+            url_name,
             kwargs={"district": int(district)},
         ),
     }
@@ -959,6 +1004,19 @@ def get_vnm2026_package_metadata(district):
 
     return metadata
 
+def get_vnm2026_cobertura_package_metadata(district):
+    return get_vnm2026_package_metadata(
+        "cobertura",
+        district,
+    )
+
+
+def get_vnm2026_actualizacion_package_metadata(district):
+    return get_vnm2026_package_metadata(
+        "actualizacion",
+        district,
+    )
+
 
 class VNM2026Index(TemplateView):
     template_name = "pusinex/vnm2026_index.html"
@@ -970,7 +1028,41 @@ class VNM2026Cobertura(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        districts = get_vnm2026_statistics(SECCIONES_VNM2026_COBERTURA)
+        districts = get_vnm2026_statistics(
+            SECCIONES_VNM2026_COBERTURA,
+            package_metadata_getter=(get_vnm2026_cobertura_package_metadata),
+        )
+
+        context.update(
+            {
+                "districts": districts,
+                "total_selected": sum(item["selected"] for item in districts),
+                "total_with_pusinex": sum(item["with_pusinex"] for item in districts),
+                "total_missing": sum(item["missing"] for item in districts),
+                "total_rural": sum(item["rural"] for item in districts),
+                "vnm_etapa": "cobertura",
+                "vnm_titulo": "VNM 2026 - Etapa de Cobertura",
+                "vnm_descripcion": (
+                    "Seguimiento de las secciones seleccionadas "
+                    "en la etapa de cobertura para la VNM 2026 "
+                    "en Tlaxcala."
+                ),
+            }
+        )
+
+        return context
+
+
+class VNM2026Actualizacion(TemplateView):
+    template_name = "pusinex/vnm2026.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        districts = get_vnm2026_statistics(
+            SECCIONES_VNM2026_ACTUALIZACION,
+            package_metadata_getter=(get_vnm2026_actualizacion_package_metadata),
+        )
 
         context.update(
             {
@@ -991,22 +1083,30 @@ class VNM2026Cobertura(TemplateView):
                     item["rural"]
                     for item in districts
                 ),
+                "vnm_etapa": "actualizacion",
+                "vnm_titulo": "VNM 2026 - Etapa de Actualización",
+                "vnm_descripcion": (
+                    "Seguimiento de las secciones seleccionadas "
+                    "en la etapa de actualización para la VNM "
+                    "2026 en Tlaxcala."
+                ),
             }
         )
 
         return context
 
-
 class VNM2026PackageDownload(View):
-    @staticmethod
-    def get(request, district):
+    etapa = None
+
+    def get(self, request, district):
         if district not in (1, 2, 3):
             raise Http404(
                 "Distrito no válido para la VNM 2026."
             )
 
         package_path = get_vnm2026_package_path(
-            district
+            self.etapa,
+            district,
         )
 
         if not package_path.is_file():
@@ -1021,6 +1121,19 @@ class VNM2026PackageDownload(View):
             filename=package_path.name,
             content_type="application/zip",
         )
+
+
+class VNM2026CoberturaPackageDownload(
+    VNM2026PackageDownload
+):
+    etapa = "cobertura"
+
+
+class VNM2026ActualizacionPackageDownload(
+    VNM2026PackageDownload
+):
+    etapa = "actualizacion"
+
 
 class GeneratePUSINEXPackages(
     LoginRequiredMixin,

@@ -1,7 +1,7 @@
 {% extends 'cerebro/base.html' %}
 {% load humanize %}
 
-{% block title %}VNM 2026{% endblock %}
+{% block title %}{{ vnm_titulo }}{% endblock %}
 
 {% block content %}
 <section class="space-y-8">
@@ -46,11 +46,11 @@
           </p>
 
           <h1 class="mt-1 text-3xl font-extrabold tracking-tight text-base-content md:text-4xl">
-            VNM 2026 - Etapa de Cobertura
+            {{ vnm_titulo }}
           </h1>
 
           <p class="mt-2 text-sm font-medium text-base-content/65">
-            Seguimiento de las secciones seleccionadas en la etapa de cobertura para la VNM 2026 en Tlaxcala.
+            {{ vnm_descripcion }}
           </p>
         </div>
       </div>
