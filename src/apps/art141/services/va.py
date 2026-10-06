@@ -136,3 +136,26 @@ def get_va_por_distrito():
         )
         .order_by("distrito")
     )
+
+def get_va_por_seccion():
+    universo = get_universo_va()
+
+    return list(
+        universo
+        .exclude(seccion_origen__isnull=True)
+        .values(
+            "distrito",
+            "seccion_origen",
+        )
+        .annotate(
+            personas=Count("id"),
+            manzanas=Count(
+                "manzana_origen",
+                distinct=True,
+            ),
+        )
+        .order_by(
+            "distrito",
+            "seccion_origen",
+        )
+    )
