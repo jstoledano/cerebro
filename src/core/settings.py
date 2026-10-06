@@ -73,7 +73,6 @@ LOCAL_APPS = [
     "apps.vozmac.config.VozmacConfig",
     "apps.pmml.config.PmmlConfig",
     "apps.cecyrd.config.CecyrdConfig",
-    "apps.art141.config.Art141Config",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
