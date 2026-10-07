@@ -372,6 +372,7 @@ class Index(ListView):
             "secciones_conteo": secciones_conteo,
             "padron_total": totales['padron'] or 0,
             "lista_nominal_total": totales['nominal'] or 0,
+            "fecha_corte_pe_ln": entidad.fecha_corte_pe_ln,
             "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
         })
 
