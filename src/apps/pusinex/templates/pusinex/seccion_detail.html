@@ -67,6 +67,11 @@
             <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
               <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Lista Nominal</div>
               <div class="stat-value text-2xl text-primary">{{ seccion.ln|intcomma }}</div>
+              {% if seccion.entidad.fecha_corte_pe_ln %}
+              <div class="mt-1 text-xs font-medium text-base-content/45">
+                Corte al {{ seccion.entidad.fecha_corte_pe_ln|date:"j \\d\\e F \\d\\e Y" }}
+              </div>
+              {% endif %}
             </div>
           </div>
 
