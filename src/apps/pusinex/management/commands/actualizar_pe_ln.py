@@ -13,8 +13,10 @@ from apps.pusinex.models import (
     Distrito,
     DistritoLocal,
     Entidad,
+    Localidad,
     Manzana,
     Municipio,
+    PelnResidualSeccion,
     Seccion,
 )
 
@@ -104,8 +106,21 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Actualización completada."))
             self.stdout.write(f"Fecha de corte: {cut_date:%Y-%m-%d}")
             self.stdout.write(
-                f"Manzanas actualizadas: {result['updated']:,} | "
-                f"Sin cambios: {result['unchanged']:,} | "
+                f"Manzanas actualizadas: {result['blocks_updated']:,} | "
+                f"Sin cambios: {result['blocks_unchanged']:,}"
+            )
+            self.stdout.write(
+                "Localidades puntuales actualizadas: "
+                f"{result['localities_updated']:,} | "
+                f"Sin cambios: {result['localities_unchanged']:,}"
+            )
+            self.stdout.write(
+                "Residuales de sección: "
+                f"{result['residuals']:,} | "
+                f"PE: {result['residual_pe']:,} | "
+                f"LN: {result['residual_ln']:,}"
+            )
+            self.stdout.write(
                 f"Incidencias: {len(incidences):,}"
             )
             self.stdout.write(
@@ -355,6 +370,7 @@ class Command(BaseCommand):
                 "municipio",
             )
         }
+
         blocks = {
             (
                 block.seccion_id,
@@ -371,8 +387,31 @@ class Command(BaseCommand):
             )
         }
 
-        to_update = []
-        unchanged = 0
+        localities = {
+            (
+                locality.seccion_id,
+                locality.localidad,
+            ): locality
+            for locality in Localidad.objects.only(
+                "id",
+                "seccion_id",
+                "localidad",
+                "padron",
+                "lista_nominal",
+            )
+        }
+
+        # Cada archivo mensual representa un snapshot completo del corte.
+        # Conservamos los valores anteriores solo para clasificar cada fila
+        # como actualizada o sin cambios antes de reiniciar PE/LN a cero.
+        blocks_to_restore = []
+        localities_to_restore = []
+        residuals_to_create = []
+
+        blocks_updated = 0
+        blocks_unchanged = 0
+        localities_updated = 0
+        localities_unchanged = 0
         entity_ids = set()
 
         for row in rows:
@@ -408,6 +447,60 @@ class Command(BaseCommand):
                 )
                 continue
 
+            # Manzana 9999 representa una localidad puntual.
+            if row["block"] == 9999:
+                locality = localities.get(
+                    (
+                        row["section"],
+                        row["locality"],
+                    )
+                )
+
+                if locality is None:
+                    residuals_to_create.append(
+                        PelnResidualSeccion(
+                            seccion=section,
+                            fecha_corte=cut_date,
+                            localidad=row["locality"],
+                            manzana=row["block"],
+                            padron=row["pe"],
+                            lista_nominal=row["ln"],
+                            edmslm=row["edmslm"],
+                            motivo="LOCALIDAD_NO_ENCONTRADA",
+                            archivo=row["file"],
+                            fila=row["row"],
+                        )
+                    )
+
+                    incidences.append(
+                        self._row_incidence(
+                            row,
+                            "PELN_RESIDUAL_SECCION",
+                            (
+                                "La localidad puntual no existe en la BGD. "
+                                "PE/LN contabilizados a nivel de sección."
+                            ),
+                        )
+                    )
+
+                    entity_ids.add(row["entity"])
+                    continue
+
+                entity_ids.add(row["entity"])
+
+                if (
+                    locality.padron == row["pe"]
+                    and locality.lista_nominal == row["ln"]
+                ):
+                    localities_unchanged += 1
+                else:
+                    localities_updated += 1
+
+                locality.padron = row["pe"]
+                locality.lista_nominal = row["ln"]
+                localities_to_restore.append(locality)
+                continue
+
             block = blocks.get(
                 (
                     row["section"],
@@ -415,40 +508,96 @@ class Command(BaseCommand):
                     row["block"],
                 )
             )
+
             if block is None:
+                residuals_to_create.append(
+                    PelnResidualSeccion(
+                        seccion=section,
+                        fecha_corte=cut_date,
+                        localidad=row["locality"],
+                        manzana=row["block"],
+                        padron=row["pe"],
+                        lista_nominal=row["ln"],
+                        edmslm=row["edmslm"],
+                        motivo="MANZANA_NO_ENCONTRADA",
+                        archivo=row["file"],
+                        fila=row["row"],
+                    )
+                )
+
                 incidences.append(
                     self._row_incidence(
                         row,
-                        "MANZANA_NO_ENCONTRADA",
+                        "PELN_RESIDUAL_SECCION",
                         (
-                            "No existe la combinación "
-                            "sección-localidad-manzana."
+                            "La manzana no existe en la BGD. "
+                            "PE/LN contabilizados a nivel de sección."
                         ),
                     )
                 )
+
+                entity_ids.add(row["entity"])
                 continue
 
             entity_ids.add(row["entity"])
+
             if (
                 block.padron == row["pe"]
                 and block.lista_nominal == row["ln"]
             ):
-                unchanged += 1
-                continue
+                blocks_unchanged += 1
+            else:
+                blocks_updated += 1
 
             block.padron = row["pe"]
             block.lista_nominal = row["ln"]
-            to_update.append(block)
+            blocks_to_restore.append(block)
+
+        residual_pe = sum(item.padron for item in residuals_to_create)
+        residual_ln = sum(item.lista_nominal for item in residuals_to_create)
 
         with transaction.atomic():
-            if to_update:
+            # El corte mensual es un snapshot completo. Poner todo en cero
+            # evita arrastrar PE/LN de manzanas o localidades ausentes del
+            # archivo actual.
+            Manzana.objects.update(
+                padron=0,
+                lista_nominal=0,
+            )
+            Localidad.objects.update(
+                padron=0,
+                lista_nominal=0,
+            )
+
+            # Restaurar todos los registros presentes en el corte, incluso
+            # aquellos cuyo valor coincidía con el corte anterior.
+            if blocks_to_restore:
                 Manzana.objects.bulk_update(
-                    to_update,
+                    blocks_to_restore,
                     ["padron", "lista_nominal"],
                     batch_size=BATCH_SIZE,
                 )
 
-            totals = self._recalculate_aggregates()
+            if localities_to_restore:
+                Localidad.objects.bulk_update(
+                    localities_to_restore,
+                    ["padron", "lista_nominal"],
+                    batch_size=BATCH_SIZE,
+                )
+
+            # El residual del mismo corte se reconstruye completamente en
+            # cada ejecución para mantener el proceso determinista.
+            PelnResidualSeccion.objects.filter(
+                fecha_corte=cut_date
+            ).delete()
+
+            if residuals_to_create:
+                PelnResidualSeccion.objects.bulk_create(
+                    residuals_to_create,
+                    batch_size=BATCH_SIZE,
+                )
+
+            totals = self._recalculate_aggregates(cut_date)
 
             if entity_ids:
                 Entidad.objects.filter(
@@ -456,14 +605,27 @@ class Command(BaseCommand):
                 ).update(fecha_corte_pe_ln=cut_date)
 
         return {
-            "updated": len(to_update),
-            "unchanged": unchanged,
+            "blocks_updated": blocks_updated,
+            "blocks_unchanged": blocks_unchanged,
+            "localities_updated": localities_updated,
+            "localities_unchanged": localities_unchanged,
+            "residuals": len(residuals_to_create),
+            "residual_pe": residual_pe,
+            "residual_ln": residual_ln,
+            "updated": (
+                blocks_updated
+                + localities_updated
+            ),
+            "unchanged": (
+                blocks_unchanged
+                + localities_unchanged
+            ),
             "entities": sorted(entity_ids),
             "totals": totals,
         }
 
-    def _recalculate_aggregates(self):
-        section_totals = {
+    def _recalculate_aggregates(self, cut_date):
+        block_totals = {
             item["seccion_id"]: item
             for item in Manzana.objects.values(
                 "seccion_id"
@@ -472,11 +634,47 @@ class Command(BaseCommand):
                 ln_sum=Sum("lista_nominal"),
             )
         }
+
+        locality_totals = {
+            item["seccion_id"]: item
+            for item in Localidad.objects.values(
+                "seccion_id"
+            ).annotate(
+                pe_sum=Sum("padron"),
+                ln_sum=Sum("lista_nominal"),
+            )
+        }
+
+        residual_totals = {
+            item["seccion_id"]: item
+            for item in PelnResidualSeccion.objects.filter(
+                fecha_corte=cut_date
+            ).values(
+                "seccion_id"
+            ).annotate(
+                pe_sum=Sum("padron"),
+                ln_sum=Sum("lista_nominal"),
+            )
+        }
+
         sections = list(Seccion.objects.all())
+
         for section in sections:
-            data = section_totals.get(section.seccion)
-            section.pe = data["pe_sum"] if data else 0
-            section.ln = data["ln_sum"] if data else 0
+            block_data = block_totals.get(section.seccion)
+            locality_data = locality_totals.get(section.seccion)
+            residual_data = residual_totals.get(section.seccion)
+
+            section.pe = (
+                (block_data["pe_sum"] if block_data else 0)
+                + (locality_data["pe_sum"] if locality_data else 0)
+                + (residual_data["pe_sum"] if residual_data else 0)
+            )
+            section.ln = (
+                (block_data["ln_sum"] if block_data else 0)
+                + (locality_data["ln_sum"] if locality_data else 0)
+                + (residual_data["ln_sum"] if residual_data else 0)
+            )
+
         if sections:
             Seccion.objects.bulk_update(
                 sections,
@@ -498,12 +696,8 @@ class Command(BaseCommand):
             data = municipality_totals.get(
                 municipality.municipio
             )
-            municipality.pe = (
-                data["pe_sum"] if data else 0
-            )
-            municipality.ln = (
-                data["ln_sum"] if data else 0
-            )
+            municipality.pe = data["pe_sum"] if data else 0
+            municipality.ln = data["ln_sum"] if data else 0
         if municipalities:
             Municipio.objects.bulk_update(
                 municipalities,
@@ -601,8 +795,21 @@ class Command(BaseCommand):
             "ESTADO: COMPLETADO",
             f"Fecha de corte: {cut_date:%Y-%m-%d}",
             f"Archivos procesados: {len(files)}",
-            f"Manzanas actualizadas: {result['updated']}",
-            f"Manzanas sin cambios: {result['unchanged']}",
+            f"Manzanas actualizadas: {result['blocks_updated']}",
+            f"Manzanas sin cambios: {result['blocks_unchanged']}",
+            (
+                "Localidades puntuales actualizadas: "
+                f"{result['localities_updated']}"
+            ),
+            (
+                "Localidades puntuales sin cambios: "
+                f"{result['localities_unchanged']}"
+            ),
+            f"Residuales de sección: {result['residuals']}",
+            f"PE residual: {result['residual_pe']}",
+            f"LN residual: {result['residual_ln']}",
+            f"Registros actualizados: {result['updated']}",
+            f"Registros sin cambios: {result['unchanged']}",
             f"Incidencias: {len(incidences)}",
             "",
             "AGREGADOS RECALCULADOS",

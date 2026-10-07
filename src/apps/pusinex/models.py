@@ -306,6 +306,75 @@ class Localidad(models.Model):
         )
 
 
+class PelnResidualSeccion(models.Model):
+    seccion = models.ForeignKey(
+        Seccion,
+        on_delete=models.CASCADE,
+        related_name="peln_residuales",
+    )
+
+    fecha_corte = models.DateField()
+
+    localidad = models.PositiveSmallIntegerField()
+    manzana = models.PositiveSmallIntegerField()
+
+    padron = models.PositiveIntegerField(
+        default=0,
+        help_text="Padrón Electoral sin georreferencia precisa",
+    )
+
+    lista_nominal = models.PositiveIntegerField(
+        default=0,
+        help_text="Lista Nominal sin georreferencia precisa",
+    )
+
+    edmslm = models.CharField(
+        max_length=19,
+    )
+
+    motivo = models.CharField(
+        max_length=50,
+    )
+
+    archivo = models.TextField(
+        blank=True,
+        default="",
+    )
+
+    fila = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "PE/LN residual de sección"
+        verbose_name_plural = "PE/LN residuales de sección"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "fecha_corte",
+                    "edmslm",
+                ],
+                name="unique_peln_residual_corte_edmslm",
+            ),
+        ]
+
+        ordering = [
+            "seccion",
+            "localidad",
+            "manzana",
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.fecha_corte} | "
+            f"{self.edmslm} | "
+            f"PE {self.padron} | "
+            f"LN {self.lista_nominal}"
+        )
+
+
 class Manzana(models.Model):
     seccion = models.ForeignKey(
         Seccion,
