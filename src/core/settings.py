@@ -245,6 +245,10 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+        "weasyprint": {
+            "level": "WARNING",
+            "propagate": False,
+        },
     },
 }
 
