@@ -285,7 +285,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-      {% for localidad in seccion.localidades.all %}
+      {% for item in localidades_puntuales %}
 
       <div
         class="rounded-xl border border-base-200 bg-base-100 p-4 transition-colors hover:bg-base-200/30"
@@ -296,14 +296,14 @@
           <div
             class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-base-200 font-mono font-bold"
           >
-            {{ localidad.localidad|stringformat:"04d" }}
+            {{ item.localidad.localidad|stringformat:"04d" }}
           </div>
 
 
           <div class="min-w-0 flex-1">
 
             <div class="font-semibold leading-tight">
-              {{ localidad.nombre }}
+              {{ item.localidad.nombre }}
             </div>
 
             <div
@@ -313,14 +313,14 @@
               <span>
                 PE
                 <strong class="text-base-content">
-                  {{ localidad.padron|intcomma }}
+                  {{ item.localidad.padron|intcomma }}
                 </strong>
               </span>
 
               <span>
                 LN
                 <strong class="text-base-content">
-                  {{ localidad.lista_nominal|intcomma }}
+                  {{ item.localidad.lista_nominal|intcomma }}
                 </strong>
               </span>
 
@@ -329,13 +329,18 @@
           </div>
 
 
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm btn-square shrink-0"
-            title="Ver ruta a la localidad"
-            aria-label="Ver ruta a {{ localidad.nombre }}"
-            disabled
-          >
+          {% if item.ruta %}
+
+<button
+  type="button"
+  class="btn btn-ghost btn-sm btn-square shrink-0"
+  title="Ver ruta a la localidad"
+  aria-label="Ver ruta a {{ item.localidad.nombre }}"
+  data-ruta="{{ item.ruta }}"
+  data-localidad="{{ item.localidad.localidad|stringformat:'04d' }}"
+  data-nombre="{{ item.localidad.nombre }}"
+  onclick="abrirRutaLocalidad(this)"
+>
 
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -364,6 +369,47 @@
             </svg>
 
           </button>
+
+{% else %}
+
+<div
+  class="tooltip"
+  data-tip="No hay coordenadas disponibles"
+>
+  <button
+    type="button"
+    class="btn btn-ghost btn-sm btn-square shrink-0"
+    disabled
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.25"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="size-5"
+    >
+      <path
+        stroke="none"
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M14.828 10.828a4 4 0 1 0 -5.656 0l2.828 2.829l2.828 -2.829"
+      />
+      <path d="M12 8v.01" />
+      <path
+        d="M6 12h-.142a2 2 0 0 0 -1.923 1.45l-.858 3a2 2 0 0 0 1.924 2.55h13.999a2 2 0 0 0 1.923 -2.55l-.857 -3a2 2 0 0 0 -1.923 -1.45h-.143"
+      />
+    </svg>
+  </button>
+</div>
+
+{% endif %}
 
         </div>
 
@@ -426,6 +472,60 @@
 </dialog>
 {% endif %}
 
+<dialog
+  id="modal_ruta_localidad"
+  class="modal modal-bottom sm:modal-middle"
+>
+  <div
+    class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none"
+  >
+
+    <div
+      class="flex justify-between items-center mb-2 flex-shrink-0"
+    >
+
+      <h3
+        id="titulo_ruta_localidad"
+        class="font-bold text-lg text-accent"
+      >
+        Ruta a Localidad
+      </h3>
+
+      <form method="dialog">
+        <button
+          class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300"
+        >
+          ✕
+        </button>
+      </form>
+
+    </div>
+
+    <div
+      class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200"
+    >
+      <iframe
+        id="iframe_ruta_localidad"
+        src=""
+        class="w-full h-full"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer"
+      ></iframe>
+    </div>
+
+  </div>
+
+  <form
+    method="dialog"
+    class="modal-backdrop bg-black/40 backdrop-blur-sm"
+  >
+    <button>close</button>
+  </form>
+
+</dialog>
+
 {% endblock content %}
 
 {% block scripts %}
@@ -447,27 +547,60 @@ L.tileLayer(
       const municipioData = {{ municipio_geojson|safe }};
       const seccionData = {{ seccion_geojson|safe }};
 
-      // Capa de fondo: El municipio entero (Color tenue)
+      const estilosINE = getComputedStyle(document.documentElement);
+
+      const INE = {
+        grisOxford: estilosINE
+          .getPropertyValue("--ine-gris-oxford")
+          .trim(),
+
+        grisMedio: estilosINE
+          .getPropertyValue("--ine-gris-medio")
+          .trim(),
+
+        grisClaro: estilosINE
+          .getPropertyValue("--ine-gris-claro")
+          .trim(),
+
+        beige: estilosINE
+          .getPropertyValue("--ine-beige")
+          .trim()
+      };
+
       const capaMunicipio = L.geoJSON(municipioData, {
-        style: { color: "#9ca3af", weight: 2, fillOpacity: 0.1 },
+        style: {
+          color: INE.grisMedio,
+          weight: 2,
+          opacity: 0.85,
+          fillColor: INE.grisClaro,
+          fillOpacity: 0.16
+        },
         interactive: false
       }).addTo(map);
 
-      // Capa principal: La sección resaltada
       const capaSeccion = L.geoJSON(seccionData, {
-        style: { color: "#ef4444", weight: 4, fillColor: "#fca5a5", fillOpacity: 0.4 },
+        style: {
+          color: INE.grisOxford,
+          weight: 4,
+          opacity: 1,
+          fillColor: INE.beige,
+          fillOpacity: 0.42
+        },
         onEachFeature: function (feature, layer) {
-          layer.bindTooltip("Sección " + String(feature.id).padStart(4, '0'), {
-            permanent: true,
-            direction: "center",
-            className: "font-bold text-sm bg-white/80 border-none shadow-sm rounded-md"
-          });
+          layer.bindTooltip(
+            "Sección " + String(feature.id).padStart(4, "0"),
+            {
+              permanent: true,
+              direction: "center",
+              className: "font-bold text-sm bg-white/90 border-none shadow-sm rounded-md"
+            }
+          );
         }
       }).addTo(map);
 
       var overlayMaps = {
           "Sección Actual": capaSeccion,
-          "Municipio Contexto": capaMunicipio
+          "Municipio": capaMunicipio
       };
       L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
@@ -495,5 +628,53 @@ L.tileLayer(
       };
       controlCentrar.addTo(map);
   });
+</script>
+
+  <script>
+  function abrirRutaLocalidad(button) {
+    const modal = document.getElementById(
+      "modal_ruta_localidad"
+    );
+
+    const iframe = document.getElementById(
+      "iframe_ruta_localidad"
+    );
+
+    const titulo = document.getElementById(
+      "titulo_ruta_localidad"
+    );
+
+    const ruta = button.dataset.ruta;
+    const localidad = button.dataset.localidad;
+    const nombre = button.dataset.nombre;
+
+    titulo.textContent =
+      `Ruta Oficial: Sede Distrital ➔ Localidad ${localidad} - ${nombre}`;
+
+    iframe.src = ruta;
+
+    modal.showModal();
+  }
+
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+      const modal = document.getElementById(
+        "modal_ruta_localidad"
+      );
+
+      if (modal) {
+        modal.addEventListener(
+          "close",
+          function () {
+            document.getElementById(
+              "iframe_ruta_localidad"
+            ).src = "";
+          }
+        );
+      }
+    }
+  );
 </script>
 {% endblock scripts %}

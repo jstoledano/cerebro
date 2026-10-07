@@ -395,6 +395,34 @@ class SeccionDetail(DetailView):
         )
         destino = self.object.ubica.strip() if self.object.ubica else ""
 
+        # Rutas hacia localidades puntuales
+        localidades_puntuales = []
+
+        for localidad in self.object.localidades.all():
+            ruta_localidad = ""
+
+            if origen and localidad.geom:
+                punto = localidad.geom.clone()
+
+                if punto.srid != 4326:
+                    punto.transform(4326)
+
+                destino_localidad = f"{punto.y:.7f},{punto.x:.7f}"
+
+                ruta_localidad = (
+                    "https://maps.google.com/maps"
+                    f"?saddr={origen}"
+                    f"&daddr={destino_localidad}"
+                    "&output=embed"
+                )
+
+            localidades_puntuales.append(
+                {
+                    "localidad": localidad,
+                    "ruta": ruta_localidad,
+                }
+            )
+
         if origen and destino:
             ruta_url = f"https://maps.google.com/maps?saddr={origen}&daddr={destino}&output=embed"
         else:
@@ -443,6 +471,7 @@ class SeccionDetail(DetailView):
                 "municipio_geojson": municipio_geo,
                 "ultimo_pusinex": ultimo_pusinex,
                 "es_urbana": es_urbana,
+                "localidades_puntuales": localidades_puntuales,
                 "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
                 "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
                 "vnm_2026_cobertura": (
