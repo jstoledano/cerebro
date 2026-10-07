@@ -39,54 +39,85 @@
       var entidadData = {{ entidad_geojson|safe }};
       var distritosData = {{ distritos_geojson|safe }};
 
+const estilosINE = getComputedStyle(document.documentElement);
+
+const INE = {
+  grisOxford: estilosINE
+    .getPropertyValue("--ine-gris-oxford")
+    .trim(),
+
+  grisMedio: estilosINE
+    .getPropertyValue("--ine-gris-medio")
+    .trim(),
+
+  grisClaro: estilosINE
+    .getPropertyValue("--ine-gris-claro")
+    .trim(),
+
+  beige: estilosINE
+    .getPropertyValue("--ine-beige")
+    .trim()
+};
+
       // Capa de los Distritos
-      var capaDistritos = L.geoJSON(distritosData, {
-          style: function(feature) {
-              return {
-                  color: "#00008b",
-                  weight: 2,
-                  fillColor: "#60a5fa",
-                  fillOpacity: 0.2
-              };
-          },
-          onEachFeature: function(feature, layer) {
-              var numeroDistrito = String(feature.id).padStart(2, '0');
+var capaDistritos = L.geoJSON(distritosData, {
+    style: function(feature) {
+        return {
+            color: INE.grisOxford,
+            weight: 2,
+            opacity: 0.9,
+            fillColor: INE.beige,
+            fillOpacity: 0.28
+        };
+    },
 
-              layer.bindTooltip("Distrito " + numeroDistrito, {
-                  permanent: true,
-                  direction: 'center',
-                  className: 'etiqueta-distrito'
-              });
+    onEachFeature: function(feature, layer) {
+        var numeroDistrito =
+            String(feature.id).padStart(2, "0");
 
-              layer.on('mouseover', function() {
-                  this.setStyle({
-                      fillColor: "#2563eb",
-                      fillOpacity: 0.4
-                  });
-              });
+        layer.bindTooltip(
+            "Distrito " + numeroDistrito,
+            {
+                permanent: true,
+                direction: "center",
+                className: "etiqueta-distrito"
+            }
+        );
 
-              layer.on('mouseout', function() {
-                  this.setStyle({
-                      fillColor: "#60a5fa",
-                      fillOpacity: 0.2
-                  });
-              });
+        layer.on("mouseover", function() {
+            this.setStyle({
+                fillColor: INE.grisMedio,
+                fillOpacity: 0.42
+            });
+        });
 
-              layer.on('dblclick', function(e) {
-                  var url = "{% url 'pusinex:distrito' 0 %}".replace('0', feature.id);
-                  window.location.href = url;
-              });
-          }
-      });
+        layer.on("mouseout", function() {
+            this.setStyle({
+                fillColor: INE.beige,
+                fillOpacity: 0.28
+            });
+        });
 
-      var capaEntidad = L.geoJSON(entidadData, {
-          style: {
-              color: "#000000",
-              weight: 4,
-              fillOpacity: 0
-          },
-          interactive: false
-      });
+        layer.on("dblclick", function() {
+            var url =
+                "{% url 'pusinex:distrito' 0 %}"
+                .replace("0", feature.id);
+
+            window.location.href = url;
+        });
+    }
+});
+
+var capaEntidad = L.geoJSON(entidadData, {
+    style: {
+        color: INE.grisOxford,
+        weight: 4,
+        opacity: 1,
+        fillColor: INE.grisClaro,
+        fillOpacity: 0.08
+    },
+    interactive: false
+});
 
       capaDistritos.addTo(map);
       capaEntidad.addTo(map);
