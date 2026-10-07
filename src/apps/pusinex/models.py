@@ -45,6 +45,11 @@ class Entidad(models.Model):
     ln = models.PositiveIntegerField(
         default=0, help_text="Lista Nominal precalculada"
     )
+    fecha_corte_pe_ln = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha de corte del Padrón Electoral y Lista Nominal",
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -135,6 +140,12 @@ class DistritoLocal(models.Model):
     entidad = models.ForeignKey(Entidad, on_delete=models.CASCADE)
     distrito_local =models.PositiveSmallIntegerField(primary_key=True)
     cabecera = models.TextField()
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
