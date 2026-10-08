@@ -1,63 +1,50 @@
-from django.db.models import Avg, Count, ExpressionWrapper, F, fields
-from django.db.models.functions import ExtractDay
+from django.db.models import Count, ExpressionWrapper, F, fields
 
-from apps.art141.models import RegistroArt141
+from apps.art141.models import TramiteArt141
 
 
 def get_resumen_art141():
-    queryset = RegistroArt141.objects.all()
-
-    tramites = queryset.count()
-
-    personas = (
-        queryset
-        .values("ciudadano_id")
-        .distinct()
-        .count()
-    )
-
-    credenciales_entregadas = (
-        queryset
-        .exclude(fecha_entrega_credencial__isnull=True)
-        .count()
-    )
-
-    sin_fecha_entrega = (
-        queryset
-        .filter(fecha_entrega_credencial__isnull=True)
-        .count()
-    )
-
-    personas_lista_nominal = (
-        queryset
-        .filter(estatusciudadano_id=2)
-        .values("ciudadano_id")
-        .distinct()
-        .count()
-    )
+    queryset = TramiteArt141.objects.all()
 
     return {
-        "tramites": tramites,
-        "personas": personas,
-        "credenciales_entregadas": credenciales_entregadas,
-        "sin_fecha_entrega": sin_fecha_entrega,
-        "personas_lista_nominal": personas_lista_nominal,
+        "tramites": queryset.count(),
+
+        "personas": (
+            queryset
+            .values("ciudadano_id")
+            .distinct()
+            .count()
+        ),
+
+        "credenciales_entregadas": (
+            queryset
+            .exclude(fecha_entrega_credencial__isnull=True)
+            .count()
+        ),
+
+        "sin_fecha_entrega": (
+            queryset
+            .filter(fecha_entrega_credencial__isnull=True)
+            .count()
+        ),
     }
 
 
 def get_tramites_por_anio():
     return list(
-        RegistroArt141.objects
+        TramiteArt141.objects
         .exclude(fecha_solicitud_tramite__isnull=True)
         .values("fecha_solicitud_tramite__year")
-        .annotate(tramites=Count("id"))
+        .annotate(
+            tramites=Count("id"),
+        )
         .order_by("fecha_solicitud_tramite__year")
     )
 
 
 def get_tiempos_entrega():
     queryset = (
-        RegistroArt141.objects
+        TramiteArt141.objects
         .exclude(fecha_solicitud_tramite__isnull=True)
         .exclude(fecha_entrega_credencial__isnull=True)
     )
@@ -68,39 +55,47 @@ def get_tiempos_entrega():
         output_field=fields.DurationField(),
     )
 
-    registros = queryset.annotate(
-        duracion=duracion
-    ).values(
-        "id",
-        "ciudadano_id",
-        "fecha_solicitud_tramite",
-        "fecha_entrega_credencial",
-        "distrito",
-        "seccion_origen",
-        "duracion",
+    registros = (
+        queryset
+        .annotate(duracion=duracion)
+        .values(
+            "id",
+            "ciudadano_id",
+            "fecha_solicitud_tramite",
+            "fecha_entrega_credencial",
+            "distrito",
+            "seccion_origen",
+            "seccion_id",
+            "duracion",
+        )
+        .order_by(
+            "fecha_solicitud_tramite",
+            "id",
+        )
     )
 
     resultados = []
 
     for registro in registros:
-        duracion = registro["duracion"]
+        duracion_registro = registro["duracion"]
 
-        if duracion is None:
+        if duracion_registro is None:
             continue
 
         resultados.append(
             {
                 "id": registro["id"],
                 "ciudadano_id": registro["ciudadano_id"],
-                "fecha_solicitud": registro[
-                    "fecha_solicitud_tramite"
-                ],
-                "fecha_entrega": registro[
-                    "fecha_entrega_credencial"
-                ],
+                "fecha_solicitud": (
+                    registro["fecha_solicitud_tramite"]
+                ),
+                "fecha_entrega": (
+                    registro["fecha_entrega_credencial"]
+                ),
                 "distrito": registro["distrito"],
-                "seccion": registro["seccion_origen"],
-                "dias": duracion.days,
+                "seccion_origen": registro["seccion_origen"],
+                "seccion_id": registro["seccion_id"],
+                "dias": duracion_registro.days,
             }
         )
 

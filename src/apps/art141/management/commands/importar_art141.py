@@ -1,177 +1,76 @@
 import csv
+from collections import defaultdict
 from datetime import datetime
-from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from django.utils import timezone
 
-from apps.art141.models import RegistroArt141
-from apps.pusinex.models import Manzana, Seccion
+from apps.art141.models import TramiteArt141, UniversoVA
+from apps.pusinex.models import Localidad, Manzana, Seccion
 
 
 class Command(BaseCommand):
-    help = "Sincroniza registros de trámites realizados bajo el artículo 141."
+    help = (
+        "Sincroniza trámites históricos de Artículo 141 "
+        "y el universo vigente de Voto Anticipado."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "archivo",
             type=str,
-            help="Ruta al archivo CSV de trámites Artículo 141.",
+            help="Ruta al archivo CSV de Artículo 141.",
         )
 
+    @transaction.atomic
     def handle(self, *args, **options):
-        archivo = Path(options["archivo"])
-
-        if not archivo.exists():
-            raise CommandError(f"No existe el archivo: {archivo}")
+        archivo = options["archivo"]
 
         filas = self._leer_csv(archivo)
 
-        creados = 0
-        actualizados = 0
+        if not filas:
+            raise CommandError("El archivo no contiene registros.")
 
-        sin_seccion_mge = 0
-        sin_manzana_mge = 0
+        datos_procesados = []
 
         for numero_fila, fila in enumerate(filas, start=1):
             try:
-                datos, estado_mge = self._procesar_fila(
-                    fila,
-                    numero_fila,
-                )
+                datos = self._procesar_fila(fila)
             except Exception as exc:
                 raise CommandError(
                     f"Error en fila {numero_fila}: {exc}"
                 ) from exc
 
-            ciudadano_id = datos.pop("ciudadano_id")
-            fecha_solicitud_tramite = datos.pop(
-                "fecha_solicitud_tramite"
-            )
+            datos_procesados.append(datos)
 
-            _, created = RegistroArt141.objects.update_or_create(
-                ciudadano_id=ciudadano_id,
-                fecha_solicitud_tramite=fecha_solicitud_tramite,
-                defaults=datos,
-            )
-
-            if created:
-                creados += 1
-            else:
-                actualizados += 1
-
-            if estado_mge == "sin_seccion":
-                sin_seccion_mge += 1
-
-            elif estado_mge == "sin_manzana":
-                sin_manzana_mge += 1
-
-        total = RegistroArt141.objects.count()
-
-        personas = (
-            RegistroArt141.objects
-            .values("ciudadano_id")
-            .distinct()
-            .count()
+        resultado_kpi = self._sincronizar_kpi(
+            datos_procesados
         )
 
-        personas_ln = (
-            RegistroArt141.objects
-            .filter(estatusciudadano_id=2)
-            .values("ciudadano_id")
-            .distinct()
-            .count()
+        resultado_va = self._sincronizar_va(
+            datos_procesados
         )
 
-        entregadas = (
-            RegistroArt141.objects
-            .exclude(fecha_entrega_credencial__isnull=True)
-            .count()
-        )
-
-        sin_entrega = (
-            RegistroArt141.objects
-            .filter(fecha_entrega_credencial__isnull=True)
-            .count()
-        )
-
-        secciones_origen = (
-            RegistroArt141.objects
-            .values("seccion_origen")
-            .distinct()
-            .count()
-        )
-
-        manzanas_origen = (
-            RegistroArt141.objects
-            .values(
-                "seccion_origen",
-                "localidad",
-                "manzana_origen",
-            )
-            .distinct()
-            .count()
-        )
-
-        con_georreferencia_valida = (
-            RegistroArt141.objects
-            .exclude(seccion__isnull=True)
-            .count()
-        )
-
-        self.stdout.write("")
-        self.stdout.write(
-            self.style.SUCCESS(
-                "Sincronización Artículo 141 concluida."
-            )
-        )
-        self.stdout.write("")
-        self.stdout.write(
-            f"Registros creados:            {creados}"
-        )
-        self.stdout.write(
-            f"Registros actualizados:       {actualizados}"
-        )
-        self.stdout.write(
-            f"Registros en la base:         {total}"
-        )
-        self.stdout.write("")
-        self.stdout.write(
-            f"Personas identificadas:       {personas}"
-        )
-        self.stdout.write(
-            f"Personas en Lista Nominal:    {personas_ln}"
-        )
-        self.stdout.write(
-            f"Credenciales entregadas:      {entregadas}"
-        )
-        self.stdout.write(
-            f"Sin fecha de entrega:         {sin_entrega}"
-        )
-        self.stdout.write(
-            f"Secciones de origen:          {secciones_origen}"
-        )
-        self.stdout.write(
-            f"Manzanas de origen:           {manzanas_origen}"
-        )
-        self.stdout.write("")
-        self.stdout.write(
-            f"Con georreferencia válida:    {con_georreferencia_valida}"
-        )
-        self.stdout.write(
-            f"Georreferencia pendiente:     {sin_seccion_mge}"
-        )
-        self.stdout.write("")
-        self.stdout.write(
-            f"Sin referencia de manzana:    {sin_manzana_mge}"
+        self._mostrar_resultado(
+            resultado_kpi,
+            resultado_va,
         )
 
     def _leer_csv(self, archivo):
-        with archivo.open(
-            "r",
-            encoding="utf-8-sig",
-            newline="",
-        ) as fh:
-            lineas = fh.readlines()
+        try:
+            with open(
+                archivo,
+                "r",
+                encoding="utf-8-sig",
+                newline="",
+            ) as fh:
+                lineas = fh.readlines()
+
+        except FileNotFoundError as exc:
+            raise CommandError(
+                f"No existe el archivo: {archivo}"
+            ) from exc
 
         indice_encabezado = None
 
@@ -185,15 +84,16 @@ class Command(BaseCommand):
 
         if indice_encabezado is None:
             raise CommandError(
-                "No se encontró el encabezado esperado con "
-                "CIUDADANO_ID y FECHA_SOLICITUD_AFECTACION."
+                "No se encontró el encabezado esperado."
             )
 
-        return csv.DictReader(
-            lineas[indice_encabezado:]
+        return list(
+            csv.DictReader(
+                lineas[indice_encabezado:]
+            )
         )
 
-    def _procesar_fila(self, fila, numero_fila):
+    def _procesar_fila(self, fila):
         ciudadano_id = self._texto(
             fila.get("CIUDADANO_ID")
         )
@@ -201,20 +101,20 @@ class Command(BaseCommand):
         if not ciudadano_id:
             raise ValueError("CIUDADANO_ID vacío")
 
-        fecha_solicitud_tramite = self._fecha(
+        fecha_solicitud = self._fecha(
             fila.get("FECHA_SOLICITUD_AFECTACION")
         )
 
-        if fecha_solicitud_tramite is None:
+        if fecha_solicitud is None:
             raise ValueError(
                 "FECHA_SOLICITUD_AFECTACION vacía"
             )
 
-        entidad = self._entero_opcional(
+        entidad = self._entero(
             fila.get("ENTIDAD")
         )
 
-        distrito = self._entero_opcional(
+        distrito = self._entero(
             fila.get("DISTRITO")
         )
 
@@ -222,35 +122,50 @@ class Command(BaseCommand):
             fila.get("MUNICIPIO")
         )
 
-        seccion_num = self._entero_opcional(
+        seccion_num = self._entero(
             fila.get("SECCION")
         )
 
-        localidad_num = self._entero_opcional(
+        localidad_num = self._entero(
             fila.get("LOCALIDAD")
         )
 
-        manzana_num = self._entero_opcional(
+        manzana_num = self._entero(
             fila.get("MANZANA")
         )
 
         seccion = None
+        localidad_mge = None
         manzana = None
-        estado_mge = "completo"
 
         if seccion_num is not None:
             seccion = (
                 Seccion.objects
-                .filter(seccion=seccion_num)
+                .filter(
+                    seccion=seccion_num,
+                    activa=True,
+                )
                 .first()
             )
 
-        if seccion is None:
-            estado_mge = "sin_seccion"
+        if (
+            seccion is not None
+            and localidad_num is not None
+        ):
+            localidad_mge = (
+                Localidad.objects
+                .filter(
+                    seccion=seccion,
+                    localidad=localidad_num,
+                )
+                .first()
+            )
 
-        elif (
-            localidad_num is not None
+        if (
+            seccion is not None
+            and localidad_num is not None
             and manzana_num is not None
+            and manzana_num != 9999
         ):
             manzana = (
                 Manzana.objects
@@ -262,36 +177,357 @@ class Command(BaseCommand):
                 .first()
             )
 
-            if manzana is None:
-                estado_mge = "sin_manzana"
-
-        datos = {
+        return {
             "fuar": None,
+
             "ciudadano_id": ciudadano_id,
-            "fecha_solicitud_tramite": fecha_solicitud_tramite,
-            "fecha_entrega_credencial": self._fecha(
-                fila.get("FECHA_ENTREGA_CREDENCIAL")
+
+            "fecha_solicitud_tramite": (
+                fecha_solicitud
             ),
-            "estatusciudadano_id": self._entero_opcional(
-                fila.get("ESTATUSCIUDADANO_ID")
+
+            "fecha_entrega_credencial": (
+                self._fecha(
+                    fila.get(
+                        "FECHA_ENTREGA_CREDENCIAL"
+                    )
+                )
             ),
+
+            "estatusciudadano_id": (
+                self._entero(
+                    fila.get(
+                        "ESTATUSCIUDADANO_ID"
+                    )
+                )
+            ),
+
             "entidad": entidad,
             "distrito": distrito,
             "municipio": municipio,
             "seccion_origen": seccion_num,
             "localidad": localidad_num,
             "manzana_origen": manzana_num,
+
             "seccion": seccion,
+            "localidad_mge": localidad_mge,
             "manzana": manzana,
-            "edad": self._entero_opcional(
+
+            "edad": self._entero(
                 fila.get("EDAD")
             ),
+
             "sexo": self._texto(
                 fila.get("SEXO")
             ),
         }
 
-        return datos, estado_mge
+    def _sincronizar_kpi(self, filas):
+        creados = 0
+        actualizados = 0
+
+        for datos in filas:
+            defaults = datos.copy()
+
+            ciudadano_id = defaults.pop(
+                "ciudadano_id"
+            )
+
+            fecha_solicitud = defaults.pop(
+                "fecha_solicitud_tramite"
+            )
+
+            _, created = (
+                TramiteArt141.objects
+                .update_or_create(
+                    ciudadano_id=ciudadano_id,
+                    fecha_solicitud_tramite=(
+                        fecha_solicitud
+                    ),
+                    defaults=defaults,
+                )
+            )
+
+            if created:
+                creados += 1
+            else:
+                actualizados += 1
+
+        return {
+            "creados": creados,
+            "actualizados": actualizados,
+            "total": (
+                TramiteArt141.objects.count()
+            ),
+        }
+
+    def _sincronizar_va(self, filas):
+        ahora = timezone.now()
+
+        por_ciudadano = defaultdict(list)
+
+        for datos in filas:
+            por_ciudadano[
+                datos["ciudadano_id"]
+            ].append(datos)
+
+        # Toda persona que existía previamente
+        # parte como ausente del corte actual.
+        UniversoVA.objects.update(
+            presente_fuente=False,
+            activo=False,
+        )
+
+        creados = 0
+        actualizados = 0
+        activos = 0
+        inactivos = 0
+
+        for ciudadano_id, registros in (
+            por_ciudadano.items()
+        ):
+            registros_ln = [
+                registro
+                for registro in registros
+                if (
+                    registro[
+                        "estatusciudadano_id"
+                    ] == 2
+                )
+            ]
+
+            if registros_ln:
+                seleccionado = max(
+                    registros_ln,
+                    key=self._clave_orden_va,
+                )
+                activo = True
+
+            else:
+                seleccionado = max(
+                    registros,
+                    key=self._clave_orden_va,
+                )
+                activo = False
+
+            defaults = {
+                "activo": activo,
+                "presente_fuente": True,
+
+                "estatusciudadano_id": (
+                    seleccionado[
+                        "estatusciudadano_id"
+                    ]
+                ),
+
+                "fecha_solicitud_tramite": (
+                    seleccionado[
+                        "fecha_solicitud_tramite"
+                    ]
+                ),
+
+                "fecha_entrega_credencial": (
+                    seleccionado[
+                        "fecha_entrega_credencial"
+                    ]
+                ),
+
+                "entidad": seleccionado[
+                    "entidad"
+                ],
+
+                "distrito": seleccionado[
+                    "distrito"
+                ],
+
+                "municipio": seleccionado[
+                    "municipio"
+                ],
+
+                "seccion_origen": seleccionado[
+                    "seccion_origen"
+                ],
+
+                "localidad": seleccionado[
+                    "localidad"
+                ],
+
+                "manzana_origen": seleccionado[
+                    "manzana_origen"
+                ],
+
+                "seccion": seleccionado[
+                    "seccion"
+                ],
+
+                "localidad_mge": seleccionado[
+                    "localidad_mge"
+                ],
+
+                "manzana": seleccionado[
+                    "manzana"
+                ],
+
+                "edad": seleccionado[
+                    "edad"
+                ],
+
+                "sexo": seleccionado[
+                    "sexo"
+                ],
+
+                "ultima_presencia": ahora,
+            }
+
+            _, created = (
+                UniversoVA.objects
+                .update_or_create(
+                    ciudadano_id=ciudadano_id,
+                    defaults=defaults,
+                )
+            )
+
+            if created:
+                creados += 1
+            else:
+                actualizados += 1
+
+            if activo:
+                activos += 1
+            else:
+                inactivos += 1
+
+        return {
+            "creados": creados,
+            "actualizados": actualizados,
+            "activos": activos,
+            "inactivos": inactivos,
+            "total": UniversoVA.objects.count(),
+        }
+
+    @staticmethod
+    def _clave_orden_va(registro):
+        fecha_entrega = (
+            registro[
+                "fecha_entrega_credencial"
+            ]
+            or datetime.min.date()
+        )
+
+        fecha_solicitud = (
+            registro[
+                "fecha_solicitud_tramite"
+            ]
+            or datetime.min.date()
+        )
+
+        return (
+            fecha_entrega,
+            fecha_solicitud,
+        )
+
+    def _mostrar_resultado(
+        self,
+        resultado_kpi,
+        resultado_va,
+    ):
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Sincronización Artículo 141 concluida."
+            )
+        )
+
+        self.stdout.write("")
+        self.stdout.write("KPI ARTÍCULO 141")
+        self.stdout.write(
+            f"Trámites creados:       "
+            f"{resultado_kpi['creados']}"
+        )
+        self.stdout.write(
+            f"Trámites actualizados:  "
+            f"{resultado_kpi['actualizados']}"
+        )
+        self.stdout.write(
+            f"Trámites históricos:    "
+            f"{resultado_kpi['total']}"
+        )
+
+        self.stdout.write("")
+        self.stdout.write("UNIVERSO VA")
+        self.stdout.write(
+            f"Personas creadas:        "
+            f"{resultado_va['creados']}"
+        )
+        self.stdout.write(
+            f"Personas actualizadas:   "
+            f"{resultado_va['actualizados']}"
+        )
+        self.stdout.write(
+            f"Personas VA activas:     "
+            f"{resultado_va['activos']}"
+        )
+        self.stdout.write(
+            f"Presentes no activas:    "
+            f"{resultado_va['inactivos']}"
+        )
+        self.stdout.write(
+            f"Personas históricas VA:  "
+            f"{resultado_va['total']}"
+        )
+
+        self._mostrar_georreferencia()
+
+    def _mostrar_georreferencia(self):
+        kpi = TramiteArt141.objects.all()
+
+        va = UniversoVA.objects.filter(
+            activo=True
+        )
+
+        self.stdout.write("")
+        self.stdout.write("GEOREFERENCIA KPI")
+        self._mostrar_niveles(kpi)
+
+        self.stdout.write("")
+        self.stdout.write("GEOREFERENCIA VA")
+        self._mostrar_niveles(va)
+
+    def _mostrar_niveles(self, queryset):
+        manzana = queryset.filter(
+            manzana__isnull=False
+        ).count()
+
+        localidad = queryset.filter(
+            manzana__isnull=True,
+            localidad_mge__isnull=False,
+        ).count()
+
+        seccion = queryset.filter(
+            manzana__isnull=True,
+            localidad_mge__isnull=True,
+            seccion__isnull=False,
+        ).count()
+
+        pendiente = queryset.filter(
+            seccion__isnull=True
+        ).count()
+
+        self.stdout.write(
+            f"Nivel manzana:           {manzana}"
+        )
+
+        self.stdout.write(
+            f"Nivel localidad:         {localidad}"
+        )
+
+        self.stdout.write(
+            f"Nivel sección:           {seccion}"
+        )
+
+        self.stdout.write(
+            f"Georreferencia pendiente:{pendiente:>9}"
+        )
 
     @staticmethod
     def _texto(valor):
@@ -301,7 +537,7 @@ class Command(BaseCommand):
         return str(valor).strip()
 
     @staticmethod
-    def _entero_opcional(valor):
+    def _entero(valor):
         valor = (valor or "").strip()
 
         if not valor:
@@ -309,6 +545,7 @@ class Command(BaseCommand):
 
         try:
             return int(valor)
+
         except ValueError as exc:
             raise ValueError(
                 f"Valor entero inválido: {valor}"
