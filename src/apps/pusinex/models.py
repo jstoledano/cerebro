@@ -45,6 +45,11 @@ class Entidad(models.Model):
     ln = models.PositiveIntegerField(
         default=0, help_text="Lista Nominal precalculada"
     )
+    fecha_corte_pe_ln = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha de corte del Padrón Electoral y Lista Nominal",
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -135,6 +140,12 @@ class DistritoLocal(models.Model):
     entidad = models.ForeignKey(Entidad, on_delete=models.CASCADE)
     distrito_local =models.PositiveSmallIntegerField(primary_key=True)
     cabecera = models.TextField()
+    pe = models.PositiveIntegerField(
+        default=0, help_text="Padrón Electoral precalculado"
+    )
+    ln = models.PositiveIntegerField(
+        default=0, help_text="Lista Nominal precalculada"
+    )
 
     geom = models.MultiPolygonField(srid=32614, null=True, blank=True)
 
@@ -232,6 +243,136 @@ class Pusinex(models.Model):
         m = self.seccion.municipio.municipio
         s = self.seccion.seccion
         return f'29{d:02}{m:02}{s:04}_rev{self.f_act:%Y%m%d}'
+
+
+class Localidad(models.Model):
+    seccion = models.ForeignKey(
+        Seccion,
+        on_delete=models.CASCADE,
+        related_name="localidades",
+    )
+
+    localidad = models.PositiveSmallIntegerField()
+    nombre = models.TextField()
+
+    tipo = models.PositiveSmallIntegerField()
+    cabecera = models.PositiveSmallIntegerField()
+    status = models.PositiveSmallIntegerField()
+
+    control = models.PositiveIntegerField()
+    id_bgd = models.PositiveIntegerField(
+        unique=True,
+    )
+
+    padron = models.PositiveIntegerField(
+        default=0,
+        help_text="Padrón Electoral",
+    )
+
+    lista_nominal = models.PositiveIntegerField(
+        default=0,
+        help_text="Lista Nominal",
+    )
+
+    geom = models.PointField(
+        srid=32614,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "Localidad Puntual"
+        verbose_name_plural = "Localidades Puntuales"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "seccion",
+                    "localidad",
+                ],
+                name="unique_seccion_localidad",
+            ),
+        ]
+
+        ordering = [
+            "seccion",
+            "localidad",
+        ]
+
+    def __str__(self):
+        return (
+            f"Sec: {self.seccion_id} | "
+            f"Loc: {self.localidad:04}"
+        )
+
+
+class PelnResidualSeccion(models.Model):
+    seccion = models.ForeignKey(
+        Seccion,
+        on_delete=models.CASCADE,
+        related_name="peln_residuales",
+    )
+
+    fecha_corte = models.DateField()
+
+    localidad = models.PositiveSmallIntegerField()
+    manzana = models.PositiveSmallIntegerField()
+
+    padron = models.PositiveIntegerField(
+        default=0,
+        help_text="Padrón Electoral sin georreferencia precisa",
+    )
+
+    lista_nominal = models.PositiveIntegerField(
+        default=0,
+        help_text="Lista Nominal sin georreferencia precisa",
+    )
+
+    edmslm = models.CharField(
+        max_length=19,
+    )
+
+    motivo = models.CharField(
+        max_length=50,
+    )
+
+    archivo = models.TextField(
+        blank=True,
+        default="",
+    )
+
+    fila = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "PE/LN residual de sección"
+        verbose_name_plural = "PE/LN residuales de sección"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "fecha_corte",
+                    "edmslm",
+                ],
+                name="unique_peln_residual_corte_edmslm",
+            ),
+        ]
+
+        ordering = [
+            "seccion",
+            "localidad",
+            "manzana",
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.fecha_corte} | "
+            f"{self.edmslm} | "
+            f"PE {self.padron} | "
+            f"LN {self.lista_nominal}"
+        )
 
 
 class Manzana(models.Model):

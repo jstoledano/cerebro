@@ -1,7 +1,7 @@
 {% extends 'cerebro/base.html' %}
 {% load humanize %}
 
-{% block title %}VNM 2026{% endblock %}
+{% block title %}{{ vnm_titulo }}{% endblock %}
 
 {% block content %}
 <section class="space-y-8">
@@ -46,21 +46,35 @@
           </p>
 
           <h1 class="mt-1 text-3xl font-extrabold tracking-tight text-base-content md:text-4xl">
-            Verificación Nacional Muestral 2026
+            {{ vnm_titulo }}
           </h1>
 
           <p class="mt-2 text-sm font-medium text-base-content/65">
-            Seguimiento de las secciones seleccionadas para la VNM 2026 en la entidad 29.
+            {{ vnm_descripcion }}
           </p>
         </div>
       </div>
 
-      <a
-        href="{% url 'pusinex:index' %}"
-        class="btn btn-ghost self-start lg:self-auto"
-      >
-        ← Volver a cartografía
-      </a>
+      <div class="flex flex-wrap gap-2 self-start lg:self-auto">
+        <a
+          href="{% url 'pusinex:index' %}"
+          class="btn btn-ghost"
+        >
+          ← Volver a cartografía
+        </a>
+
+        <a
+          href="{% url 'pusinex:vnm2026' %}"
+          class="btn font-bold"
+          style="
+            background-color: var(--ine-gris-oxford);
+            color: var(--ine-blanco);
+            border-color: var(--ine-gris-oxford);
+          "
+        >
+          VNM 2026
+        </a>
+      </div>
     </div>
   </header>
 

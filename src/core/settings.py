@@ -25,7 +25,7 @@ DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 SITE_URL = env(
     "SITE_URL",
-    default="http://127.0.0.1:8000",
+    default="http://10.29.0.35",
 ).rstrip("/")
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
@@ -244,6 +244,10 @@ LOGGING = {
         "": {
             "handlers": ["console"],
             "level": "DEBUG",
+            "propagate": False,
+        },
+        "weasyprint": {
+            "level": "WARNING",
             "propagate": False,
         },
     },

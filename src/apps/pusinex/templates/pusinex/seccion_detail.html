@@ -16,8 +16,24 @@
       <ul>
         <li>
           <a href="{% url 'pusinex:index' %}" class="inline-flex items-center gap-1 hover:text-primary transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+              />
             </svg>
             Entidad (Tlaxcala)
           </a>
@@ -28,18 +44,20 @@
       </ul>
     </div>
 
-    <div>
-      <h1 class="text-4xl md:text-5xl font-extrabold text-base-content tracking-tight">
-        Expediente Sección <span class="text-primary">{{ seccion.seccion|stringformat:"04d" }}</span>
-      </h1>
-      <p class="text-lg text-base-content/70 mt-2 font-medium flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-secondary">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-        </svg>
-        Entidad: Tlaxcala - D{{ seccion.distrito.distrito|stringformat:"02d" }} - M{{ seccion.municipio.municipio|stringformat:"03d" }}
-      </p>
-    </div>
+<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+
+  <div>
+    <h1 class="text-4xl md:text-5xl font-extrabold text-base-content tracking-tight">
+      Expediente Sección
+      <span class="text-primary">
+        {{ seccion.seccion|stringformat:"04d" }}
+      </span>
+    </h1>
+  </div>
+
+  {% include "cerebro/partials/_back2cart.html" %}
+
+</div>
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -67,10 +85,15 @@
             <div class="stat px-4 py-3 border-t border-base-200 bg-base-100/40">
               <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-60">Lista Nominal</div>
               <div class="stat-value text-2xl text-primary">{{ seccion.ln|intcomma }}</div>
+              {% if seccion.entidad.fecha_corte_pe_ln %}
+              <div class="mt-1 text-xs font-medium text-base-content/45">
+                Corte al {{ seccion.entidad.fecha_corte_pe_ln|date:"d/m/Y" }}
+              </div>
+              {% endif %}
             </div>
           </div>
 
-        {% if vnm_2023 or vnm_2024 or vnm_2026 %}
+{% if vnm_2023 or vnm_2024 or vnm_2026_cobertura or vnm_2026_actualizacion %}
   <div class="mb-4 rounded-xl border border-base-300 bg-base-200/30 p-4">
 
     <div class="mb-3 text-xs font-bold uppercase tracking-wider text-base-content/55">
@@ -103,28 +126,72 @@
         </span>
       {% endif %}
 
-      {% if vnm_2026 %}
-        <a
-          href="{% url 'pusinex:vnm2026' %}"
-          class="badge border-0 transition-opacity hover:opacity-80"
+      {% if vnm_2026_cobertura or vnm_2026_actualizacion %}
+        <span
+          class="badge gap-1 border-0 py-4"
           style="
             background-color: var(--ine-beige);
             color: var(--ine-gris-oxford);
           "
-          title="Ver Verificación Nacional Muestral 2026"
         >
-          ★ VNM 2026
-        </a>
+
+          {% if vnm_2026_cobertura %}
+            <a
+              href="{% url 'pusinex:vnm2026_cobertura' %}"
+              class="inline-flex items-center transition-opacity hover:opacity-60"
+              title="VNM 2026 - Etapa de Cobertura"
+              aria-label="VNM 2026 - Etapa de Cobertura"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                <path d="M14 10a2 2 0 1 0 -4 0v4a2 2 0 1 0 4 0" />
+              </svg>
+            </a>
+          {% endif %}
+
+          <span>VNM 2026</span>
+
+          {% if vnm_2026_actualizacion %}
+            <a
+              href="{% url 'pusinex:vnm2026_actualizacion' %}"
+              class="inline-flex items-center transition-opacity hover:opacity-60"
+              title="VNM 2026 - Etapa de Actualización"
+              aria-label="VNM 2026 - Etapa de Actualización"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-4"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M10 16v-6a2 2 0 1 1 4 0v6" />
+                <path d="M10 13h4" />
+                <path d="M12 3c7.2 0 9 1.8 9 9c0 7.2 -1.8 9 -9 9c-7.2 0 -9 -1.8 -9 -9c0 -7.2 1.8 -9 9 -9" />
+              </svg>
+            </a>
+          {% endif %}
+
+        </span>
       {% endif %}
 
     </div>
 
-    {% if vnm_2026 %}
-      <p class="mt-3 text-xs text-base-content/65">
-        Sección seleccionada en la VNM 2026.
-      </p>
-    {% endif %}
-
+  </div>
   </div>
 {% endif %}
 
@@ -171,6 +238,210 @@
       </div>
     </div>
   </div>
+
+{% if seccion.localidades.exists %}
+
+<div class="w-full">
+
+  <div role="tablist" class="tabs tabs-lift tabs-xl">
+
+    <a
+      role="tab"
+      class="tab tab-active gap-2"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.25"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="size-5"
+      >
+        <path
+          stroke="none"
+          d="M0 0h24v24H0z"
+          fill="none"
+        />
+        <path
+          d="M14.828 10.828a4 4 0 1 0 -5.656 0l2.828 2.829l2.828 -2.829"
+        />
+        <path d="M12 8v.01" />
+        <path
+          d="M6 12h-.142a2 2 0 0 0 -1.923 1.45l-.858 3a2 2 0 0 0 1.924 2.55h13.999a2 2 0 0 0 1.923 -2.55l-.857 -3a2 2 0 0 0 -1.923 -1.45h-.143"
+        />
+      </svg>
+
+      <span>Localidades Puntuales</span>
+
+      <span class="badge badge-sm badge-outline">
+        {{ seccion.localidades.count }}
+      </span>
+    </a>
+
+  </div>
+
+
+  <div
+    role="tabpanel"
+    class="rounded-b-box border border-t-0 border-base-300 bg-base-100 p-6"
+  >
+
+    <div class="mb-5">
+      <h2 class="text-xl font-bold">
+        Localidades Puntuales
+      </h2>
+
+      <p class="mt-1 text-sm text-base-content/60">
+        Localidades con representación cartográfica puntual dentro de la sección.
+      </p>
+    </div>
+
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+      {% for item in localidades_puntuales %}
+
+      <div
+        class="rounded-xl border border-base-200 bg-base-100 p-4 transition-colors hover:bg-base-200/30"
+      >
+
+        <div class="flex items-start gap-4">
+
+          <div
+            class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-base-200 font-mono font-bold"
+          >
+            {{ item.localidad.localidad|stringformat:"04d" }}
+          </div>
+
+
+          <div class="min-w-0 flex-1">
+
+            <div class="font-semibold leading-tight">
+              {{ item.localidad.nombre }}
+            </div>
+
+            <div
+              class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-base-content/60"
+            >
+
+              <span>
+                PE
+                <strong class="text-base-content">
+                  {{ item.localidad.padron|intcomma }}
+                </strong>
+              </span>
+
+              <span>
+                LN
+                <strong class="text-base-content">
+                  {{ item.localidad.lista_nominal|intcomma }}
+                </strong>
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {% if item.ruta %}
+
+<button
+  type="button"
+  class="btn btn-ghost btn-sm btn-square shrink-0"
+  title="Ver ruta a la localidad"
+  aria-label="Ver ruta a {{ item.localidad.nombre }}"
+  data-ruta="{{ item.ruta }}"
+  data-localidad="{{ item.localidad.localidad|stringformat:'04d' }}"
+  data-nombre="{{ item.localidad.nombre }}"
+  onclick="abrirRutaLocalidad(this)"
+>
+
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-5"
+            >
+              <path
+                stroke="none"
+                d="M0 0h24v24H0z"
+                fill="none"
+              />
+              <path
+                d="M14.828 10.828a4 4 0 1 0 -5.656 0l2.828 2.829l2.828 -2.829"
+              />
+              <path d="M12 8v.01" />
+              <path
+                d="M6 12h-.142a2 2 0 0 0 -1.923 1.45l-.858 3a2 2 0 0 0 1.924 2.55h13.999a2 2 0 0 0 1.923 -2.55l-.857 -3a2 2 0 0 0 -1.923 -1.45h-.143"
+              />
+            </svg>
+
+          </button>
+
+{% else %}
+
+<div
+  class="tooltip"
+  data-tip="No hay coordenadas disponibles"
+>
+  <button
+    type="button"
+    class="btn btn-ghost btn-sm btn-square shrink-0"
+    disabled
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.25"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="size-5"
+    >
+      <path
+        stroke="none"
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M14.828 10.828a4 4 0 1 0 -5.656 0l2.828 2.829l2.828 -2.829"
+      />
+      <path d="M12 8v.01" />
+      <path
+        d="M6 12h-.142a2 2 0 0 0 -1.923 1.45l-.858 3a2 2 0 0 0 1.924 2.55h13.999a2 2 0 0 0 1.923 -2.55l-.857 -3a2 2 0 0 0 -1.923 -1.45h-.143"
+      />
+    </svg>
+  </button>
+</div>
+
+{% endif %}
+
+        </div>
+
+      </div>
+
+      {% endfor %}
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endif %}
 
 </section>
 
@@ -219,6 +490,60 @@
 </dialog>
 {% endif %}
 
+<dialog
+  id="modal_ruta_localidad"
+  class="modal modal-bottom sm:modal-middle"
+>
+  <div
+    class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none"
+  >
+
+    <div
+      class="flex justify-between items-center mb-2 flex-shrink-0"
+    >
+
+      <h3
+        id="titulo_ruta_localidad"
+        class="font-bold text-lg text-accent"
+      >
+        Ruta a Localidad
+      </h3>
+
+      <form method="dialog">
+        <button
+          class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300"
+        >
+          ✕
+        </button>
+      </form>
+
+    </div>
+
+    <div
+      class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200"
+    >
+      <iframe
+        id="iframe_ruta_localidad"
+        src=""
+        class="w-full h-full"
+        style="border:0;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer"
+      ></iframe>
+    </div>
+
+  </div>
+
+  <form
+    method="dialog"
+    class="modal-backdrop bg-black/40 backdrop-blur-sm"
+  >
+    <button>close</button>
+  </form>
+
+</dialog>
+
 {% endblock content %}
 
 {% block scripts %}
@@ -240,27 +565,60 @@ L.tileLayer(
       const municipioData = {{ municipio_geojson|safe }};
       const seccionData = {{ seccion_geojson|safe }};
 
-      // Capa de fondo: El municipio entero (Color tenue)
+      const estilosINE = getComputedStyle(document.documentElement);
+
+      const INE = {
+        grisOxford: estilosINE
+          .getPropertyValue("--ine-gris-oxford")
+          .trim(),
+
+        grisMedio: estilosINE
+          .getPropertyValue("--ine-gris-medio")
+          .trim(),
+
+        grisClaro: estilosINE
+          .getPropertyValue("--ine-gris-claro")
+          .trim(),
+
+        beige: estilosINE
+          .getPropertyValue("--ine-beige")
+          .trim()
+      };
+
       const capaMunicipio = L.geoJSON(municipioData, {
-        style: { color: "#9ca3af", weight: 2, fillOpacity: 0.1 },
+        style: {
+          color: INE.grisMedio,
+          weight: 2,
+          opacity: 0.85,
+          fillColor: INE.grisClaro,
+          fillOpacity: 0.16
+        },
         interactive: false
       }).addTo(map);
 
-      // Capa principal: La sección resaltada
       const capaSeccion = L.geoJSON(seccionData, {
-        style: { color: "#ef4444", weight: 4, fillColor: "#fca5a5", fillOpacity: 0.4 },
+        style: {
+          color: INE.grisOxford,
+          weight: 4,
+          opacity: 1,
+          fillColor: INE.beige,
+          fillOpacity: 0.42
+        },
         onEachFeature: function (feature, layer) {
-          layer.bindTooltip("Sección " + String(feature.id).padStart(4, '0'), {
-            permanent: true,
-            direction: "center",
-            className: "font-bold text-sm bg-white/80 border-none shadow-sm rounded-md"
-          });
+          layer.bindTooltip(
+            "Sección " + String(feature.id).padStart(4, "0"),
+            {
+              permanent: true,
+              direction: "center",
+              className: "font-bold text-sm bg-white/90 border-none shadow-sm rounded-md"
+            }
+          );
         }
       }).addTo(map);
 
       var overlayMaps = {
           "Sección Actual": capaSeccion,
-          "Municipio Contexto": capaMunicipio
+          "Municipio": capaMunicipio
       };
       L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
@@ -288,5 +646,53 @@ L.tileLayer(
       };
       controlCentrar.addTo(map);
   });
+</script>
+
+  <script>
+  function abrirRutaLocalidad(button) {
+    const modal = document.getElementById(
+      "modal_ruta_localidad"
+    );
+
+    const iframe = document.getElementById(
+      "iframe_ruta_localidad"
+    );
+
+    const titulo = document.getElementById(
+      "titulo_ruta_localidad"
+    );
+
+    const ruta = button.dataset.ruta;
+    const localidad = button.dataset.localidad;
+    const nombre = button.dataset.nombre;
+
+    titulo.textContent =
+      `Ruta Oficial: Sede Distrital ➔ Localidad ${localidad} - ${nombre}`;
+
+    iframe.src = ruta;
+
+    modal.showModal();
+  }
+
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+      const modal = document.getElementById(
+        "modal_ruta_localidad"
+      );
+
+      if (modal) {
+        modal.addEventListener(
+          "close",
+          function () {
+            document.getElementById(
+              "iframe_ruta_localidad"
+            ).src = "";
+          }
+        );
+      }
+    }
+  );
 </script>
 {% endblock scripts %}

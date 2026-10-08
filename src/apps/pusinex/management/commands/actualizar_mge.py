@@ -13,6 +13,7 @@ from apps.pusinex.mge.doctor import (
     revisar_distrito_local,
     revisar_municipio,
     revisar_seccion,
+    revisar_localidad,
     revisar_manzana,
 )
 from apps.pusinex.mge.entidad import (
@@ -29,6 +30,9 @@ from apps.pusinex.mge.municipio import (
 )
 from apps.pusinex.mge.seccion import (
     actualizar_seccion,
+)
+from apps.pusinex.mge.localidad import (
+    actualizar_localidad,
 )
 from apps.pusinex.mge.manzana import (
     actualizar_manzana,
@@ -99,18 +103,13 @@ class Command(BaseCommand):
             )
 
             diagnosticos = {
-                "entidad":
-                    revisar_entidad(ruta),
-                "distrito":
-                    revisar_distrito(ruta),
-                "distrito_local":
-                    revisar_distrito_local(ruta),
-                "municipio":
-                    revisar_municipio(ruta),
-                "seccion":
-                    revisar_seccion(ruta),
-                "manzana":
-                    revisar_manzana(ruta),
+                "entidad": revisar_entidad(ruta),
+                "distrito": revisar_distrito(ruta),
+                "distrito_local": revisar_distrito_local(ruta),
+                "municipio": revisar_municipio(ruta),
+                "seccion": revisar_seccion(ruta),
+                "localidad": revisar_localidad(ruta),
+                "manzana": revisar_manzana(ruta),
             }
 
             self._mostrar_diagnosticos(
@@ -306,6 +305,21 @@ class Command(BaseCommand):
                     "Sección actualizada "
                     "correctamente."
                 )
+            )
+
+            # ---------------------------------
+            # LOCALIDAD
+            # ---------------------------------
+
+            self.stdout.write("")
+            self.stdout.write("Actualizando Localidad...")
+
+            resultados["localidad"] = actualizar_localidad(
+                ruta,
+            )
+
+            self.stdout.write(
+                self.style.SUCCESS("Localidad actualizada correctamente.")
             )
 
             # ---------------------------------

@@ -372,6 +372,7 @@ class Index(ListView):
             "secciones_conteo": secciones_conteo,
             "padron_total": totales['padron'] or 0,
             "lista_nominal_total": totales['nominal'] or 0,
+            "fecha_corte_pe_ln": entidad.fecha_corte_pe_ln,
             "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
         })
 
@@ -393,6 +394,34 @@ class SeccionDetail(DetailView):
             else ""
         )
         destino = self.object.ubica.strip() if self.object.ubica else ""
+
+        # Rutas hacia localidades puntuales
+        localidades_puntuales = []
+
+        for localidad in self.object.localidades.all():
+            ruta_localidad = ""
+
+            if origen and localidad.geom:
+                punto = localidad.geom.clone()
+
+                if punto.srid != 4326:
+                    punto.transform(4326)
+
+                destino_localidad = f"{punto.y:.7f},{punto.x:.7f}"
+
+                ruta_localidad = (
+                    "https://maps.google.com/maps"
+                    f"?saddr={origen}"
+                    f"&daddr={destino_localidad}"
+                    "&output=embed"
+                )
+
+            localidades_puntuales.append(
+                {
+                    "localidad": localidad,
+                    "ruta": ruta_localidad,
+                }
+            )
 
         if origen and destino:
             ruta_url = f"https://maps.google.com/maps?saddr={origen}&daddr={destino}&output=embed"
@@ -442,9 +471,15 @@ class SeccionDetail(DetailView):
                 "municipio_geojson": municipio_geo,
                 "ultimo_pusinex": ultimo_pusinex,
                 "es_urbana": es_urbana,
+                "localidades_puntuales": localidades_puntuales,
                 "vnm_2023": self.object.seccion in SECCIONES_VNM_2023,
                 "vnm_2024": self.object.seccion in SECCIONES_VNM_2024,
-                "vnm_2026": self.object.seccion in SECCIONES_VNM_2026,
+                "vnm_2026_cobertura": (
+                    self.object.seccion in SECCIONES_VNM2026_COBERTURA
+                ),
+                "vnm_2026_actualizacion": (
+                    self.object.seccion in SECCIONES_VNM2026_ACTUALIZACION
+                ),
                 "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
             }
         )
@@ -486,7 +521,8 @@ class DistritoDetail(DetailView):
             "distrito", "municipio", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM_2026)
+        vnm2026_cobertura_sections = set(SECCIONES_VNM2026_COBERTURA)
+        vnm2026_actualizacion_sections = set(SECCIONES_VNM2026_ACTUALIZACION)
 
         # Generación de GeoJSON del Distrito
         distrito_geo = serialize(
@@ -559,7 +595,12 @@ class DistritoDetail(DetailView):
                 "municipios_geojson": json.dumps(municipios_geo_dict),
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
-                "vnm2026_sections": vnm2026_sections,
+                "vnm2026_cobertura_sections": (
+                    vnm2026_cobertura_sections
+                ),
+                "vnm2026_actualizacion_sections": (
+                    vnm2026_actualizacion_sections
+                ),
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
                 "district_package": get_pusinex_package_metadata(
@@ -588,7 +629,9 @@ class MunicipioDetail(DetailView):
             "distrito", "seccion"
         )
         secciones_totales = secciones_qs.count()
-        vnm2026_sections = set(SECCIONES_VNM_2026)
+        vnm2026_cobertura_sections = set(SECCIONES_VNM2026_COBERTURA)
+
+        vnm2026_actualizacion_sections = set(SECCIONES_VNM2026_ACTUALIZACION)
 
         # Generación de GeoJSON del contorno del Municipio
         municipio_geo = serialize(
@@ -611,7 +654,12 @@ class MunicipioDetail(DetailView):
                 "secciones_geojson": secciones_geo,
                 "secciones_conteo": secciones_totales,
                 "secciones": secciones_qs,
-                "vnm2026_sections": vnm2026_sections,
+                "vnm2026_cobertura_sections": (
+                    vnm2026_cobertura_sections
+                ),
+                "vnm2026_actualizacion_sections": (
+                    vnm2026_actualizacion_sections
+                ),
                 "padron_total": self.object.pe,
                 "lista_nominal_total": self.object.ln,
                 "carto_basemaps_api_key": settings.CARTO_BASEMAPS_API_KEY,
@@ -720,7 +768,7 @@ SECCIONES_VNM_2024 = (
     639, 374, 375, 381, 382, 384, 561, 572, 597, 599, 154,
 )
 
-SECCIONES_VNM_2026 = (
+SECCIONES_VNM2026_COBERTURA = (
     3, 4, 16, 17, 26, 27, 40, 42, 66, 80, 82, 86, 92, 106, 107, 115,
     134, 144, 152, 153, 182, 183, 187, 200, 203, 204, 214, 215, 218, 222,
     232, 243, 245, 247, 253, 265, 276, 290, 311, 314, 321, 339, 352, 354,
@@ -729,18 +777,35 @@ SECCIONES_VNM_2026 = (
     614, 622, 627, 628, 633, 648,
 )
 
-VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
-VNM2026_PACKAGE_FILENAME = "29_vnm2026_distrito_{district:02d}.zip"
+SECCIONES_VNM2026_ACTUALIZACION = (
+    1, 5, 32, 40, 43, 47, 58, 61, 74, 78, 82, 90, 107, 124, 134, 139,
+    191, 194, 204, 217, 247, 254, 271, 286, 326, 337, 351, 360, 363, 364,
+    368, 371, 372, 386, 398, 404, 411, 414, 424, 427, 430, 439, 536, 539,
+    543, 555, 558, 560, 567, 569, 573, 574, 585, 621, 627, 629, 632, 639,
+)
 
-def get_vnm2026_sections():
+VNM2026_DIRECTORY = Path(settings.MEDIA_ROOT) / "pusinex" / "vnm2026"
+
+VNM2026_COBERTURA_DIRECTORY = VNM2026_DIRECTORY / "cobertura"
+VNM2026_ACTUALIZACION_DIRECTORY = VNM2026_DIRECTORY / "actualizacion"
+
+VNM2026_COBERTURA_PACKAGE_FILENAME = (
+    "29_vnm2026_cobertura_distrito_{district:02d}.zip"
+)
+
+VNM2026_ACTUALIZACION_PACKAGE_FILENAME = (
+    "29_vnm2026_actualizacion_distrito_{district:02d}.zip"
+)
+
+def get_vnm2026_sections(section_ids):
     """
-    Devuelve las 78 secciones seleccionadas para la VNM 2026.
+    Devuelve las secciones seleccionadas para una etapa de la VNM 2026.
     """
     return (
         Seccion.objects
         .filter(
             entidad_id=TLAXCALA,
-            seccion__in=SECCIONES_VNM_2026,
+            seccion__in=section_ids,
         )
         .select_related(
             "distrito",
@@ -753,7 +818,7 @@ def get_vnm2026_sections():
         )
     )
 
-def get_vnm2026_entries():
+def get_vnm2026_entries(section_ids):
     """
     Clasifica las secciones seleccionadas de la VNM 2026.
 
@@ -772,7 +837,7 @@ def get_vnm2026_entries():
     )
 
     sections = list(
-        get_vnm2026_sections().annotate(
+        get_vnm2026_sections(section_ids).annotate(
             latest_pusinex_id=Subquery(
                 latest_revision.values("pk")[:1]
             )
@@ -847,8 +912,11 @@ def get_vnm2026_entries():
 
     return entries
 
-def get_vnm2026_statistics():
-    entries = get_vnm2026_entries()
+def get_vnm2026_statistics(
+    section_ids,
+    package_metadata_getter=None,
+):
+    entries = get_vnm2026_entries(section_ids)
 
     districts = {}
 
@@ -885,18 +953,23 @@ def get_vnm2026_statistics():
             stats["missing_sections"].append(entry)
 
     for district_number, stats in districts.items():
-        stats["package"] = get_vnm2026_package_metadata(district_number)
+        if package_metadata_getter:
+            stats["package"] = package_metadata_getter(district_number)
+        else:
+            stats["package"] = {
+                "exists": False,
+            }
 
     return [
         districts[number]
         for number in sorted(districts)
     ]
 
-def get_vnm2026_validation():
-    sections = list(get_vnm2026_sections())
+def get_vnm2026_validation(section_ids):
+    sections = list(get_vnm2026_sections(section_ids))
 
     found_ids = {section.seccion for section in sections}
-    expected_ids = set(SECCIONES_VNM_2026)
+    expected_ids = set(section_ids)
 
     missing_ids = sorted(expected_ids - found_ids)
     unexpected_ids = sorted(found_ids - expected_ids)
@@ -918,17 +991,44 @@ def get_vnm2026_section_type(section):
 
     return "REQUIERE_PUSINEX"
 
-def get_vnm2026_package_path(district):
+def get_vnm2026_package_path(etapa, district):
+    if etapa == "cobertura":
+        directory = VNM2026_COBERTURA_DIRECTORY
+        filename = VNM2026_COBERTURA_PACKAGE_FILENAME
+
+    elif etapa == "actualizacion":
+        directory = VNM2026_ACTUALIZACION_DIRECTORY
+        filename = VNM2026_ACTUALIZACION_PACKAGE_FILENAME
+
+    else:
+        raise ValueError(
+            f"Etapa VNM 2026 no válida: {etapa}"
+        )
+
     return (
-        VNM2026_DIRECTORY
-        / VNM2026_PACKAGE_FILENAME.format(
+        directory
+        / filename.format(
             district=int(district)
         )
     )
 
 
-def get_vnm2026_package_metadata(district):
-    package_path = get_vnm2026_package_path(district)
+def get_vnm2026_package_metadata(etapa, district):
+    package_path = get_vnm2026_package_path(
+        etapa,
+        district,
+    )
+
+    if etapa == "cobertura":
+        url_name = "pusinex:vnm2026_cobertura_package"
+
+    elif etapa == "actualizacion":
+        url_name = "pusinex:vnm2026_actualizacion_package"
+
+    else:
+        raise ValueError(
+            f"Etapa VNM 2026 no válida: {etapa}"
+        )
 
     metadata = {
         "exists": package_path.is_file(),
@@ -936,7 +1036,7 @@ def get_vnm2026_package_metadata(district):
         "size": None,
         "modified": None,
         "download_url": reverse(
-            "pusinex:vnm2026_package",
+            url_name,
             kwargs={"district": int(district)},
         ),
     }
@@ -952,13 +1052,65 @@ def get_vnm2026_package_metadata(district):
 
     return metadata
 
-class VNM2026(TemplateView):
+def get_vnm2026_cobertura_package_metadata(district):
+    return get_vnm2026_package_metadata(
+        "cobertura",
+        district,
+    )
+
+
+def get_vnm2026_actualizacion_package_metadata(district):
+    return get_vnm2026_package_metadata(
+        "actualizacion",
+        district,
+    )
+
+
+class VNM2026Index(TemplateView):
+    template_name = "pusinex/vnm2026_index.html"
+
+
+class VNM2026Cobertura(TemplateView):
     template_name = "pusinex/vnm2026.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        districts = get_vnm2026_statistics()
+        districts = get_vnm2026_statistics(
+            SECCIONES_VNM2026_COBERTURA,
+            package_metadata_getter=(get_vnm2026_cobertura_package_metadata),
+        )
+
+        context.update(
+            {
+                "districts": districts,
+                "total_selected": sum(item["selected"] for item in districts),
+                "total_with_pusinex": sum(item["with_pusinex"] for item in districts),
+                "total_missing": sum(item["missing"] for item in districts),
+                "total_rural": sum(item["rural"] for item in districts),
+                "vnm_etapa": "cobertura",
+                "vnm_titulo": "VNM 2026 - Etapa de Cobertura",
+                "vnm_descripcion": (
+                    "Seguimiento de las secciones seleccionadas "
+                    "en la etapa de cobertura para la VNM 2026 "
+                    "en Tlaxcala."
+                ),
+            }
+        )
+
+        return context
+
+
+class VNM2026Actualizacion(TemplateView):
+    template_name = "pusinex/vnm2026.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        districts = get_vnm2026_statistics(
+            SECCIONES_VNM2026_ACTUALIZACION,
+            package_metadata_getter=(get_vnm2026_actualizacion_package_metadata),
+        )
 
         context.update(
             {
@@ -979,22 +1131,30 @@ class VNM2026(TemplateView):
                     item["rural"]
                     for item in districts
                 ),
+                "vnm_etapa": "actualizacion",
+                "vnm_titulo": "VNM 2026 - Etapa de Actualización",
+                "vnm_descripcion": (
+                    "Seguimiento de las secciones seleccionadas "
+                    "en la etapa de actualización para la VNM "
+                    "2026 en Tlaxcala."
+                ),
             }
         )
 
         return context
 
-
 class VNM2026PackageDownload(View):
-    @staticmethod
-    def get(request, district):
+    etapa = None
+
+    def get(self, request, district):
         if district not in (1, 2, 3):
             raise Http404(
                 "Distrito no válido para la VNM 2026."
             )
 
         package_path = get_vnm2026_package_path(
-            district
+            self.etapa,
+            district,
         )
 
         if not package_path.is_file():
@@ -1009,6 +1169,19 @@ class VNM2026PackageDownload(View):
             filename=package_path.name,
             content_type="application/zip",
         )
+
+
+class VNM2026CoberturaPackageDownload(
+    VNM2026PackageDownload
+):
+    etapa = "cobertura"
+
+
+class VNM2026ActualizacionPackageDownload(
+    VNM2026PackageDownload
+):
+    etapa = "actualizacion"
+
 
 class GeneratePUSINEXPackages(
     LoginRequiredMixin,
