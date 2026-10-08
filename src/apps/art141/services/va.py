@@ -1,49 +1,11 @@
-from django.db.models import Count, F, Subquery, Window
-from django.db.models.functions import RowNumber
+from django.db.models import Count
 
-from apps.art141.models import RegistroArt141
+from apps.art141.models import UniversoVA
 
 
 def get_universo_va():
-    """
-    Devuelve una sola fila por persona para el universo preliminar
-    de Voto Anticipado.
-
-    Reglas:
-    - ESTATUSCIUDADANO_ID = 2
-    - 1 CIUDADANO_ID = 1 persona
-    - Si existen varios registros de la misma persona, se conserva:
-        1. La fecha de entrega de credencial más reciente.
-        2. En empate, la fecha de solicitud más reciente.
-        3. En empate, el registro con ID más alto.
-    """
-
-    registros_seleccionados = (
-        RegistroArt141.objects
-        .filter(estatusciudadano_id=2)
-        .annotate(
-            orden_va=Window(
-                expression=RowNumber(),
-                partition_by=[
-                    F("ciudadano_id"),
-                ],
-                order_by=[
-                    F("fecha_entrega_credencial").desc(
-                        nulls_last=True
-                    ),
-                    F("fecha_solicitud_tramite").desc(
-                        nulls_last=True
-                    ),
-                    F("id").desc(),
-                ],
-            )
-        )
-        .filter(orden_va=1)
-        .values("id")
-    )
-
-    return RegistroArt141.objects.filter(
-        id__in=Subquery(registros_seleccionados)
+    return UniversoVA.objects.filter(
+        activo=True
     )
 
 
@@ -91,6 +53,7 @@ def get_resumen_va():
         "manzanas": (
             universo
             .exclude(manzana_origen__isnull=True)
+            .exclude(manzana_origen=9999)
             .values(
                 "seccion_origen",
                 "localidad",
@@ -100,7 +63,7 @@ def get_resumen_va():
             .count()
         ),
 
-        "georreferencia_valida": (
+        "con_referencia": (
             universo
             .exclude(seccion__isnull=True)
             .count()
@@ -112,20 +75,36 @@ def get_resumen_va():
             .count()
         ),
 
-        "sin_referencia_manzana": (
+        "nivel_manzana": (
             universo
-            .exclude(seccion__isnull=True)
-            .filter(manzana__isnull=True)
+            .exclude(manzana__isnull=True)
+            .count()
+        ),
+
+        "nivel_localidad": (
+            universo
+            .filter(
+                manzana__isnull=True,
+                localidad_mge__isnull=False,
+            )
+            .count()
+        ),
+
+        "nivel_seccion": (
+            universo
+            .filter(
+                manzana__isnull=True,
+                localidad_mge__isnull=True,
+                seccion__isnull=False,
+            )
             .count()
         ),
     }
 
 
 def get_va_por_distrito():
-    universo = get_universo_va()
-
     return list(
-        universo
+        get_universo_va()
         .values("distrito")
         .annotate(
             personas=Count("id"),
@@ -137,15 +116,15 @@ def get_va_por_distrito():
         .order_by("distrito")
     )
 
-def get_va_por_seccion():
-    universo = get_universo_va()
 
+def get_va_por_seccion():
     return list(
-        universo
+        get_universo_va()
         .exclude(seccion_origen__isnull=True)
         .values(
             "distrito",
             "seccion_origen",
+            "seccion_id",
         )
         .annotate(
             personas=Count("id"),
@@ -159,3 +138,43 @@ def get_va_por_seccion():
             "seccion_origen",
         )
     )
+
+
+def get_distribucion_va_por_seccion():
+    secciones = get_va_por_seccion()
+
+    distribucion = {
+        "1": 0,
+        "2": 0,
+        "3_5": 0,
+        "6_10": 0,
+        "11_mas": 0,
+    }
+
+    max_personas = 0
+    seccion_max = None
+
+    for item in secciones:
+        personas = item["personas"]
+
+        if personas > max_personas:
+            max_personas = personas
+            seccion_max = item["seccion_origen"]
+
+        if personas == 1:
+            distribucion["1"] += 1
+        elif personas == 2:
+            distribucion["2"] += 1
+        elif personas <= 5:
+            distribucion["3_5"] += 1
+        elif personas <= 10:
+            distribucion["6_10"] += 1
+        else:
+            distribucion["11_mas"] += 1
+
+    return {
+        "secciones": len(secciones),
+        "distribucion": distribucion,
+        "max_personas": max_personas,
+        "seccion_max": seccion_max,
+    }

@@ -1,11 +1,11 @@
 from django.db.models import Count
 
-from apps.art141.models import RegistroArt141
+from apps.art141.models import TramiteArt141, UniversoVA
 
 
 def get_art141_por_distrito():
     return list(
-        RegistroArt141.objects
+        TramiteArt141.objects
         .values("distrito")
         .annotate(
             tramites=Count("id"),
@@ -24,10 +24,12 @@ def get_art141_por_distrito():
 
 def get_art141_por_seccion():
     return list(
-        RegistroArt141.objects
+        TramiteArt141.objects
+        .exclude(seccion_origen__isnull=True)
         .values(
             "distrito",
             "seccion_origen",
+            "seccion_id",
         )
         .annotate(
             tramites=Count("id"),
@@ -43,30 +45,89 @@ def get_art141_por_seccion():
     )
 
 
+def get_va_por_distrito():
+    return list(
+        UniversoVA.objects
+        .filter(activo=True)
+        .values("distrito")
+        .annotate(
+            personas=Count("id"),
+            secciones=Count(
+                "seccion_origen",
+                distinct=True,
+            ),
+        )
+        .order_by("distrito")
+    )
+
+
+def get_va_por_seccion():
+    return list(
+        UniversoVA.objects
+        .filter(activo=True)
+        .exclude(seccion_origen__isnull=True)
+        .values(
+            "distrito",
+            "seccion_origen",
+            "seccion_id",
+        )
+        .annotate(
+            personas=Count("id"),
+        )
+        .order_by(
+            "distrito",
+            "seccion_origen",
+        )
+    )
+
+
 def get_georreferencia_art141():
-    queryset = RegistroArt141.objects.all()
-
-    georreferencia_valida = (
-        queryset
-        .exclude(seccion__isnull=True)
-        .count()
+    return _get_niveles_georreferencia(
+        TramiteArt141.objects.all()
     )
 
-    georreferencia_pendiente = (
-        queryset
-        .filter(seccion__isnull=True)
-        .count()
+
+def get_georreferencia_va():
+    return _get_niveles_georreferencia(
+        UniversoVA.objects.filter(
+            activo=True
+        )
     )
 
-    sin_referencia_manzana = (
-        queryset
-        .exclude(seccion__isnull=True)
-        .filter(manzana__isnull=True)
-        .count()
+
+def _get_niveles_georreferencia(queryset):
+    nivel_manzana = queryset.filter(
+        manzana__isnull=False
+    ).count()
+
+    nivel_localidad = queryset.filter(
+        manzana__isnull=True,
+        localidad_mge__isnull=False,
+    ).count()
+
+    nivel_seccion = queryset.filter(
+        manzana__isnull=True,
+        localidad_mge__isnull=True,
+        seccion__isnull=False,
+    ).count()
+
+    pendiente = queryset.filter(
+        seccion__isnull=True
+    ).count()
+
+    total = queryset.count()
+
+    con_referencia = (
+        nivel_manzana
+        + nivel_localidad
+        + nivel_seccion
     )
 
     return {
-        "georreferencia_valida": georreferencia_valida,
-        "georreferencia_pendiente": georreferencia_pendiente,
-        "sin_referencia_manzana": sin_referencia_manzana,
+        "total": total,
+        "con_referencia": con_referencia,
+        "nivel_manzana": nivel_manzana,
+        "nivel_localidad": nivel_localidad,
+        "nivel_seccion": nivel_seccion,
+        "georreferencia_pendiente": pendiente,
     }

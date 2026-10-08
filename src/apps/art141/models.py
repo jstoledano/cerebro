@@ -31,7 +31,6 @@ class TramiteArt141(models.Model):
         blank=True,
     )
 
-    # Ubicación geoelectoral reportada por la fuente
     entidad = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
@@ -63,8 +62,6 @@ class TramiteArt141(models.Model):
         blank=True,
     )
 
-    # Referencias al MGE actual.
-    # Cartografía es de solo lectura para esta app.
     seccion = models.ForeignKey(
         Seccion,
         on_delete=models.SET_NULL,
@@ -117,21 +114,11 @@ class TramiteArt141(models.Model):
             "fuar",
         ]
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=[
-                    "ciudadano_id",
-                    "fecha_solicitud_tramite",
-                ],
-                name="uniq_art141_ciudadano_fecha",
-            ),
-        ]
-
     def __str__(self):
         return (
             f"Art. 141 | "
-            f"{self.ciudadano_id} | "
-            f"{self.fecha_solicitud_tramite}"
+            f"FUAR {self.fuar} | "
+            f"{self.ciudadano_id}"
         )
 
 
@@ -166,7 +153,6 @@ class UniversoVA(models.Model):
         blank=True,
     )
 
-    # Ubicación geoelectoral vigente reportada por la fuente
     entidad = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
@@ -198,8 +184,6 @@ class UniversoVA(models.Model):
         blank=True,
     )
 
-    # Referencias al MGE actual.
-    # No determinan si la persona pertenece o no a VA.
     seccion = models.ForeignKey(
         Seccion,
         on_delete=models.SET_NULL,

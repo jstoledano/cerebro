@@ -1,18 +1,24 @@
+import calendar
 import csv
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.art141.config import (
+    ANIO_INICIO_VA,
+    PLAZO_MAXIMO_VA_MESES,
+)
 from apps.art141.models import TramiteArt141, UniversoVA
 from apps.pusinex.models import Localidad, Manzana, Seccion
 
 
 class Command(BaseCommand):
     help = (
-        "Sincroniza trámites históricos de Artículo 141 "
+        "Sincroniza el histórico de trámites Artículo 141 "
         "y el universo vigente de Voto Anticipado."
     )
 
@@ -25,18 +31,29 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        archivo = options["archivo"]
+        archivo = Path(options["archivo"])
+
+        if not archivo.exists():
+            raise CommandError(
+                f"No existe el archivo: {archivo}"
+            )
 
         filas = self._leer_csv(archivo)
 
         if not filas:
-            raise CommandError("El archivo no contiene registros.")
+            raise CommandError(
+                "El archivo no contiene registros."
+            )
 
         datos_procesados = []
 
-        for numero_fila, fila in enumerate(filas, start=1):
+        for numero_fila, fila in enumerate(
+            filas,
+            start=1,
+        ):
             try:
                 datos = self._procesar_fila(fila)
+
             except Exception as exc:
                 raise CommandError(
                     f"Error en fila {numero_fila}: {exc}"
@@ -58,19 +75,31 @@ class Command(BaseCommand):
         )
 
     def _leer_csv(self, archivo):
-        try:
-            with open(
-                archivo,
-                "r",
-                encoding="utf-8-sig",
-                newline="",
-            ) as fh:
-                lineas = fh.readlines()
+        lineas = None
 
-        except FileNotFoundError as exc:
+        for encoding in (
+            "utf-8-sig",
+            "cp1252",
+            "latin-1",
+        ):
+            try:
+                with archivo.open(
+                    "r",
+                    encoding=encoding,
+                    newline="",
+                ) as fh:
+                    lineas = fh.readlines()
+
+                break
+
+            except UnicodeDecodeError:
+                continue
+
+        if lineas is None:
             raise CommandError(
-                f"No existe el archivo: {archivo}"
-            ) from exc
+                "No fue posible determinar la "
+                "codificación del archivo."
+            )
 
         indice_encabezado = None
 
@@ -94,15 +123,31 @@ class Command(BaseCommand):
         )
 
     def _procesar_fila(self, fila):
+        fuar = self._texto(
+            fila.get("FUAR")
+        )
+
+        if not fuar:
+            raise ValueError("FUAR vacío")
+
+        if len(fuar) > 13:
+            raise ValueError(
+                f"FUAR inválido: {fuar}"
+            )
+
         ciudadano_id = self._texto(
             fila.get("CIUDADANO_ID")
         )
 
         if not ciudadano_id:
-            raise ValueError("CIUDADANO_ID vacío")
+            raise ValueError(
+                "CIUDADANO_ID vacío"
+            )
 
         fecha_solicitud = self._fecha(
-            fila.get("FECHA_SOLICITUD_AFECTACION")
+            fila.get(
+                "FECHA_SOLICITUD_AFECTACION"
+            )
         )
 
         if fecha_solicitud is None:
@@ -110,28 +155,34 @@ class Command(BaseCommand):
                 "FECHA_SOLICITUD_AFECTACION vacía"
             )
 
-        entidad = self._entero(
-            fila.get("ENTIDAD")
+        entidad = self._entidad(
+            fila.get("ENTIDAD_TRAMITE")
+            or fila.get("ENTIDAD")
         )
 
         distrito = self._entero(
-            fila.get("DISTRITO")
+            fila.get("DISTRITO_TRAMITE")
+            or fila.get("DISTRITO")
         )
 
         municipio = self._texto(
-            fila.get("MUNICIPIO")
+            fila.get("MUNICIPIO_TRAMITE")
+            or fila.get("MUNICIPIO")
         )
 
         seccion_num = self._entero(
-            fila.get("SECCION")
+            fila.get("SECCION_TRAMITE")
+            or fila.get("SECCION")
         )
 
         localidad_num = self._entero(
-            fila.get("LOCALIDAD")
+            fila.get("LOCALIDAD_TRAMITE")
+            or fila.get("LOCALIDAD")
         )
 
         manzana_num = self._entero(
-            fila.get("MANZANA")
+            fila.get("MANZANA_TRAMITE")
+            or fila.get("MANZANA")
         )
 
         seccion = None
@@ -177,15 +228,28 @@ class Command(BaseCommand):
                 .first()
             )
 
+        estatusciudadano_id = self._entero(
+            fila.get("ESTATUSCIUDADANO_ID")
+        )
+
+        lista_nominal = self._booleano_si_no(
+            fila.get("LISTA_NOMINAL")
+        )
+
+        presente_padron_actual = (
+            self._booleano_si_no(
+                fila.get(
+                    "PRESENTE_PADRON_ACTUAL"
+                )
+            )
+        )
+
         return {
-            "fuar": None,
-
+            "fuar": fuar,
             "ciudadano_id": ciudadano_id,
-
             "fecha_solicitud_tramite": (
                 fecha_solicitud
             ),
-
             "fecha_entrega_credencial": (
                 self._fecha(
                     fila.get(
@@ -193,57 +257,52 @@ class Command(BaseCommand):
                     )
                 )
             ),
-
             "estatusciudadano_id": (
-                self._entero(
-                    fila.get(
-                        "ESTATUSCIUDADANO_ID"
-                    )
-                )
+                estatusciudadano_id
             ),
-
+            "lista_nominal": lista_nominal,
+            "presente_padron_actual": (
+                presente_padron_actual
+            ),
             "entidad": entidad,
             "distrito": distrito,
             "municipio": municipio,
             "seccion_origen": seccion_num,
             "localidad": localidad_num,
             "manzana_origen": manzana_num,
-
             "seccion": seccion,
             "localidad_mge": localidad_mge,
             "manzana": manzana,
-
             "edad": self._entero(
-                fila.get("EDAD")
+                fila.get("EDAD_CALCULADA")
+                or fila.get("EDAD")
             ),
-
             "sexo": self._texto(
                 fila.get("SEXO")
             ),
         }
 
     def _sincronizar_kpi(self, filas):
+        eliminados_legacy = (
+            TramiteArt141.objects
+            .filter(fuar__isnull=True)
+            .delete()[0]
+        )
+
         creados = 0
         actualizados = 0
 
         for datos in filas:
-            defaults = datos.copy()
-
-            ciudadano_id = defaults.pop(
-                "ciudadano_id"
+            defaults = self._datos_modelo(
+                datos
             )
 
-            fecha_solicitud = defaults.pop(
-                "fecha_solicitud_tramite"
-            )
+            fuar = defaults.pop("fuar")
 
             _, created = (
                 TramiteArt141.objects
                 .update_or_create(
-                    ciudadano_id=ciudadano_id,
-                    fecha_solicitud_tramite=(
-                        fecha_solicitud
-                    ),
+                    fuar=fuar,
                     defaults=defaults,
                 )
             )
@@ -256,6 +315,9 @@ class Command(BaseCommand):
         return {
             "creados": creados,
             "actualizados": actualizados,
+            "eliminados_legacy": (
+                eliminados_legacy
+            ),
             "total": (
                 TramiteArt141.objects.count()
             ),
@@ -271,8 +333,6 @@ class Command(BaseCommand):
                 datos["ciudadano_id"]
             ].append(datos)
 
-        # Toda persona que existía previamente
-        # parte como ausente del corte actual.
         UniversoVA.objects.update(
             presente_fuente=False,
             activo=False,
@@ -286,19 +346,17 @@ class Command(BaseCommand):
         for ciudadano_id, registros in (
             por_ciudadano.items()
         ):
-            registros_ln = [
+            elegibles = [
                 registro
                 for registro in registros
-                if (
-                    registro[
-                        "estatusciudadano_id"
-                    ] == 2
+                if self._es_elegible_va(
+                    registro
                 )
             ]
 
-            if registros_ln:
+            if elegibles:
                 seleccionado = max(
-                    registros_ln,
+                    elegibles,
                     key=self._clave_orden_va,
                 )
                 activo = True
@@ -310,74 +368,72 @@ class Command(BaseCommand):
                 )
                 activo = False
 
+            presente_padron = any(
+                registro[
+                    "presente_padron_actual"
+                ]
+                for registro in registros
+            )
+
             defaults = {
                 "activo": activo,
-                "presente_fuente": True,
-
+                "presente_fuente": (
+                    presente_padron
+                ),
                 "estatusciudadano_id": (
                     seleccionado[
                         "estatusciudadano_id"
                     ]
                 ),
-
                 "fecha_solicitud_tramite": (
                     seleccionado[
                         "fecha_solicitud_tramite"
                     ]
                 ),
-
                 "fecha_entrega_credencial": (
                     seleccionado[
                         "fecha_entrega_credencial"
                     ]
                 ),
-
                 "entidad": seleccionado[
                     "entidad"
                 ],
-
                 "distrito": seleccionado[
                     "distrito"
                 ],
-
                 "municipio": seleccionado[
                     "municipio"
                 ],
-
                 "seccion_origen": seleccionado[
                     "seccion_origen"
                 ],
-
                 "localidad": seleccionado[
                     "localidad"
                 ],
-
                 "manzana_origen": seleccionado[
                     "manzana_origen"
                 ],
-
                 "seccion": seleccionado[
                     "seccion"
                 ],
-
                 "localidad_mge": seleccionado[
                     "localidad_mge"
                 ],
-
                 "manzana": seleccionado[
                     "manzana"
                 ],
-
                 "edad": seleccionado[
                     "edad"
                 ],
-
                 "sexo": seleccionado[
                     "sexo"
                 ],
-
-                "ultima_presencia": ahora,
             }
+
+            if presente_padron:
+                defaults[
+                    "ultima_presencia"
+                ] = ahora
 
             _, created = (
                 UniversoVA.objects
@@ -405,15 +461,72 @@ class Command(BaseCommand):
             "total": UniversoVA.objects.count(),
         }
 
-    @staticmethod
-    def _clave_orden_va(registro):
-        fecha_entrega = (
-            registro[
-                "fecha_entrega_credencial"
-            ]
-            or datetime.min.date()
+    def _es_elegible_va(self, registro):
+        if not registro[
+            "presente_padron_actual"
+        ]:
+            return False
+
+        if not registro["lista_nominal"]:
+            return False
+
+        fecha_solicitud = registro[
+            "fecha_solicitud_tramite"
+        ]
+
+        if fecha_solicitud is None:
+            return False
+
+        if (
+            fecha_solicitud.year
+            < ANIO_INICIO_VA
+        ):
+            return False
+
+        fecha_entrega = registro[
+            "fecha_entrega_credencial"
+        ]
+
+        if fecha_entrega is None:
+            return True
+
+        if fecha_entrega < fecha_solicitud:
+            return False
+
+        fecha_limite = self._sumar_meses(
+            fecha_solicitud,
+            PLAZO_MAXIMO_VA_MESES,
         )
 
+        return fecha_entrega <= fecha_limite
+
+    @staticmethod
+    def _sumar_meses(fecha, meses):
+        mes = fecha.month - 1 + meses
+
+        anio = (
+            fecha.year
+            + mes // 12
+        )
+
+        mes = mes % 12 + 1
+
+        dia = min(
+            fecha.day,
+            calendar.monthrange(
+                anio,
+                mes,
+            )[1],
+        )
+
+        return fecha.replace(
+            year=anio,
+            month=mes,
+            day=dia,
+        )
+
+    @staticmethod
+    def _clave_orden_va(registro):
         fecha_solicitud = (
             registro[
                 "fecha_solicitud_tramite"
@@ -421,10 +534,59 @@ class Command(BaseCommand):
             or datetime.min.date()
         )
 
-        return (
-            fecha_entrega,
-            fecha_solicitud,
+        fecha_entrega = (
+            registro[
+                "fecha_entrega_credencial"
+            ]
+            or datetime.min.date()
         )
+
+        return (
+            fecha_solicitud,
+            fecha_entrega,
+            registro["fuar"],
+        )
+
+    @staticmethod
+    def _datos_modelo(datos):
+        return {
+            "fuar": datos["fuar"],
+            "ciudadano_id": (
+                datos["ciudadano_id"]
+            ),
+            "fecha_solicitud_tramite": (
+                datos[
+                    "fecha_solicitud_tramite"
+                ]
+            ),
+            "fecha_entrega_credencial": (
+                datos[
+                    "fecha_entrega_credencial"
+                ]
+            ),
+            "estatusciudadano_id": (
+                datos[
+                    "estatusciudadano_id"
+                ]
+            ),
+            "entidad": datos["entidad"],
+            "distrito": datos["distrito"],
+            "municipio": datos["municipio"],
+            "seccion_origen": (
+                datos["seccion_origen"]
+            ),
+            "localidad": datos["localidad"],
+            "manzana_origen": (
+                datos["manzana_origen"]
+            ),
+            "seccion": datos["seccion"],
+            "localidad_mge": (
+                datos["localidad_mge"]
+            ),
+            "manzana": datos["manzana"],
+            "edad": datos["edad"],
+            "sexo": datos["sexo"],
+        }
 
     def _mostrar_resultado(
         self,
@@ -439,7 +601,9 @@ class Command(BaseCommand):
         )
 
         self.stdout.write("")
-        self.stdout.write("KPI ARTÍCULO 141")
+        self.stdout.write(
+            "KPI ARTÍCULO 141"
+        )
         self.stdout.write(
             f"Trámites creados:       "
             f"{resultado_kpi['creados']}"
@@ -449,12 +613,18 @@ class Command(BaseCommand):
             f"{resultado_kpi['actualizados']}"
         )
         self.stdout.write(
+            f"Registros legacy eliminados: "
+            f"{resultado_kpi['eliminados_legacy']}"
+        )
+        self.stdout.write(
             f"Trámites históricos:    "
             f"{resultado_kpi['total']}"
         )
 
         self.stdout.write("")
-        self.stdout.write("UNIVERSO VA")
+        self.stdout.write(
+            "UNIVERSO VA"
+        )
         self.stdout.write(
             f"Personas creadas:        "
             f"{resultado_va['creados']}"
@@ -468,7 +638,7 @@ class Command(BaseCommand):
             f"{resultado_va['activos']}"
         )
         self.stdout.write(
-            f"Presentes no activas:    "
+            f"Personas no activas:     "
             f"{resultado_va['inactivos']}"
         )
         self.stdout.write(
@@ -479,31 +649,35 @@ class Command(BaseCommand):
         self._mostrar_georreferencia()
 
     def _mostrar_georreferencia(self):
-        kpi = TramiteArt141.objects.all()
-
-        va = UniversoVA.objects.filter(
-            activo=True
+        self.stdout.write("")
+        self.stdout.write(
+            "GEOREFERENCIA KPI"
+        )
+        self._mostrar_niveles(
+            TramiteArt141.objects.all()
         )
 
         self.stdout.write("")
-        self.stdout.write("GEOREFERENCIA KPI")
-        self._mostrar_niveles(kpi)
-
-        self.stdout.write("")
-        self.stdout.write("GEOREFERENCIA VA")
-        self._mostrar_niveles(va)
+        self.stdout.write(
+            "GEOREFERENCIA VA"
+        )
+        self._mostrar_niveles(
+            UniversoVA.objects.filter(
+                activo=True
+            )
+        )
 
     def _mostrar_niveles(self, queryset):
-        manzana = queryset.filter(
+        nivel_manzana = queryset.filter(
             manzana__isnull=False
         ).count()
 
-        localidad = queryset.filter(
+        nivel_localidad = queryset.filter(
             manzana__isnull=True,
             localidad_mge__isnull=False,
         ).count()
 
-        seccion = queryset.filter(
+        nivel_seccion = queryset.filter(
             manzana__isnull=True,
             localidad_mge__isnull=True,
             seccion__isnull=False,
@@ -514,19 +688,20 @@ class Command(BaseCommand):
         ).count()
 
         self.stdout.write(
-            f"Nivel manzana:           {manzana}"
+            f"Nivel manzana:           "
+            f"{nivel_manzana}"
         )
-
         self.stdout.write(
-            f"Nivel localidad:         {localidad}"
+            f"Nivel localidad:         "
+            f"{nivel_localidad}"
         )
-
         self.stdout.write(
-            f"Nivel sección:           {seccion}"
+            f"Nivel sección:           "
+            f"{nivel_seccion}"
         )
-
         self.stdout.write(
-            f"Georreferencia pendiente:{pendiente:>9}"
+            f"Georreferencia pendiente:"
+            f"{pendiente:>9}"
         )
 
     @staticmethod
@@ -538,7 +713,9 @@ class Command(BaseCommand):
 
     @staticmethod
     def _entero(valor):
-        valor = (valor or "").strip()
+        valor = str(
+            valor or ""
+        ).strip()
 
         if not valor:
             return None
@@ -548,12 +725,48 @@ class Command(BaseCommand):
 
         except ValueError as exc:
             raise ValueError(
-                f"Valor entero inválido: {valor}"
+                f"Valor entero inválido: "
+                f"{valor}"
             ) from exc
 
     @staticmethod
+    def _entidad(valor):
+        texto = str(
+            valor or ""
+        ).strip()
+
+        if not texto:
+            return None
+
+        if texto.isdigit():
+            return int(texto)
+
+        if texto.upper() == "TLAXCALA":
+            return 29
+
+        raise ValueError(
+            f"Entidad no reconocida: "
+            f"{texto}"
+        )
+
+    @staticmethod
+    def _booleano_si_no(valor):
+        texto = str(
+            valor or ""
+        ).strip().upper()
+
+        return texto in {
+            "SI",
+            "SÍ",
+            "1",
+            "TRUE",
+        }
+
+    @staticmethod
     def _fecha(valor):
-        valor = (valor or "").strip()
+        valor = str(
+            valor or ""
+        ).strip()
 
         if not valor:
             return None
@@ -574,5 +787,6 @@ class Command(BaseCommand):
                 continue
 
         raise ValueError(
-            f"Fecha no reconocida: {valor}"
+            f"Fecha no reconocida: "
+            f"{valor}"
         )
