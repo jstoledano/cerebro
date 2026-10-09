@@ -1,3 +1,4 @@
+import math
 from django.db.models import Count
 from django.db.models.functions import ExtractMonth, ExtractYear
 
@@ -277,139 +278,209 @@ def get_sankey_distritos(anio=None):
     }
 
 
-def get_desempeno_afectacion(anio=None):
-    qs = (
-        _queryset(anio)
-        .exclude(fecha_solicitud_tramite__isnull=True)
-        .exclude(fecha_afectacion_padron__isnull=True)
+def get_desempeno_entrega(anio=None):
+    qs = _queryset(anio)
+
+    con_entrega = qs.exclude(
+        fecha_entrega_credencial__isnull=True
     )
 
-    valores = []
+    sin_entrega = qs.filter(
+        fecha_entrega_credencial__isnull=True
+    ).count()
 
-    for tramite in qs.only(
+    dias_entrega = []
+
+    for tramite in con_entrega.only(
         "fecha_solicitud_tramite",
-        "fecha_afectacion_padron",
+        "fecha_entrega_credencial",
     ):
+        if (
+            tramite.fecha_solicitud_tramite is None
+            or tramite.fecha_entrega_credencial is None
+        ):
+            continue
+
         dias = (
-            tramite.fecha_afectacion_padron
+            tramite.fecha_entrega_credencial
             - tramite.fecha_solicitud_tramite
         ).days
 
         if dias >= 0:
-            valores.append(dias)
+            dias_entrega.append(dias)
 
-    valores.sort()
+    dias_entrega.sort()
 
-    if not valores:
-        return {
-            "casos": 0,
-            "mediana": None,
-            "p75": None,
-            "p90": None,
-            "minimo": None,
-            "maximo": None,
-        }
+    total_medidos = len(dias_entrega)
+
+    hasta_30 = sum(
+        1
+        for dias in dias_entrega
+        if dias <= 30
+    )
+
+    hasta_90 = sum(
+        1
+        for dias in dias_entrega
+        if dias <= 90
+    )
 
     return {
-        "casos": len(valores),
-        "mediana": _percentil(
-            valores,
-            50,
+        "casos": total_medidos,
+        "sin_fecha_entrega": sin_entrega,
+        "mediana": (
+            _mediana(dias_entrega)
+            if dias_entrega
+            else None
         ),
-        "p75": _percentil(
-            valores,
-            75,
+        "hasta_30": hasta_30,
+        "hasta_90": hasta_90,
+        "porcentaje_30": (
+            round(
+                hasta_30 * 100 / total_medidos,
+                1,
+            )
+            if total_medidos
+            else 0
         ),
-        "p90": _percentil(
-            valores,
-            90,
+        "porcentaje_90": (
+            round(
+                hasta_90 * 100 / total_medidos,
+                1,
+            )
+            if total_medidos
+            else 0
         ),
-        "minimo": valores[0],
-        "maximo": valores[-1],
     }
 
 
-def get_distribucion_dias_afectacion(anio=None):
+def get_distribucion_dias_entrega(anio=None):
     qs = (
         _queryset(anio)
         .exclude(fecha_solicitud_tramite__isnull=True)
-        .exclude(fecha_afectacion_padron__isnull=True)
+        .exclude(fecha_entrega_credencial__isnull=True)
     )
 
-    rangos = {
-        "0-1": 0,
-        "2-3": 0,
-        "4-7": 0,
-        "8-15": 0,
-        "16-30": 0,
-        "31+": 0,
-    }
+    dias_observados = []
 
     for tramite in qs.only(
         "fecha_solicitud_tramite",
-        "fecha_afectacion_padron",
+        "fecha_entrega_credencial",
     ):
         dias = (
-            tramite.fecha_afectacion_padron
+            tramite.fecha_entrega_credencial
             - tramite.fecha_solicitud_tramite
         ).days
 
-        if dias < 0:
-            continue
+        if dias >= 0:
+            dias_observados.append(dias)
 
-        if dias <= 1:
-            rangos["0-1"] += 1
-        elif dias <= 3:
-            rangos["2-3"] += 1
-        elif dias <= 7:
-            rangos["4-7"] += 1
-        elif dias <= 15:
-            rangos["8-15"] += 1
-        elif dias <= 30:
-            rangos["16-30"] += 1
-        else:
-            rangos["31+"] += 1
+    if not dias_observados:
+        return []
 
-    return [
-        {
-            "rango": rango,
-            "tramites": total,
-        }
-        for rango, total in rangos.items()
-    ]
+    maximo_observado = max(dias_observados)
 
+    limite_superior = (
+        math.ceil(maximo_observado / 5) * 5
+    )
 
-def _percentil(valores, percentil):
-    if not valores:
+    intervalos = []
+
+    minimo = 0
+
+    while minimo <= limite_superior:
+        maximo = 5 if minimo == 0 else minimo + 4
+
+        intervalos.append(
+            (minimo, maximo)
+        )
+
+        minimo = maximo + 1
+
+    frecuencias = []
+
+    for minimo, maximo in intervalos:
+        total = sum(
+            1
+            for dias in dias_observados
+            if minimo <= dias <= maximo
+        )
+
+        frecuencias.append(
+            {
+                "rango": f"{minimo}-{maximo}",
+                "tramites": total,
+                "centro": (minimo + maximo) / 2,
+            }
+        )
+
+    if len(dias_observados) < 2:
+        for item in frecuencias:
+            item["normal"] = 0
+
+        return frecuencias
+
+    cantidad = len(dias_observados)
+
+    media = sum(dias_observados) / cantidad
+
+    varianza = sum(
+        (dias - media) ** 2
+        for dias in dias_observados
+    ) / cantidad
+
+    desviacion = math.sqrt(varianza)
+
+    if desviacion == 0:
+        for item in frecuencias:
+            item["normal"] = 0
+
+        return frecuencias
+
+    ancho_intervalo = 5
+
+    for item in frecuencias:
+        x = item["centro"]
+
+        densidad = (
+            1
+            / (
+                desviacion
+                * math.sqrt(2 * math.pi)
+            )
+        ) * math.exp(
+            -0.5
+            * (
+                (x - media)
+                / desviacion
+            ) ** 2
+        )
+
+        item["normal"] = round(
+            densidad
+            * cantidad
+            * ancho_intervalo,
+            2,
+        )
+
+    return frecuencias
+
+def _mediana(valores):
+    cantidad = len(valores)
+
+    if cantidad == 0:
         return None
 
-    indice = (
-        (len(valores) - 1)
-        * percentil
-        / 100
-    )
+    mitad = cantidad // 2
 
-    inferior = int(indice)
-
-    superior = min(
-        inferior + 1,
-        len(valores) - 1,
-    )
-
-    fraccion = (
-        indice - inferior
-    )
-
-    valor = (
-        valores[inferior]
-        + (
-            valores[superior]
-            - valores[inferior]
-        )
-        * fraccion
-    )
+    if cantidad % 2:
+        return valores[mitad]
 
     return round(
-        valor,
+        (
+            valores[mitad - 1]
+            + valores[mitad]
+        )
+        / 2,
         1,
     )
