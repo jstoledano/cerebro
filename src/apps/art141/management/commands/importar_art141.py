@@ -128,7 +128,9 @@ class Command(BaseCommand):
         )
 
         if not fuar:
-            raise ValueError("FUAR vacío")
+            raise ValueError(
+                "FUAR vacío"
+            )
 
         if len(fuar) > 13:
             raise ValueError(
@@ -154,6 +156,18 @@ class Command(BaseCommand):
             raise ValueError(
                 "FECHA_SOLICITUD_AFECTACION vacía"
             )
+
+        fecha_afectacion = self._fecha(
+            fila.get(
+                "FECHA_AFECTACION_PADRON"
+            )
+        )
+
+        fecha_entrega = self._fecha(
+            fila.get(
+                "FECHA_ENTREGA_CREDENCIAL"
+            )
+        )
 
         entidad = self._entidad(
             fila.get("ENTIDAD_TRAMITE")
@@ -250,12 +264,11 @@ class Command(BaseCommand):
             "fecha_solicitud_tramite": (
                 fecha_solicitud
             ),
+            "fecha_afectacion_padron": (
+                fecha_afectacion
+            ),
             "fecha_entrega_credencial": (
-                self._fecha(
-                    fila.get(
-                        "FECHA_ENTREGA_CREDENCIAL"
-                    )
-                )
+                fecha_entrega
             ),
             "estatusciudadano_id": (
                 estatusciudadano_id
@@ -557,6 +570,11 @@ class Command(BaseCommand):
             "fecha_solicitud_tramite": (
                 datos[
                     "fecha_solicitud_tramite"
+                ]
+            ),
+            "fecha_afectacion_padron": (
+                datos[
+                    "fecha_afectacion_padron"
                 ]
             ),
             "fecha_entrega_credencial": (

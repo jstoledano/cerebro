@@ -21,6 +21,11 @@ class TramiteArt141(models.Model):
         blank=True,
     )
 
+    fecha_afectacion_padron = models.DateField(
+        null=True,
+        blank=True,
+    )
+
     fecha_entrega_credencial = models.DateField(
         null=True,
         blank=True,
@@ -108,7 +113,6 @@ class TramiteArt141(models.Model):
     class Meta:
         verbose_name = "Trámite Artículo 141"
         verbose_name_plural = "Trámites Artículo 141"
-
         ordering = [
             "fecha_solicitud_tramite",
             "fuar",
@@ -235,7 +239,6 @@ class UniversoVA(models.Model):
     class Meta:
         verbose_name = "Persona en universo VA"
         verbose_name_plural = "Personas en universo VA"
-
         ordering = [
             "distrito",
             "seccion_origen",

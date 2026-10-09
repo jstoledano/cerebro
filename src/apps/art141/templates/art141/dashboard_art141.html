@@ -1,0 +1,280 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}Artículo 141{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+      <div class="space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="badge badge-primary badge-outline">RFE</span>
+          <span class="badge badge-neutral badge-outline">Artículo 141</span>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-base-content">
+            Atención conforme al Artículo 141
+          </h1>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-base-content/70">
+            Seguimiento histórico de los trámites realizados mediante el módulo
+            290291 para la atención registral de la ciudadanía que solicitó este
+            mecanismo.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 lg:items-end">
+        <a
+          href="{% url 'art141:va' %}"
+          class="btn btn-primary btn-sm"
+        >
+          Ver Voto Anticipado
+        </a>
+
+        <p class="text-xs text-base-content/50">
+          Datos sujetos a validación registral
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Trámites realizados
+      </p>
+      <p class="mt-3 text-4xl font-bold text-base-content">
+        {{ resumen.tramites }}
+      </p>
+      <p class="mt-2 text-xs text-base-content/50">
+        1 FUAR = 1 trámite
+      </p>
+    </article>
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Personas atendidas
+      </p>
+      <p class="mt-3 text-4xl font-bold text-base-content">
+        {{ resumen.personas }}
+      </p>
+      <p class="mt-2 text-xs text-base-content/50">
+        Ciudadanía distinta identificada
+      </p>
+    </article>
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Distritos federales
+      </p>
+      <p class="mt-3 text-4xl font-bold text-base-content">
+        {{ resumen.distritos }}
+      </p>
+      <p class="mt-2 text-xs text-base-content/50">
+        Cobertura estatal
+      </p>
+    </article>
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Secciones atendidas
+      </p>
+      <p class="mt-3 text-4xl font-bold text-base-content">
+        {{ resumen.secciones }}
+      </p>
+      <p class="mt-2 text-xs text-base-content/50">
+        Secciones distintas en el histórico
+      </p>
+    </article>
+
+  </section>
+
+  <section class="grid gap-6 xl:grid-cols-3">
+
+    <div class="xl:col-span-2 rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-base-content">
+          Evolución histórica
+        </h2>
+        <p class="mt-1 text-sm text-base-content/60">
+          Trámites Artículo 141 por año de solicitud.
+        </p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead class="bg-base-200/60 text-base-content/70">
+            <tr>
+              <th>Año</th>
+              <th class="text-right">Trámites</th>
+              <th class="text-right">Personas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in por_anio %}
+              <tr>
+                <td class="font-medium">
+                  {{ item.anio }}
+                </td>
+                <td class="text-right tabular-nums">
+                  {{ item.tramites }}
+                </td>
+                <td class="text-right tabular-nums">
+                  {{ item.personas }}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="py-8 text-center text-base-content/50">
+                  No hay información disponible.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-base-content">
+          Referencia geoelectoral
+        </h2>
+        <p class="mt-1 text-sm text-base-content/60">
+          Nivel disponible para ubicar cada trámite.
+        </p>
+      </div>
+
+      <div class="space-y-4">
+
+        <div class="flex items-center justify-between rounded-xl bg-base-200/60 p-4">
+          <div>
+            <p class="text-sm font-medium">Manzana</p>
+            <p class="text-xs text-base-content/50">
+              Máxima precisión disponible
+            </p>
+          </div>
+          <span class="text-2xl font-bold tabular-nums">
+            {{ georreferencia.nivel_manzana }}
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between rounded-xl bg-base-200/60 p-4">
+          <div>
+            <p class="text-sm font-medium">Localidad</p>
+            <p class="text-xs text-base-content/50">
+              Sin manzana vigente
+            </p>
+          </div>
+          <span class="text-2xl font-bold tabular-nums">
+            {{ georreferencia.nivel_localidad }}
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between rounded-xl bg-base-200/60 p-4">
+          <div>
+            <p class="text-sm font-medium">Sección</p>
+            <p class="text-xs text-base-content/50">
+              Sin localidad o manzana vigente
+            </p>
+          </div>
+          <span class="text-2xl font-bold tabular-nums">
+            {{ georreferencia.nivel_seccion }}
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between rounded-xl border border-dashed border-base-300 p-4">
+          <div>
+            <p class="text-sm font-medium">
+              Referencia pendiente
+            </p>
+            <p class="text-xs text-base-content/50">
+              El trámite permanece en el KPI
+            </p>
+          </div>
+          <span class="text-2xl font-bold tabular-nums">
+            {{ georreferencia.georreferencia_pendiente }}
+          </span>
+        </div>
+
+      </div>
+
+      <div class="mt-6 border-t border-base-300 pt-4">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-base-content/60">
+            Con referencia geoelectoral
+          </span>
+          <span class="font-semibold tabular-nums">
+            {{ georreferencia.con_referencia }} / {{ georreferencia.total }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold text-base-content">
+        Distribución por distrito
+      </h2>
+      <p class="mt-1 text-sm text-base-content/60">
+        Volumen histórico de atención registral por distrito electoral federal.
+      </p>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-3">
+
+      {% for item in por_distrito %}
+        <article class="rounded-2xl border border-base-300 p-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">
+                Distrito
+              </p>
+              <p class="mt-1 text-3xl font-bold">
+                {{ item.distrito|stringformat:"02d" }}
+              </p>
+            </div>
+
+            <span class="badge badge-outline">
+              {{ item.secciones }} secciones
+            </span>
+          </div>
+
+          <div class="mt-6 grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-xs text-base-content/50">
+                Trámites
+              </p>
+              <p class="mt-1 text-2xl font-semibold tabular-nums">
+                {{ item.tramites }}
+              </p>
+            </div>
+
+            <div>
+              <p class="text-xs text-base-content/50">
+                Personas
+              </p>
+              <p class="mt-1 text-2xl font-semibold tabular-nums">
+                {{ item.personas }}
+              </p>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+
+    </div>
+  </section>
+
+  <footer class="rounded-2xl border border-base-300 bg-base-200/40 p-5 text-sm text-base-content/60">
+    Los indicadores históricos contabilizan FUAR. Una misma persona puede
+    aparecer en más de un trámite cuando recibió más de una atención mediante
+    Artículo 141.
+  </footer>
+
+</section>
+{% endblock content %}
