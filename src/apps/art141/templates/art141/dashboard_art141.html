@@ -1,0 +1,861 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}Artículo 141{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+
+      <div class="flex items-start gap-5">
+        <div class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.25"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M9 5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+            <path d="M11 7l0 8l4 0l4 5" />
+            <path d="M11 11l5 0" />
+            <path d="M7 11.5a5 5 0 1 0 6 7.5" />
+          </svg>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-bold text-base-content">
+            Artículo 141
+          </h1>
+
+          <p class="mt-2 text-lg text-base-content/70">
+            Trámites bajo el amparo del artículo 141
+          </p>
+
+          <p class="mt-2 text-xs text-base-content/50">
+            Información preliminar sujeta a validación registral.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+
+  <!-- FILTRO POR AÑO -->
+
+  <section class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+    <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+      <div>
+        <label
+          for="anio"
+          class="block text-sm font-semibold text-base-content"
+        >
+          Año de solicitud
+        </label>
+
+        <p class="text-xs text-base-content/50">
+          El periodo seleccionado se aplica a todo el dashboard.
+        </p>
+      </div>
+
+      <div class="sm:ml-auto">
+        <select
+          id="anio"
+          name="anio"
+          class="select select-bordered w-full min-w-48 sm:w-auto"
+          onchange="this.form.submit()"
+        >
+          {% for anio in anios %}
+            <option
+              value="{{ anio }}"
+              {% if anio == anio_seleccionado and not todos_los_anios %}selected{% endif %}
+            >
+              {{ anio }}
+            </option>
+          {% endfor %}
+
+          <option
+            value="todos"
+            {% if todos_los_anios %}selected{% endif %}
+          >
+            Todos los años
+          </option>
+        </select>
+      </div>
+
+    </form>
+  </section>
+
+
+  <!-- INDICADORES -->
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Trámites realizados
+      </p>
+
+      <p class="mt-3 text-4xl font-bold tabular-nums">
+        {{ resumen.tramites }}
+      </p>
+    </article>
+
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Personas atendidas
+      </p>
+
+      <p class="mt-3 text-4xl font-bold tabular-nums">
+        {{ resumen.personas }}
+      </p>
+
+      <p class="mt-2 text-xs text-base-content/50">
+        Personas distintas identificadas
+      </p>
+    </article>
+
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Secciones con atención
+      </p>
+
+      <p class="mt-3 text-4xl font-bold tabular-nums">
+        {{ resumen.secciones }}
+      </p>
+
+      <p class="mt-2 text-xs text-base-content/50">
+        Secciones electorales distintas
+      </p>
+    </article>
+
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+      <p class="text-sm font-medium text-base-content/60">
+        Personas con más de un trámite
+      </p>
+
+      <p class="mt-3 text-4xl font-bold tabular-nums">
+        {{ resumen.personas_recurrentes }}
+      </p>
+
+      <p class="mt-2 text-xs text-base-content/50">
+        Personas atendidas en más de una ocasión
+      </p>
+    </article>
+
+  </section>
+
+
+  <!-- 1. INTERVALO ENTRE SOLICITUD Y FECHA DE ENTREGA REGISTRADA -->
+
+  <section class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
+      <div>
+        <h2 class="text-xl font-semibold">
+          Intervalo entre solicitud y fecha de entrega registrada
+        </h2>
+
+        <p class="mt-1 max-w-4xl text-sm leading-6 text-base-content/60">
+          Distribución de los días transcurridos entre la solicitud del trámite
+          y la fecha de entrega registrada. La línea representa una distribución
+          normal ajustada a los casos observados.
+        </p>
+      </div>
+
+      <span class="badge badge-outline whitespace-nowrap">
+        {{ entrega.casos }} registros
+      </span>
+
+    </div>
+
+
+    <div class="mt-4 rounded-2xl border border-base-300 bg-base-200/40 p-4">
+
+      <div class="flex items-start gap-3">
+
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="mt-0.5 h-5 w-5 shrink-0 text-base-content/60"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+          />
+        </svg>
+
+        <p class="text-xs leading-5 text-base-content/60">
+          Este dato se conserva con fines exploratorios. La fecha de entrega
+          disponible corresponde al registro vigente de la persona y no permite
+          asegurar que pertenezca al mismo FUAR histórico.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="chart-entrega"
+      class="mt-5 w-full"
+      style="min-height: 380px;"
+    ></div>
+
+  </section>
+
+
+  <!-- 2. DISTRIBUCIÓN GEOELECTORAL -->
+
+  <section class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+    <div>
+      <h2 class="text-xl font-semibold">
+        Distribución geoelectoral de la atención
+      </h2>
+
+      <p class="mt-1 text-sm text-base-content/60">
+        Distribución de los trámites entre los tres distritos electorales federales.
+      </p>
+    </div>
+
+
+    <div class="mt-8 hidden lg:grid lg:grid-cols-[220px_90px_1fr] lg:items-center">
+
+      <div class="rounded-2xl border border-primary/30 bg-primary/5 p-6 text-center">
+
+        <p class="text-sm text-base-content/60">
+          Trámites
+        </p>
+
+        <p class="mt-2 text-4xl font-bold tabular-nums">
+          {{ sankey.total }}
+        </p>
+
+      </div>
+
+
+      <div class="relative h-full min-h-72">
+
+        <div class="absolute left-0 top-1/2 h-px w-1/2 bg-base-content/30"></div>
+
+        <div class="absolute left-1/2 top-[16.5%] bottom-[16.5%] w-px bg-base-content/30"></div>
+
+        <div class="absolute left-1/2 top-[16.5%] h-px w-1/2 bg-base-content/30"></div>
+
+        <div class="absolute left-1/2 top-1/2 h-px w-1/2 bg-base-content/30"></div>
+
+        <div class="absolute left-1/2 top-[83.5%] h-px w-1/2 bg-base-content/30"></div>
+
+      </div>
+
+
+      <div class="grid gap-4">
+
+        {% for item in sankey.distritos %}
+
+          <article class="rounded-2xl border border-base-300 bg-base-200/40 p-5">
+
+            <div class="flex items-center justify-between gap-4">
+
+              <div>
+
+                <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">
+                  Distrito {{ item.distrito|stringformat:"02d" }}
+                </p>
+
+                <p class="mt-1 text-3xl font-bold tabular-nums">
+                  {{ item.tramites }}
+                </p>
+
+                <p class="text-xs text-base-content/50">
+                  trámites
+                </p>
+
+              </div>
+
+
+              <div class="text-right">
+
+                <p class="text-2xl font-semibold tabular-nums">
+                  {{ item.secciones }}
+                </p>
+
+                <p class="text-xs text-base-content/50">
+                  secciones
+                </p>
+
+              </div>
+
+            </div>
+
+          </article>
+
+        {% endfor %}
+
+      </div>
+
+    </div>
+
+
+    <div class="mt-6 grid gap-4 lg:hidden">
+
+      {% for item in sankey.distritos %}
+
+        <article class="rounded-2xl border border-base-300 bg-base-200/40 p-5">
+
+          <div class="flex items-center justify-between gap-4">
+
+            <div>
+
+              <p class="text-xs font-semibold uppercase tracking-wider text-base-content/50">
+                Distrito {{ item.distrito|stringformat:"02d" }}
+              </p>
+
+              <p class="mt-1 text-3xl font-bold tabular-nums">
+                {{ item.tramites }}
+              </p>
+
+              <p class="text-xs text-base-content/50">
+                trámites
+              </p>
+
+            </div>
+
+
+            <div class="text-right">
+
+              <p class="text-2xl font-semibold tabular-nums">
+                {{ item.secciones }}
+              </p>
+
+              <p class="text-xs text-base-content/50">
+                secciones
+              </p>
+
+            </div>
+
+          </div>
+
+        </article>
+
+      {% endfor %}
+
+    </div>
+
+  </section>
+
+
+  <!-- 3. TRÁMITES POR MES Y SEXO REGISTRADO -->
+
+  <section class="grid gap-6 xl:grid-cols-12">
+
+    <article class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm xl:col-span-7">
+
+      <div>
+
+        <h2 class="text-xl font-semibold">
+          Trámites por mes
+        </h2>
+
+        <p class="mt-1 text-sm text-base-content/60">
+          Solicitudes registradas durante
+          {% if todos_los_anios %}
+            todo el periodo disponible.
+          {% else %}
+            {{ anio_seleccionado }}.
+          {% endif %}
+        </p>
+
+      </div>
+
+
+      <div
+        id="chart-meses"
+        class="mt-4 w-full"
+        style="min-height: 330px;"
+      ></div>
+
+    </article>
+
+
+    <article class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm xl:col-span-5">
+
+      <div>
+
+        <h2 class="text-xl font-semibold">
+          Sexo registrado
+        </h2>
+
+        <p class="mt-1 text-sm text-base-content/60">
+          Distribución de los trámites según el dato disponible en la fuente.
+        </p>
+
+      </div>
+
+
+      <div
+        id="chart-sexo"
+        class="mt-4 w-full"
+        style="min-height: 300px;"
+      ></div>
+
+
+      {% if sexo.sin_dato %}
+
+        <div class="mt-2 rounded-xl bg-base-200/60 p-3 text-xs text-base-content/60">
+          {{ sexo.sin_dato }} trámites no cuentan con dato de sexo en la fuente.
+        </div>
+
+      {% endif %}
+
+    </article>
+
+  </section>
+
+
+  <!-- 4. PIRÁMIDE DE EDADES -->
+
+  <section class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+    <div>
+
+      <h2 class="text-xl font-semibold">
+        Pirámide de edades
+      </h2>
+
+      <p class="mt-1 text-sm text-base-content/60">
+        Distribución de los trámites con edad y sexo disponibles.
+      </p>
+
+    </div>
+
+
+    <div
+      id="chart-edades"
+      class="mt-4 w-full"
+      style="min-height: 420px;"
+    ></div>
+
+  </section>
+
+
+  <footer class="rounded-2xl border border-base-300 bg-base-200/40 p-5 text-xs leading-5 text-base-content/60">
+    Los resultados se presentan con base en la información disponible y deben
+    interpretarse conforme al alcance y las limitaciones de cada fuente.
+  </footer>
+
+</section>
+
+
+{{ por_mes|json_script:"art141-meses-data" }}
+{{ sexo|json_script:"art141-sexo-data" }}
+{{ piramide|json_script:"art141-piramide-data" }}
+{{ distribucion_entrega|json_script:"art141-entrega-data" }}
+
+{% endblock content %}
+
+
+{% block scripts %}
+<script>
+(function () {
+
+  const meses = JSON.parse(
+    document.getElementById('art141-meses-data').textContent
+  );
+
+  const sexo = JSON.parse(
+    document.getElementById('art141-sexo-data').textContent
+  );
+
+  const piramide = JSON.parse(
+    document.getElementById('art141-piramide-data').textContent
+  );
+
+  const entrega = JSON.parse(
+    document.getElementById('art141-entrega-data').textContent
+  );
+
+
+  function themeColor(variable, fallback) {
+
+    const value = getComputedStyle(document.documentElement)
+      .getPropertyValue(variable)
+      .trim();
+
+    if (!value) {
+      return fallback;
+    }
+
+    return `oklch(${value})`;
+
+  }
+
+
+  const primary = themeColor('--p', '#454248');
+  const secondary = themeColor('--s', '#828A91');
+  const accent = themeColor('--a', '#C5A989');
+  const neutral = themeColor('--n', '#B2B2B2');
+
+
+  /*
+   * 1. Intervalo entre solicitud y fecha de entrega registrada
+   */
+
+  const entregaElement = document.querySelector('#chart-entrega');
+
+if (entregaElement) {
+
+  const maxEntrega = Math.max(
+    ...entrega.map(item => item.tramites),
+    ...entrega.map(item => item.normal)
+  );
+
+  const maxYEntrega = Math.ceil(maxEntrega) + 2;
+
+  new ApexCharts(
+    entregaElement,
+    {
+      chart: {
+        type: 'line',
+        height: 380,
+        toolbar: {
+          show: false
+        }
+      },
+
+      series: [
+        {
+          name: 'Trámites',
+          type: 'column',
+          data: entrega.map(
+            item => item.tramites
+          )
+        },
+        {
+          name: 'Tendencia esperada',
+          type: 'line',
+          data: entrega.map(
+            item => item.normal
+          )
+        }
+      ],
+
+      xaxis: {
+        categories: entrega.map(
+          item => item.rango
+        ),
+
+        title: {
+          text: 'Días entre solicitud y fecha de entrega registrada'
+        }
+      },
+
+      yaxis: {
+        min: 0,
+        max: maxYEntrega,
+        tickAmount: 5,
+
+        title: {
+          text: 'Trámites'
+        }
+      },
+
+      colors: [
+        primary,
+        accent
+      ],
+
+      stroke: {
+        width: [
+          0,
+          3
+        ],
+
+        curve: 'smooth'
+      },
+
+      markers: {
+        size: [
+          0,
+          0
+        ]
+      },
+
+      plotOptions: {
+        bar: {
+          borderRadius: 3,
+          columnWidth: '75%'
+        }
+      },
+
+      dataLabels: {
+        enabled: false
+      },
+
+      tooltip: {
+        shared: true,
+
+        y: {
+          formatter: function (value, context) {
+
+            if (context.seriesIndex === 1) {
+              return value.toFixed(2);
+            }
+
+            return `${Math.round(value)} trámites`;
+          }
+        }
+      },
+
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right'
+      },
+
+      grid: {
+        borderColor: '#e5e7eb'
+      }
+    }
+  ).render();
+
+}
+
+
+  /*
+   * 3A. Trámites por mes
+   */
+
+  const mesesElement = document.querySelector('#chart-meses');
+
+  if (mesesElement) {
+
+    new ApexCharts(
+      mesesElement,
+      {
+        chart: {
+          type: 'bar',
+          height: 330,
+          toolbar: {
+            show: false
+          }
+        },
+
+        series: [
+          {
+            name: 'Trámites',
+            data: meses.map(
+              item => item.tramites
+            )
+          }
+        ],
+
+        xaxis: {
+          categories: meses.map(
+            item => item.nombre.substring(0, 3)
+          )
+        },
+
+        yaxis: {
+          min: 0,
+          forceNiceScale: true
+        },
+
+        colors: [
+          primary
+        ],
+
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            columnWidth: '55%'
+          }
+        },
+
+        dataLabels: {
+          enabled: false
+        },
+
+        tooltip: {
+          y: {
+            formatter: value => `${value} trámites`
+          }
+        },
+
+        grid: {
+          borderColor: '#e5e7eb'
+        }
+      }
+    ).render();
+
+  }
+
+
+  /*
+   * 3B. Sexo registrado
+   */
+
+  const sexoElement = document.querySelector('#chart-sexo');
+
+  if (sexoElement) {
+
+    new ApexCharts(
+      sexoElement,
+      {
+        chart: {
+          type: 'donut',
+          height: 300
+        },
+
+        series: [
+          sexo.hombres,
+          sexo.mujeres,
+          sexo.sin_dato
+        ],
+
+        labels: [
+          'Hombres',
+          'Mujeres',
+          'Sin dato'
+        ],
+
+        colors: [
+          primary,
+          accent,
+          neutral
+        ],
+
+        legend: {
+          position: 'bottom'
+        },
+
+        dataLabels: {
+          enabled: true
+        },
+
+        stroke: {
+          colors: [
+            'transparent'
+          ]
+        },
+
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '62%'
+            }
+          }
+        }
+      }
+    ).render();
+
+  }
+
+
+  /*
+   * 4. Pirámide de edades
+   */
+
+  const edadesElement = document.querySelector('#chart-edades');
+
+  if (edadesElement) {
+
+    new ApexCharts(
+      edadesElement,
+      {
+        chart: {
+          type: 'bar',
+          height: 420,
+          stacked: true,
+          toolbar: {
+            show: false
+          }
+        },
+
+        series: [
+          {
+            name: 'Hombres',
+            data: piramide.map(
+              item => -item.hombres
+            )
+          },
+          {
+            name: 'Mujeres',
+            data: piramide.map(
+              item => item.mujeres
+            )
+          }
+        ],
+
+        colors: [
+          secondary,
+          accent
+        ],
+
+        xaxis: {
+          categories: piramide.map(
+            item => item.grupo
+          ),
+
+          labels: {
+            formatter: value => Math.abs(value)
+          }
+        },
+
+        yaxis: {
+          title: {
+            text: 'Edad'
+          }
+        },
+
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            barHeight: '75%',
+            borderRadius: 2
+          }
+        },
+
+        dataLabels: {
+          enabled: false
+        },
+
+        tooltip: {
+          y: {
+            formatter: value => Math.abs(value)
+          }
+        },
+
+        grid: {
+          borderColor: '#e5e7eb'
+        },
+
+        legend: {
+          position: 'top'
+        }
+      }
+    ).render();
+
+  }
+
+})();
+</script>
+{% endblock scripts %}
