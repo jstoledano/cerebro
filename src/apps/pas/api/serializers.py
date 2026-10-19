@@ -65,6 +65,16 @@ class AccionSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     def validate(self, attrs):
+        plan = attrs.get(
+            "plan",
+            getattr(self.instance, "plan", None),
+        )
+
+        if plan and (plan.eliminacion or plan.recurrencia):
+            raise serializers.ValidationError(
+                "El plan se encuentra cerrado o con recurrencia registrada."
+            )
+
         fecha_inicio = attrs.get(
             "fecha_inicio",
             getattr(self.instance, "fecha_inicio", None),
@@ -110,6 +120,19 @@ class AccionSerializer(serializers.ModelSerializer):
 
 class SeguimientoSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    def validate(self, attrs):
+        accion = attrs.get(
+            "accion",
+            getattr(self.instance, "accion", None),
+        )
+
+        if accion and (accion.plan.eliminacion or accion.plan.recurrencia):
+            raise serializers.ValidationError(
+                "El plan se encuentra cerrado o con recurrencia registrada."
+            )
+
+        return attrs
 
     class Meta:
         model = Seguimiento
