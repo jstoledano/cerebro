@@ -77,10 +77,24 @@ class PlanForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        fuente = cleaned_data.get('fuente')
-        otra_fuente = cleaned_data.get('otra_fuente')
+
+        fuente = cleaned_data.get("fuente")
+        otra_fuente = cleaned_data.get("otra_fuente")
+
         if fuente == 9 and not otra_fuente:
-            self.add_error('otra_fuente', 'Este campo es obligatorio si seleccionó Otros')
+            self.add_error(
+                "otra_fuente", "Este campo es obligatorio si seleccionó Otros"
+            )
+
+        fecha_inicio = cleaned_data.get("fecha_inicio")
+        fecha_termino = cleaned_data.get("fecha_termino")
+
+        if fecha_inicio and fecha_termino and fecha_inicio > fecha_termino:
+            self.add_error(
+                "fecha_termino",
+                "La fecha de término no puede ser anterior a la fecha de inicio.",
+            )
+
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
@@ -102,6 +116,20 @@ class AccionForm(forms.ModelForm):
             'fecha_inicio': DateInput(attrs={'type': 'date'}),
             'fecha_fin': DateInput(attrs={'type': 'date'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        fecha_inicio = cleaned_data.get("fecha_inicio")
+        fecha_fin = cleaned_data.get("fecha_fin")
+
+        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+            self.add_error(
+                "fecha_fin",
+                "La fecha de término no puede ser anterior a la fecha de inicio.",
+            )
+
+        return cleaned_data
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

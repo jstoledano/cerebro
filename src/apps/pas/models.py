@@ -1,5 +1,3 @@
-import datetime
-
 import django.utils.timezone
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -229,7 +227,7 @@ class Accion(TrackingFields):
             return "Cerrada"
 
         fecha_limite = self.fecha_fin
-        hoy = datetime.date.today()
+        hoy = django.utils.timezone.localdate()
         if fecha_limite and fecha_limite < hoy:
             return "Abierta Fuera de Tiempo"
         return "Abierta en Tiempo"

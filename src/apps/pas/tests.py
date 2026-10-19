@@ -4,13 +4,12 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from apps.pas.models import Plan, Accion
-from apps.pas.forms import PlanForm
+from apps.pas.forms import PlanForm, AccionForm
 
 
 User = get_user_model()
 
-
-@unittest.skip("Pruebas desactivadas temporalmente")
+@unittest.skip("Motivo por el que se omite")
 class PASAccessTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="password")
@@ -116,3 +115,32 @@ class PASPlanFormTests(TestCase):
         form = PlanForm(data=data)
 
         self.assertTrue(form.is_valid(), form.errors)
+
+    def test_fecha_termino_cannot_be_before_fecha_inicio(self):
+        data = self.base_data()
+        data.update(
+            {
+                "documento": 2,
+                "fecha_inicio": "2026-10-20",
+                "fecha_termino": "2026-10-19",
+            }
+        )
+
+        form = PlanForm(data=data)
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("fecha_termino", form.errors)
+
+
+class PASAccionFormTests(TestCase):
+    def test_fecha_fin_cannot_be_before_fecha_inicio(self):
+        form = AccionForm(
+            data={
+                "accion": "Actividad de prueba",
+                "fecha_inicio": "2026-10-20",
+                "fecha_fin": "2026-10-19",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("fecha_fin", form.errors)
