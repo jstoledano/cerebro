@@ -6,17 +6,106 @@ from apps.pas.models import Plan, Accion, Seguimiento
 class PlanSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
+    def validate(self, attrs):
+        fecha_inicio = attrs.get(
+            "fecha_inicio",
+            getattr(self.instance, "fecha_inicio", None),
+        )
+        fecha_termino = attrs.get(
+            "fecha_termino",
+            getattr(self.instance, "fecha_termino", None),
+        )
+
+        if fecha_inicio and fecha_termino and fecha_inicio > fecha_termino:
+            raise serializers.ValidationError(
+                {
+                    "fecha_termino": (
+                        "La fecha de término no puede ser anterior "
+                        "a la fecha de inicio."
+                    )
+                }
+            )
+
+        return attrs
+
     class Meta:
         model = Plan
-        fields = "__all__"
+        fields = [
+            "id",
+            "nombre",
+            "documento",
+            "folio",
+            "fecha_llenado",
+            "tipo",
+            "desc_cnc",
+            "correccion",
+            "fuente",
+            "otra_fuente",
+            "fecha_inicio",
+            "fecha_termino",
+            "proposito",
+            "requisito",
+            "proceso",
+            "desc_pcm",
+            "consecuencias",
+            "analisis",
+            "evidencia_analisis",
+            "user",
+            "created",
+            "modified",
+        ]
+        read_only_fields = [
+            "id",
+            "created",
+            "modified",
+        ]
 
 
 class AccionSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
+    def validate(self, attrs):
+        fecha_inicio = attrs.get(
+            "fecha_inicio",
+            getattr(self.instance, "fecha_inicio", None),
+        )
+        fecha_fin = attrs.get(
+            "fecha_fin",
+            getattr(self.instance, "fecha_fin", None),
+        )
+
+        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+            raise serializers.ValidationError(
+                {
+                    "fecha_fin": (
+                        "La fecha de término no puede ser anterior "
+                        "a la fecha de inicio."
+                    )
+                }
+            )
+
+        return attrs
+
     class Meta:
         model = Accion
-        fields = "__all__"
+        fields = [
+            "id",
+            "plan",
+            "accion",
+            "responsable",
+            "recursos",
+            "evidencia",
+            "fecha_inicio",
+            "fecha_fin",
+            "user",
+            "created",
+            "modified",
+        ]
+        read_only_fields = [
+            "id",
+            "created",
+            "modified",
+        ]
 
 
 class SeguimientoSerializer(serializers.ModelSerializer):
@@ -24,4 +113,20 @@ class SeguimientoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Seguimiento
-        fields = "__all__"
+        fields = [
+            "id",
+            "accion",
+            "descripcion",
+            "fecha",
+            "evidencia",
+            "estado",
+            "responsable",
+            "user",
+            "created",
+            "modified",
+        ]
+        read_only_fields = [
+            "id",
+            "created",
+            "modified",
+        ]

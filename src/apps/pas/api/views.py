@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import DjangoModelPermissions
 
 from apps.pas.models import Plan, Accion, Seguimiento
 from .serializers import PlanSerializer, AccionSerializer, SeguimientoSerializer
@@ -8,7 +8,7 @@ from .serializers import PlanSerializer, AccionSerializer, SeguimientoSerializer
 
 class SessionOnlyAuthMixin:
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (DjangoModelPermissions,)
 
 
 class PlanViewSet(SessionOnlyAuthMixin, viewsets.ModelViewSet):
