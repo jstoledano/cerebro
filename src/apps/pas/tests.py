@@ -1,4 +1,8 @@
 import unittest
+
+from django.contrib.auth.models import Permission
+from rest_framework.test import APIClient
+
 from datetime import date
 from django.test import TestCase
 from django.urls import reverse
@@ -144,3 +148,113 @@ class PASAccionFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("fecha_fin", form.errors)
+
+
+class PASAPIPermissionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="apiuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan API",
+            documento=1,
+            folio="API-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_user_without_permission_cannot_create_plan(self):
+        response = self.client.post(
+            "/api/v1/pas/plans/",
+            {
+                "nombre": "Nuevo plan",
+                "documento": 1,
+                "folio": "API-002",
+                "fecha_llenado": date.today().isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_create_activity_in_closed_plan(self):
+        permission = Permission.objects.get(
+            codename="add_accion",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        self.plan.eliminacion = True
+        self.plan.save(update_fields=["eliminacion"])
+
+        response = self.client.post(
+            "/api/v1/pas/actions/",
+            {
+                "plan": self.plan.pk,
+                "accion": "Actividad que no debe registrarse",
+                "fecha_inicio": date.today().isoformat(),
+                "fecha_fin": date.today().isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_cannot_create_followup_in_closed_plan(self):
+        accion = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad API",
+            responsable=self.user,
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        permission = Permission.objects.get(
+            codename="add_seguimiento",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        self.plan.eliminacion = True
+        self.plan.save(update_fields=["eliminacion"])
+
+        response = self.client.post(
+            "/api/v1/pas/followups/",
+            {
+                "accion": accion.pk,
+                "descripcion": "Seguimiento de prueba",
+                "fecha": date.today().isoformat(),
+                "estado": 1,
+                "responsable": self.user.pk,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_activity_rejects_invalid_date_range(self):
+        permission = Permission.objects.get(
+            codename="add_accion",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        response = self.client.post(
+            "/api/v1/pas/actions/",
+            {
+                "plan": self.plan.pk,
+                "accion": "Actividad con fechas inválidas",
+                "fecha_inicio": "2026-10-20",
+                "fecha_fin": "2026-10-19",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("fecha_fin", response.data)
