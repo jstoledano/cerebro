@@ -2,13 +2,12 @@ import json
 
 from datetime import date
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import OuterRef, Subquery, Prefetch
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -101,8 +100,8 @@ class PASIndex(ListView):
         return context
 
 
-@method_decorator(login_required, name="dispatch")
-class PASAdd(CreateView):
+class PASAdd(PermissionRequiredMixin, CreateView):
+    permission_required = "pas.add_plan"
     model = Plan
     form_class = PlanForm
     template_name = "pas/add.html"
@@ -294,8 +293,8 @@ class PlanFormMixin:
         return super().form_invalid(form)
 
 
-@method_decorator(login_required, name="dispatch")
-class PlanUpdateView(PlanFormMixin, UpdateView):
+class PlanUpdateView(PermissionRequiredMixin, PlanFormMixin, UpdateView):
+    permission_required = "pas.change_plan"
     model = Plan
     form_class = PlanForm
     template_name = "pas/partials/_plan_form.html"
@@ -311,8 +310,8 @@ class PlanUpdateView(PlanFormMixin, UpdateView):
         return response
 
 
-@method_decorator(login_required, name="dispatch")
-class PlanClosureView(FormView):
+class PlanClosureView(PermissionRequiredMixin, FormView):
+    permission_required = "pas.change_plan"
     form_class = PlanClosureForm
     template_name = "pas/partials/_plan_closure_form.html"
 
@@ -430,8 +429,8 @@ class ActivityBaseView:
         return response
 
 
-@method_decorator(login_required, name="dispatch")
-class ActivityCreateView(ActivityBaseView, CreateView):
+class ActivityCreateView(PermissionRequiredMixin, ActivityBaseView, CreateView):
+    permission_required = "pas.add_accion"
     model = Accion
 
     def dispatch(self, request, *args, **kwargs):
@@ -449,8 +448,8 @@ class ActivityCreateView(ActivityBaseView, CreateView):
         return super().form_valid(form)
 
 
-@method_decorator(login_required, name="dispatch")
-class ActivityUpdateView(ActivityBaseView, UpdateView):
+class ActivityUpdateView(PermissionRequiredMixin, ActivityBaseView, UpdateView):
+    permission_required = "pas.change_accion"
     model = Accion
 
     def dispatch(self, request, *args, **kwargs):
@@ -468,8 +467,8 @@ class ActivityUpdateView(ActivityBaseView, UpdateView):
         return obj
 
 
-@method_decorator(login_required, name="dispatch")
-class ActivityDeleteView(DeleteView):
+class ActivityDeleteView(PermissionRequiredMixin, DeleteView):
+    permission_required = "pas.delete_accion"
     model = Accion
     template_name = "pas/partials/_confirm_delete.html"
 
@@ -563,8 +562,9 @@ class FollowUpBaseView(CreateView):
         return response
 
 
-@method_decorator(login_required, name="dispatch")
-class FollowUpCreateView(FollowUpBaseView):
+class FollowUpCreateView(PermissionRequiredMixin, FollowUpBaseView):
+    permission_required = "pas.add_seguimiento"
+
     pass
 
 
