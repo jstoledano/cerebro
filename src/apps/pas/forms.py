@@ -62,7 +62,13 @@ class PlanForm(forms.ModelForm):
 
     class Meta:
         model = Plan
-        exclude = ['user']
+        exclude = [
+            "user",
+            "eliminacion",
+            "txt_eliminacion",
+            "recurrencia",
+            "txt_recurrencia",
+        ]
         widgets = {
             'fecha_llenado': DateInput(attrs={'type': 'date'}),
             'fecha_inicio': DateInput(attrs={'type': 'date'}),
