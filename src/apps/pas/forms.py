@@ -73,7 +73,7 @@ class PlanForm(forms.ModelForm):
         cleaned_data = super().clean()
         fuente = cleaned_data.get('fuente')
         otra_fuente = cleaned_data.get('otra_fuente')
-        if fuente == 4 and not otra_fuente:
+        if fuente == 9 and not otra_fuente:
             self.add_error('otra_fuente', 'Este campo es obligatorio si seleccionó Otros')
         return cleaned_data
 

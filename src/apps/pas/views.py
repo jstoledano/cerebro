@@ -418,6 +418,17 @@ class ActivityBaseView:
             return HttpResponse("", status=204, headers={"HX-Trigger": header})
         return response
 
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+
+        if self.plan.eliminacion or self.plan.recurrencia:
+            return HttpResponse(
+                "El plan se encuentra cerrado o con recurrencia registrada.",
+                status=409,
+            )
+
+        return response
+
 
 @method_decorator(login_required, name="dispatch")
 class ActivityCreateView(ActivityBaseView, CreateView):
@@ -425,6 +436,11 @@ class ActivityCreateView(ActivityBaseView, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.plan = get_object_or_404(Plan, pk=kwargs["pk"])
+        if self.plan.eliminacion or self.plan.recurrencia:
+            return HttpResponse(
+                "El plan se encuentra cerrado o con recurrencia registrada.",
+                status=409,
+            )
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -443,6 +459,12 @@ class ActivityUpdateView(ActivityBaseView, UpdateView):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         self.plan = obj.plan
+        if self.plan.eliminacion or self.plan.recurrencia:
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "El plan se encuentra cerrado o con recurrencia registrada."
+            )
         return obj
 
 
