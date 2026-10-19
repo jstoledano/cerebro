@@ -487,6 +487,18 @@ class ActivityDeleteView(DeleteView):
         )
         return context
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+
+        if obj.plan.eliminacion or obj.plan.recurrencia:
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "El plan se encuentra cerrado o con recurrencia registrada."
+            )
+
+        return obj
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
 
@@ -506,6 +518,13 @@ class FollowUpBaseView(CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.activity = get_object_or_404(Accion, pk=kwargs["pk"])
+
+        if self.activity.plan.eliminacion or self.activity.plan.recurrencia:
+            return HttpResponse(
+                "El plan se encuentra cerrado o con recurrencia registrada.",
+                status=409,
+            )
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
