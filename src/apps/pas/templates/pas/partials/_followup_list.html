@@ -36,12 +36,15 @@
 
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex flex-wrap gap-2">
-      {% if user.is_authenticated %}
-      <button type="button" class="btn btn-primary btn-sm" hx-get="{% url 'pas:followup-add' activity.pk %}"
-        hx-target="#pas-modal-content" hx-swap="innerHTML">
-        Agregar seguimiento
-      </button>
-      {% endif %}
+        {% if activity.plan.permite_modificaciones and perms.pas.add_seguimiento %}
+        <button type="button"
+                class="btn btn-primary btn-sm"
+                hx-get="{% url 'pas:followup-add' activity.pk %}"
+                hx-target="#pas-modal-content"
+                hx-swap="innerHTML">
+          Agregar seguimiento
+        </button>
+        {% endif %}
       <a class="btn btn-outline btn-sm" href="{% url 'pas:detalle' activity.plan.pk %}">Ir al plan</a>
     </div>
     <button type="button" class="btn btn-ghost btn-sm" data-close-modal="pas-modal">Cerrar</button>

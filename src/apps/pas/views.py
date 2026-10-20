@@ -3,8 +3,8 @@ import json
 from datetime import date
 
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.db.models import Count, Prefetch
+from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -217,11 +217,27 @@ class PlanActivitiesView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         plan = self.object
+
         followups_prefetch = Prefetch(
             "seguimiento_set",
-            queryset=Seguimiento.objects.select_related("responsable").order_by(
-                "-fecha", "-created"
+            queryset=Seguimiento.objects.select_related(
+                "responsable"
+            ).order_by(
+                "-fecha",
+                "-created",
             ),
+        )
+
+        activities_queryset = (
+            plan.accion_set
+            .select_related("responsable")
+            .annotate(
+                evidence_count=Count("evidencias")
+            )
+            .prefetch_related(
+                followups_prefetch,
+            )
+            .order_by("fecha_fin", "id")
         )
 
         def state_priority(estado):
@@ -240,24 +256,33 @@ class PlanActivitiesView(DetailView):
                     "text": "Abierta",
                     "title": "Abierta fuera de tiempo",
                 }
+
             if estado == "Abierta en Tiempo":
                 return {
-                    "classes": "badge-outline border border-warning text-base-content bg-transparent",
+                    "classes": (
+                        "badge-outline border border-warning "
+                        "text-base-content bg-transparent"
+                    ),
                     "text": "Abierta",
                     "title": "Abierta en tiempo",
                 }
+
             if estado == "Cerrada":
                 if closed_in_time is False:
                     return {
-                        "classes": "badge-success badge-outline text-success",
+                        "classes": (
+                            "badge-success badge-outline text-success"
+                        ),
                         "text": "Cerrada",
                         "title": "Cerrada fuera de tiempo",
                     }
+
                 return {
                     "classes": "badge-success text-success-content",
                     "text": "Cerrada",
                     "title": "Cerrada en tiempo",
                 }
+
             return {
                 "classes": "badge-neutral badge-outline",
                 "text": estado or "Sin estado",
@@ -265,31 +290,58 @@ class PlanActivitiesView(DetailView):
             }
 
         activities = []
-        for activity in (
-            plan.accion_set.select_related("responsable")
-            .prefetch_related(followups_prefetch)
-            .order_by("fecha_fin", "id")
-        ):
+
+        for activity in activities_queryset:
             estado = activity.get_estado
-            followups = list(activity.seguimiento_set.all())
-            closure_followup = next((f for f in followups if f.estado == CERRADA), None)
+
+            followups = list(
+                activity.seguimiento_set.all()
+            )
+
+            closure_followup = next(
+                (
+                    followup
+                    for followup in followups
+                    if followup.estado == CERRADA
+                ),
+                None,
+            )
+
             closed_in_time = None
+
             if closure_followup:
                 if activity.fecha_fin:
-                    closed_in_time = closure_followup.fecha <= activity.fecha_fin
+                    closed_in_time = (
+                        closure_followup.fecha
+                        <= activity.fecha_fin
+                    )
                 else:
                     closed_in_time = True
+
             activities.append(
                 {
                     "activity": activity,
                     "estado": estado,
-                    "estado_priority": state_priority(estado),
+                    "estado_priority": state_priority(
+                        estado
+                    ),
                     "followup_count": len(followups),
-                    "latest_followup": followups[0] if followups else None,
+                    "evidence_count": (
+                        activity.evidence_count
+                    ),
+                    "latest_followup": (
+                        followups[0]
+                        if followups
+                        else None
+                    ),
                     "closed_in_time": closed_in_time,
-                    "badge": build_estado_badge(estado, closed_in_time),
+                    "badge": build_estado_badge(
+                        estado,
+                        closed_in_time,
+                    ),
                 }
             )
+
         activities.sort(
             key=lambda item: (
                 item["estado_priority"],
@@ -297,10 +349,17 @@ class PlanActivitiesView(DetailView):
                 item["activity"].pk,
             )
         )
+
         can_modify = plan.permite_modificaciones
+
         context.update(
-            {"plan": plan, "activities": activities, "can_modify": can_modify}
+            {
+                "plan": plan,
+                "activities": activities,
+                "can_modify": can_modify,
+            }
         )
+
         return context
 
 
@@ -724,3 +783,31 @@ class EvidenceListView(DetailView):
         )
 
         return context
+
+
+class EvidenceDownloadView(DetailView):
+    model = Evidencia
+
+    def get_queryset(self):
+        visible_plans = Plan.objects.visible_to(self.request.user)
+
+        return (
+            Evidencia.objects
+            .filter(accion__plan__in=visible_plans)
+            .select_related(
+                "accion",
+                "accion__plan",
+            )
+        )
+
+    def get(self, request, *args, **kwargs):
+        evidence = self.get_object()
+
+        if not evidence.archivo:
+            raise Http404("La evidencia no tiene archivo.")
+
+        return FileResponse(
+            evidence.archivo.open("rb"),
+            as_attachment=False,
+            filename=evidence.archivo.name.rsplit("/", 1)[-1],
+        )

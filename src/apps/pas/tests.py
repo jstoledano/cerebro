@@ -1,9 +1,11 @@
-import unittest
-
 from django.contrib.auth.models import Permission
 from rest_framework.test import APIClient
 
 from django.test import RequestFactory
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from apps.pas.views import PASIndex, PASDetail
 from django.http import Http404
@@ -1248,3 +1250,140 @@ class PASEvidenciaTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["id"], evidence.pk)
+
+
+class PASEvidenceDownloadTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.media_root = tempfile.TemporaryDirectory()
+
+        cls.override_media = override_settings(
+            MEDIA_ROOT=cls.media_root.name
+        )
+        cls.override_media.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.override_media.disable()
+        cls.media_root.cleanup()
+
+        super().tearDownClass()
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="evidence-download-user",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan para descarga de evidencia",
+            documento=1,
+            folio="EVID-DOWNLOAD-001",
+            fecha_llenado=date.today(),
+            visibilidad="publica",
+            user=self.user,
+        )
+
+        self.action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad con archivo de evidencia",
+            responsable=self.user,
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        self.evidence = Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Archivo de prueba",
+            archivo=SimpleUploadedFile(
+                "evidencia.txt",
+                b"contenido de evidencia",
+                content_type="text/plain",
+            ),
+            fecha=date.today(),
+            user=self.user,
+        )
+
+    def test_public_evidence_file_can_be_downloaded_anonymously(self):
+        response = self.client.get(
+            reverse(
+                "pas:evidence-download",
+                args=[self.evidence.pk],
+            )
+        )
+
+        try:
+            self.assertEqual(response.status_code, 200)
+        finally:
+            response.close()
+
+    def test_internal_evidence_file_is_not_visible_anonymously(self):
+        self.plan.visibilidad = "interna"
+        self.plan.save(update_fields=["visibilidad"])
+
+        response = self.client.get(
+            reverse(
+                "pas:evidence-download",
+                args=[self.evidence.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_restricted_evidence_file_is_not_visible_without_permission(self):
+        self.plan.visibilidad = "restringida"
+        self.plan.save(update_fields=["visibilidad"])
+
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "pas:evidence-download",
+                args=[self.evidence.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_with_view_plan_permission_can_download_restricted_evidence(self):
+        self.plan.visibilidad = "restringida"
+        self.plan.save(update_fields=["visibilidad"])
+
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+
+        self.user.user_permissions.add(permission)
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "pas:evidence-download",
+                args=[self.evidence.pk],
+            )
+        )
+
+        try:
+            self.assertEqual(response.status_code, 200)
+        finally:
+            response.close()
+
+    def test_evidence_without_file_returns_404(self):
+        evidence = Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Registro sin archivo",
+            fecha=date.today(),
+            user=self.user,
+        )
+
+        response = self.client.get(
+            reverse(
+                "pas:evidence-download",
+                args=[evidence.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)

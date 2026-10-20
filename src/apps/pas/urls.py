@@ -15,6 +15,7 @@ from .views import (
     FollowUpListView,
     EvidenceCreateView,
     EvidenceListView,
+    EvidenceDownloadView,
 )
 
 app_name = 'pas'
@@ -43,5 +44,10 @@ urlpatterns = [
         "activities/<int:pk>/evidences/add/",
         EvidenceCreateView.as_view(),
         name="evidence-add",
+    ),
+    path(
+        "evidences/<int:pk>/download/",
+        EvidenceDownloadView.as_view(),
+        name="evidence-download",
     ),
 ]
