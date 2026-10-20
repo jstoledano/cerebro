@@ -234,9 +234,28 @@ class Plan(TrackingFields):
         return not (self.esta_cerrado or self.tiene_recurrencia)
 
 
+PRIORIDAD_NORMAL = "normal"
+PRIORIDAD_URGENTE = "urgente"
+PRIORIDAD_CRITICA = "critica"
+
+PRIORIDAD = (
+    (PRIORIDAD_NORMAL, "Normal"),
+    (PRIORIDAD_URGENTE, "Urgente"),
+    (PRIORIDAD_CRITICA, "Crítica"),
+)
+
+
 class Accion(TrackingFields):
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     accion = HTMLField()
+
+    prioridad = models.CharField(
+        max_length=10,
+        choices=PRIORIDAD,
+        default=PRIORIDAD_NORMAL,
+        help_text="Nivel de atención para el seguimiento de la actividad.",
+    )
+
     responsable = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -334,6 +353,40 @@ class Accion(TrackingFields):
 
     def __str__(self):
         return f"{self.id} - {self.plan}: {self.get_estado}"
+
+
+class Evidencia(TrackingFields):
+    accion = models.ForeignKey(
+        Accion,
+        on_delete=models.CASCADE,
+        related_name="evidencias",
+    )
+
+    archivo = models.FileField(
+        upload_to="pas/evidencias",
+        blank=True,
+        null=True,
+    )
+
+    descripcion = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Descripción breve de la evidencia registrada.",
+    )
+
+    fecha = models.DateField(
+        default=django.utils.timezone.now,
+        help_text="Fecha asociada a la evidencia.",
+    )
+
+    class Meta:
+        verbose_name = _("Evidencia")
+        verbose_name_plural = _("Evidencias")
+        ordering = ["-fecha", "-created"]
+
+    def __str__(self):
+        return f"Evidencia {self.pk} - Actividad {self.accion_id}"
 
 
 class Seguimiento(TrackingFields, models.Model):

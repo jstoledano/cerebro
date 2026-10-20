@@ -103,6 +103,7 @@ class AccionSerializer(serializers.ModelSerializer):
             "id",
             "plan",
             "accion",
+            "prioridad",
             "responsable",
             "recursos",
             "evidencia",

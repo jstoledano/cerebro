@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from django.test import RequestFactory
 
 from apps.pas.views import PASIndex, PASDetail
-
+from django.http import Http404
 from datetime import date
 from django.test import TestCase
 from django.db import connection
@@ -23,7 +23,7 @@ from apps.pas.views import (
     ActivityDeleteView,
     FollowUpCreateView,
 )
-from apps.pas.models import Plan, Accion, Seguimiento
+from apps.pas.models import Plan, Accion, Seguimiento, Evidencia
 from apps.pas.views import PlanSummaryView
 from apps.pas.views import PlanActivitiesView
 from apps.pas.views import PlanClosureView
@@ -565,6 +565,19 @@ class PASAccionStateTests(TestCase):
             "Cerrada fuera de tiempo",
         )
 
+    def test_priority_defaults_to_normal(self):
+        action = Accion.objects.create(
+            plan=Plan.objects.create(
+                nombre="Plan prioridad",
+                documento=1,
+                folio="PRIORITY-001",
+                fecha_llenado=date.today(),
+            ),
+            accion="Actividad priorizada",
+        )
+
+        self.assertEqual(action.prioridad, "normal")
+
 
 class PASIndexQueryTests(TestCase):
     def setUp(self):
@@ -905,4 +918,296 @@ class PASPlanVisibilityTests(TestCase):
                 self.internal_plan,
                 self.restricted_plan,
             ],
+        )
+
+
+class PASPlanVisibilityViewTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.owner = User.objects.create_user(
+            username="visibilityowner",
+            password="password",
+        )
+
+        self.public_plan = Plan.objects.create(
+            nombre="Plan público",
+            documento=1,
+            folio="VIEW-001",
+            fecha_llenado=date.today(),
+            visibilidad="publica",
+            user=self.owner,
+        )
+
+        self.internal_plan = Plan.objects.create(
+            nombre="Plan interno",
+            documento=1,
+            folio="VIEW-002",
+            fecha_llenado=date.today(),
+            visibilidad="interna",
+            user=self.owner,
+        )
+
+        self.restricted_plan = Plan.objects.create(
+            nombre="Plan restringido",
+            documento=1,
+            folio="VIEW-003",
+            fecha_llenado=date.today(),
+            visibilidad="restringida",
+            user=self.owner,
+        )
+
+    def test_anonymous_can_open_public_plan(self):
+        request = self.factory.get(
+            f"/pas/detalle/{self.public_plan.pk}/"
+        )
+        request.user = AnonymousUser()
+
+        response = PASDetail.as_view()(
+            request,
+            pk=self.public_plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_cannot_open_internal_plan(self):
+        request = self.factory.get(
+            f"/pas/detalle/{self.internal_plan.pk}/"
+        )
+        request.user = AnonymousUser()
+
+        with self.assertRaises(Http404):
+            PASDetail.as_view()(
+                request,
+                pk=self.internal_plan.pk,
+            )
+
+    def test_authenticated_user_can_open_internal_plan(self):
+        request = self.factory.get(
+            f"/pas/detalle/{self.internal_plan.pk}/"
+        )
+        request.user = self.owner
+
+        response = PASDetail.as_view()(
+            request,
+            pk=self.internal_plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_authenticated_user_without_view_permission_cannot_open_restricted_plan(self):
+        request = self.factory.get(
+            f"/pas/detalle/{self.restricted_plan.pk}/"
+        )
+        request.user = self.owner
+
+        with self.assertRaises(Http404):
+            PASDetail.as_view()(
+                request,
+                pk=self.restricted_plan.pk,
+            )
+
+    def test_user_with_view_permission_can_open_restricted_plan(self):
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+        self.owner.user_permissions.add(permission)
+
+        request = self.factory.get(
+            f"/pas/detalle/{self.restricted_plan.pk}/"
+        )
+        request.user = self.owner
+
+        response = PASDetail.as_view()(
+            request,
+            pk=self.restricted_plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+class PASAPIVisibilityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="apivisibilityuser",
+            password="password",
+        )
+
+        self.public_plan = Plan.objects.create(
+            nombre="Plan público API",
+            documento=1,
+            folio="API-VIS-001",
+            fecha_llenado=date.today(),
+            visibilidad="publica",
+            user=self.user,
+        )
+
+        self.internal_plan = Plan.objects.create(
+            nombre="Plan interno API",
+            documento=1,
+            folio="API-VIS-002",
+            fecha_llenado=date.today(),
+            visibilidad="interna",
+            user=self.user,
+        )
+
+        self.restricted_plan = Plan.objects.create(
+            nombre="Plan restringido API",
+            documento=1,
+            folio="API-VIS-003",
+            fecha_llenado=date.today(),
+            visibilidad="restringida",
+            user=self.user,
+        )
+
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+        self.restricted_action = Accion.objects.create(
+            plan=self.restricted_plan,
+            accion="Actividad restringida",
+            responsable=self.user,
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        self.restricted_followup = Seguimiento.objects.create(
+            accion=self.restricted_action,
+            descripcion="Seguimiento restringido",
+            fecha=date.today(),
+            estado=1,
+            responsable=self.user,
+            user=self.user,
+        )
+
+    def test_authenticated_user_does_not_see_restricted_plan(self):
+        response = self.client.get("/api/v1/pas/plans/")
+
+        self.assertEqual(response.status_code, 200)
+
+        ids = {item["id"] for item in response.data}
+
+        self.assertIn(self.public_plan.pk, ids)
+        self.assertIn(self.internal_plan.pk, ids)
+        self.assertNotIn(self.restricted_plan.pk, ids)
+
+    def test_restricted_plan_detail_returns_404_without_permission(self):
+        response = self.client.get(
+            f"/api/v1/pas/plans/{self.restricted_plan.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_with_view_permission_can_see_restricted_plan(self):
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        response = self.client.get(
+            f"/api/v1/pas/plans/{self.restricted_plan.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["id"],
+            self.restricted_plan.pk,
+        )
+
+    def test_restricted_action_is_not_exposed_without_permission(self):
+        response = self.client.get("/api/v1/pas/actions/")
+
+        self.assertEqual(response.status_code, 200)
+
+        ids = {item["id"] for item in response.data}
+
+        self.assertNotIn(
+            self.restricted_action.pk,
+            ids,
+        )
+
+    def test_restricted_action_detail_returns_404_without_permission(self):
+        response = self.client.get(f"/api/v1/pas/actions/{self.restricted_action.pk}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_restricted_followup_is_not_exposed_without_permission(self):
+        response = self.client.get("/api/v1/pas/followups/")
+
+        self.assertEqual(response.status_code, 200)
+
+        ids = {item["id"] for item in response.data}
+
+        self.assertNotIn(
+            self.restricted_followup.pk,
+            ids,
+        )
+
+    def test_restricted_followup_detail_returns_404_without_permission(self):
+        response = self.client.get(
+            f"/api/v1/pas/followups/{self.restricted_followup.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_with_view_permission_can_see_restricted_action_and_followup(self):
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        action_response = self.client.get(
+            f"/api/v1/pas/actions/{self.restricted_action.pk}/"
+        )
+
+        followup_response = self.client.get(
+            f"/api/v1/pas/followups/{self.restricted_followup.pk}/"
+        )
+
+        self.assertEqual(action_response.status_code, 200)
+        self.assertEqual(followup_response.status_code, 200)
+
+
+class PASEvidenciaTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="evidenceuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan de evidencia",
+            documento=1,
+            folio="EVID-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+        self.action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad con evidencia",
+            responsable=self.user,
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+    def test_activity_can_have_multiple_evidences(self):
+        Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Primera evidencia",
+            user=self.user,
+        )
+
+        Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Segunda evidencia",
+            user=self.user,
+        )
+
+        self.assertEqual(
+            self.action.evidencias.count(),
+            2,
         )
