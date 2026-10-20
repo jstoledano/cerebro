@@ -13,6 +13,8 @@ from .views import (
     ActivityDeleteView,
     FollowUpCreateView,
     FollowUpListView,
+    EvidenceCreateView,
+    EvidenceListView,
 )
 
 app_name = 'pas'
@@ -30,4 +32,16 @@ urlpatterns = [
     path('activities/<int:pk>/delete/', ActivityDeleteView.as_view(), name='activity-delete'),
     path('activities/<int:pk>/followups/', FollowUpListView.as_view(), name='followup-list'),
     path('activities/<int:pk>/followups/add/', FollowUpCreateView.as_view(), name='followup-add'),
+    path('activities/<int:pk>/evidences/', EvidenceListView.as_view(), name='evidence-list'),
+    path('activities/<int:pk>/evidences/add/', EvidenceCreateView.as_view(), name='evidence-add'),
+    path(
+        "activities/<int:pk>/evidences/",
+        EvidenceListView.as_view(),
+        name="evidence-list",
+    ),
+    path(
+        "activities/<int:pk>/evidences/add/",
+        EvidenceCreateView.as_view(),
+        name="evidence-add",
+    ),
 ]

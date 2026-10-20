@@ -1193,6 +1193,8 @@ class PASEvidenciaTests(TestCase):
             fecha_fin=date.today(),
             user=self.user,
         )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
 
     def test_activity_can_have_multiple_evidences(self):
         Evidencia.objects.create(
@@ -1211,3 +1213,38 @@ class PASEvidenciaTests(TestCase):
             self.action.evidencias.count(),
             2,
         )
+
+    def test_evidence_from_restricted_plan_is_not_visible_without_permission(self):
+        self.plan.visibilidad = "restringida"
+        self.plan.save(update_fields=["visibilidad"])
+
+        evidence = Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Evidencia restringida",
+            user=self.user,
+        )
+
+        response = self.client.get(f"/api/v1/pas/evidences/{evidence.pk}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_with_view_permission_can_see_restricted_evidence(self):
+        self.plan.visibilidad = "restringida"
+        self.plan.save(update_fields=["visibilidad"])
+
+        evidence = Evidencia.objects.create(
+            accion=self.action,
+            descripcion="Evidencia restringida",
+            user=self.user,
+        )
+
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        response = self.client.get(f"/api/v1/pas/evidences/{evidence.pk}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], evidence.pk)

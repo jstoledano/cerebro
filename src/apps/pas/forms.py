@@ -14,7 +14,7 @@ from django.forms import (
     ClearableFileInput,
 )
 
-from .models import Plan, Accion, Seguimiento
+from .models import Plan, Accion, Seguimiento, Evidencia
 
 
 User = get_user_model()
@@ -166,6 +166,19 @@ class PlanClosureForm(forms.Form):
 
     resultado = forms.ChoiceField(choices=RESULTADO_CHOICES)
     comentarios = forms.CharField(widget=Textarea, label='Comentarios', required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        apply_tailwind_widgets(self)
+
+
+class EvidenciaForm(forms.ModelForm):
+    class Meta:
+        model = Evidencia
+        exclude = ["user", "accion"]
+        widgets = {
+            "fecha": DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
