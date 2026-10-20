@@ -16,7 +16,6 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
 )
-
 from .forms import PlanForm, AccionForm, SeguimientoForm, PlanClosureForm
 from .models import Plan, Accion, Seguimiento, CERRADA
 
@@ -54,7 +53,7 @@ class PASIndex(ListView):
         )
 
         plan_list = (
-            Plan.objects.all()
+            Plan.objects.visible_to(self.request.user)
             .prefetch_related(plan_actions_prefetch)
             .order_by("-fecha_llenado")
         )
@@ -165,6 +164,9 @@ class PASDetail(DetailView):
     model = Plan
     template_name = "pas/plan_detail.html"
 
+    def get_queryset(self):
+        return Plan.objects.visible_to(self.request.user)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["plan"] = self.object
@@ -174,6 +176,9 @@ class PASDetail(DetailView):
 class PlanSummaryView(DetailView):
     model = Plan
     template_name = "pas/partials/_plan_summary.html"
+
+    def get_queryset(self):
+        return Plan.objects.visible_to(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -205,6 +210,9 @@ class PlanSummaryView(DetailView):
 class PlanActivitiesView(DetailView):
     model = Plan
     template_name = "pas/partials/_activities_list.html"
+
+    def get_queryset(self):
+        return Plan.objects.visible_to(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -289,7 +297,7 @@ class PlanActivitiesView(DetailView):
                 item["activity"].pk,
             )
         )
-        can_modify = not (plan.eliminacion or plan.recurrencia)
+        can_modify = plan.permite_modificaciones
         context.update(
             {"plan": plan, "activities": activities, "can_modify": can_modify}
         )
@@ -369,12 +377,6 @@ class PlanClosureView(PermissionRequiredMixin, FormView):
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        if any(
-            activity.get_estado != "Cerrada" for activity in self.plan.accion_set.all()
-        ):
-            form.add_error(None, "Aún existen actividades abiertas.")
-            return self.form_invalid(form)
-
         resultado = form.cleaned_data["resultado"]
         comentarios = form.cleaned_data.get("comentarios")
 
@@ -443,7 +445,7 @@ class ActivityBaseView:
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
 
-        if self.plan.eliminacion or self.plan.recurrencia:
+        if not self.plan.permite_modificaciones:
             return HttpResponse(
                 "El plan se encuentra cerrado o con recurrencia registrada.",
                 status=409,
@@ -458,7 +460,7 @@ class ActivityCreateView(PermissionRequiredMixin, ActivityBaseView, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.plan = get_object_or_404(Plan, pk=kwargs["pk"])
-        if self.plan.eliminacion or self.plan.recurrencia:
+        if not self.plan.permite_modificaciones:
             return HttpResponse(
                 "El plan se encuentra cerrado o con recurrencia registrada.",
                 status=409,
@@ -481,7 +483,7 @@ class ActivityUpdateView(PermissionRequiredMixin, ActivityBaseView, UpdateView):
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
         self.plan = obj.plan
-        if self.plan.eliminacion or self.plan.recurrencia:
+        if not self.plan.permite_modificaciones:
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied(

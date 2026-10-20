@@ -77,8 +77,38 @@ JPG = "image/jpeg"
 PDF = "application/pdf"
 PNG = "image/png"
 
+VISIBILIDAD_PUBLICA = "publica"
+VISIBILIDAD_INTERNA = "interna"
+VISIBILIDAD_RESTRINGIDA = "restringida"
+
+VISIBILIDAD = (
+    (VISIBILIDAD_PUBLICA, "Pública"),
+    (VISIBILIDAD_INTERNA, "Interna"),
+    (VISIBILIDAD_RESTRINGIDA, "Restringida"),
+)
+
+
+class PlanQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        if user and user.is_authenticated:
+            if user.is_superuser or user.has_perm("pas.view_plan"):
+                return self
+
+            return self.filter(
+                visibilidad__in=[
+                    VISIBILIDAD_PUBLICA,
+                    VISIBILIDAD_INTERNA,
+                ]
+            )
+
+        return self.filter(
+            visibilidad=VISIBILIDAD_PUBLICA
+        )
+
 
 class Plan(TrackingFields):
+    objects = PlanQuerySet.as_manager()
+
     class Meta:
         verbose_name = _("Plan de Acción")
         verbose_name_plural = _("Planes de Acción")
@@ -173,6 +203,13 @@ class Plan(TrackingFields):
     recurrencia = models.BooleanField(default=False)
     txt_recurrencia = HTMLField(blank=True, null=True)
 
+    visibilidad = models.CharField(
+        max_length=20,
+        choices=VISIBILIDAD,
+        default=VISIBILIDAD_PUBLICA,
+        help_text="Define quién puede consultar el plan.",
+    )
+
     def __str__(self):
         return "%s - %s" % (self.folio, self.nombre)
 
@@ -183,6 +220,18 @@ class Plan(TrackingFields):
         elif self.documento == PCM:
             return "PCM"
         return "N/A"
+
+    @property
+    def esta_cerrado(self):
+        return self.eliminacion
+
+    @property
+    def tiene_recurrencia(self):
+        return self.recurrencia
+
+    @property
+    def permite_modificaciones(self):
+        return not (self.esta_cerrado or self.tiene_recurrencia)
 
 
 class Accion(TrackingFields):

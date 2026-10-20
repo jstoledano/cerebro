@@ -13,6 +13,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from apps.pas.forms import PlanForm, AccionForm
 from django.core.exceptions import PermissionDenied
 from apps.pas.views import PASAdd, PlanUpdateView
@@ -25,6 +26,7 @@ from apps.pas.views import (
 from apps.pas.models import Plan, Accion, Seguimiento
 from apps.pas.views import PlanSummaryView
 from apps.pas.views import PlanActivitiesView
+from apps.pas.views import PlanClosureView
 
 User = get_user_model()
 
@@ -50,14 +52,13 @@ class PASAccessTests(TestCase):
 
     def test_index_public_access(self):
         request = self.factory.get("/pas/")
-
+        request.user = AnonymousUser()
         response = PASIndex.as_view()(request)
-
         self.assertEqual(response.status_code, 200)
 
     def test_detail_public_access(self):
         request = self.factory.get(f"/pas/detalle/{self.plan.pk}/")
-
+        request.user = AnonymousUser()
         response = PASDetail.as_view()(
             request,
             pk=self.plan.pk,
@@ -111,6 +112,7 @@ class PASPlanFormTests(TestCase):
             "documento": 1,
             "folio": "TEST-001",
             "fecha_llenado": "2026-10-19",
+            "visibilidad": "publica",
         }
 
     def test_otra_fuente_required_when_fuente_is_otros(self):
@@ -602,6 +604,7 @@ class PASIndexQueryTests(TestCase):
 
     def get_index_query_count(self):
         request = self.factory.get("/pas/")
+        request.user = AnonymousUser()
 
         with CaptureQueriesContext(connection) as queries:
             response = PASIndex.as_view()(request)
@@ -669,7 +672,7 @@ class PASPlanSummaryQueryTests(TestCase):
         request = self.factory.get(
             f"/pas/{self.plan.pk}/summary/"
         )
-
+        request.user = AnonymousUser()
         with CaptureQueriesContext(connection) as queries:
             response = PlanSummaryView.as_view()(
                 request,
@@ -745,7 +748,7 @@ class PASPlanActivitiesQueryTests(TestCase):
         request = self.factory.get(
             f"/pas/{self.plan.pk}/activities/"
         )
-
+        request.user = AnonymousUser()
         with CaptureQueriesContext(connection) as queries:
             response = PlanActivitiesView.as_view()(
                 request,
@@ -773,4 +776,133 @@ class PASPlanActivitiesQueryTests(TestCase):
                 "El número de consultas de actividades creció de "
                 f"{queries_with_one} a {queries_with_ten}."
             ),
+        )
+
+class PASPlanClosureTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="closureuser",
+            password="password",
+        )
+
+        permission = Permission.objects.get(
+            codename="change_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        self.plan = Plan.objects.create(
+            nombre="Plan con actividad abierta",
+            documento=1,
+            folio="CLOSURE-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+        self.action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad abierta",
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+    def test_plan_can_be_closed_with_open_activities(self):
+        request = self.factory.post(
+            f"/pas/{self.plan.pk}/closure/",
+            {
+                "resultado": "close",
+                "comentarios": (
+                    "Cierre registrado para efectos de seguimiento."
+                ),
+            },
+        )
+        request.user = self.user
+
+        response = PlanClosureView.as_view()(
+            request,
+            pk=self.plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.plan.refresh_from_db()
+
+        self.assertTrue(self.plan.eliminacion)
+        self.assertFalse(self.plan.recurrencia)
+
+
+class PASPlanVisibilityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="visibilityuser",
+            password="password",
+        )
+
+        self.public_plan = Plan.objects.create(
+            nombre="Plan público",
+            documento=1,
+            folio="VIS-001",
+            fecha_llenado=date.today(),
+            visibilidad="publica",
+            user=self.user,
+        )
+
+        self.internal_plan = Plan.objects.create(
+            nombre="Plan interno",
+            documento=1,
+            folio="VIS-002",
+            fecha_llenado=date.today(),
+            visibilidad="interna",
+            user=self.user,
+        )
+
+        self.restricted_plan = Plan.objects.create(
+            nombre="Plan restringido",
+            documento=1,
+            folio="VIS-003",
+            fecha_llenado=date.today(),
+            visibilidad="restringida",
+            user=self.user,
+        )
+
+    def test_anonymous_user_sees_only_public_plans(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        plans = Plan.objects.visible_to(AnonymousUser())
+
+        self.assertQuerySetEqual(
+            plans.order_by("pk"),
+            [self.public_plan],
+        )
+
+    def test_authenticated_user_sees_public_and_internal_plans(self):
+        plans = Plan.objects.visible_to(self.user)
+
+        self.assertQuerySetEqual(
+            plans.order_by("pk"),
+            [
+                self.public_plan,
+                self.internal_plan,
+            ],
+        )
+
+    def test_user_with_view_permission_sees_restricted_plans(self):
+        permission = Permission.objects.get(
+            codename="view_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        plans = Plan.objects.visible_to(self.user)
+
+        self.assertQuerySetEqual(
+            plans.order_by("pk"),
+            [
+                self.public_plan,
+                self.internal_plan,
+                self.restricted_plan,
+            ],
         )

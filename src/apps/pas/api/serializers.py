@@ -36,6 +36,7 @@ class PlanSerializer(serializers.ModelSerializer):
             "documento",
             "folio",
             "fecha_llenado",
+            "visibilidad",
             "tipo",
             "desc_cnc",
             "correccion",
@@ -70,7 +71,7 @@ class AccionSerializer(serializers.ModelSerializer):
             getattr(self.instance, "plan", None),
         )
 
-        if plan and (plan.eliminacion or plan.recurrencia):
+        if plan and (not plan.permite_modificaciones):
             raise serializers.ValidationError(
                 "El plan se encuentra cerrado o con recurrencia registrada."
             )
@@ -127,7 +128,7 @@ class SeguimientoSerializer(serializers.ModelSerializer):
             getattr(self.instance, "accion", None),
         )
 
-        if accion and (accion.plan.eliminacion or accion.plan.recurrencia):
+        if accion and not accion.plan.permite_modificaciones:
             raise serializers.ValidationError(
                 "El plan se encuentra cerrado o con recurrencia registrada."
             )
