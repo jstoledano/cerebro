@@ -213,7 +213,19 @@ class Accion(TrackingFields):
         verbose_name_plural = _("Actividades")
 
     def _latest_seguimiento(self):
-        return self.seguimiento_set.order_by("-fecha", "-created").first()
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        ).get("seguimiento_set")
+
+        if prefetched is not None:
+            return prefetched[0] if prefetched else None
+
+        return self.seguimiento_set.order_by(
+            "-fecha",
+            "-created",
+        ).first()
 
     @property
     def estado(self):
@@ -236,6 +248,40 @@ class Accion(TrackingFields):
         if fecha_limite and fecha_limite < hoy:
             return "Abierta Fuera de Tiempo"
         return "Abierta en Tiempo"
+
+    @property
+    def estado_operativo(self):
+        latest = self._latest_seguimiento()
+
+        if not latest:
+            return None
+
+        return latest.get_estado_display()
+
+    @property
+    def salud_plazo(self):
+        latest = self._latest_seguimiento()
+        hoy = django.utils.timezone.localdate()
+
+        if latest and latest.estado == CERRADA:
+            if not self.fecha_fin:
+                return "Cerrada"
+
+            if latest.fecha <= self.fecha_fin:
+                return "Cerrada en tiempo"
+
+            return "Cerrada fuera de tiempo"
+
+        if not self.fecha_fin:
+            return "Sin fecha de término"
+
+        if self.fecha_fin < hoy:
+            return "Vencida"
+
+        if self.fecha_fin == hoy:
+            return "Vence hoy"
+
+        return "En tiempo"
 
     def __str__(self):
         return f"{self.id} - {self.plan}: {self.get_estado}"

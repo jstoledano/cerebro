@@ -3,7 +3,7 @@ import json
 from datetime import date
 
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import OuterRef, Subquery, Prefetch
+from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -34,11 +34,29 @@ class PASIndex(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        plan_list = Plan.objects.all().order_by("-fecha_llenado")
-        latest_estado = (
-            Seguimiento.objects.filter(accion=OuterRef("pk"))
-            .order_by("-fecha")
-            .values("estado")[:1]
+
+        followups_prefetch = Prefetch(
+            "seguimiento_set",
+            queryset=Seguimiento.objects.select_related("responsable").order_by(
+                "-fecha",
+                "-created",
+            ),
+        )
+
+        plan_actions_prefetch = Prefetch(
+            "accion_set",
+            queryset=(
+                Accion.objects.select_related("responsable").prefetch_related(
+                    followups_prefetch
+                )
+            ),
+            to_attr="pas_actions",
+        )
+
+        plan_list = (
+            Plan.objects.all()
+            .prefetch_related(plan_actions_prefetch)
+            .order_by("-fecha_llenado")
         )
 
         def state_priority(estado):
@@ -51,11 +69,9 @@ class PASIndex(ListView):
             return 1
 
         action_items = []
-        action_qs = (
-            Accion.objects.select_related("plan", "responsable")
-            .annotate(latest_estado=Subquery(latest_estado))
-            .prefetch_related("seguimiento_set")
-        )
+        action_qs = Accion.objects.select_related(
+            "plan", "responsable"
+        ).prefetch_related(followups_prefetch)
 
         for action in action_qs:
             estado = action.get_estado
@@ -79,7 +95,7 @@ class PASIndex(ListView):
             abiertas_en_tiempo = 0
             abiertas_fuera_de_tiempo = 0
 
-            for accion in plan.accion_set.select_related("responsable"):
+            for accion in plan.pas_actions:
                 estado = accion.get_estado
                 if estado == "Cerrada":
                     cerradas += 1
@@ -162,7 +178,14 @@ class PlanSummaryView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         plan = self.object
-        activities = list(plan.accion_set.all())
+        followups_prefetch = Prefetch(
+            "seguimiento_set",
+            queryset=Seguimiento.objects.order_by(
+                "-fecha",
+                "-created",
+            ),
+        )
+        activities = list(plan.accion_set.prefetch_related(followups_prefetch))
         total = len(activities)
         closed = sum(1 for activity in activities if activity.get_estado == "Cerrada")
         progress = round((closed / total) * 100) if total else 0

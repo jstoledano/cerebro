@@ -9,15 +9,26 @@ from apps.pas.views import PASIndex, PASDetail
 
 from datetime import date
 from django.test import TestCase
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from apps.pas.models import Plan, Accion
 from apps.pas.forms import PlanForm, AccionForm
-
+from django.core.exceptions import PermissionDenied
+from apps.pas.views import PASAdd, PlanUpdateView
+from apps.pas.views import (
+    ActivityCreateView,
+    ActivityUpdateView,
+    ActivityDeleteView,
+    FollowUpCreateView,
+)
+from apps.pas.models import Plan, Accion, Seguimiento
+from apps.pas.views import PlanSummaryView
+from apps.pas.views import PlanActivitiesView
 
 User = get_user_model()
 
-# @unittest.skip("Motivo por el que se omite")
+
 class PASAccessTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="password")
@@ -267,3 +278,499 @@ class PASAPIPermissionTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("fecha_fin", response.data)
+
+
+class PASWebPermissionTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="webuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan de prueba",
+            documento=1,
+            folio="WEB-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+    def test_authenticated_user_without_add_permission_cannot_add_plan(self):
+        request = self.factory.get("/pas/add/")
+        request.user = self.user
+
+        with self.assertRaises(PermissionDenied):
+            PASAdd.as_view()(request)
+
+    def test_user_with_add_permission_can_open_add_plan(self):
+        permission = Permission.objects.get(
+            codename="add_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        request = self.factory.get("/pas/add/")
+        request.user = self.user
+
+        response = PASAdd.as_view()(request)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_authenticated_user_without_change_permission_cannot_edit_plan(self):
+        request = self.factory.get(
+            f"/pas/{self.plan.pk}/edit/"
+        )
+        request.user = self.user
+
+        with self.assertRaises(PermissionDenied):
+            PlanUpdateView.as_view()(
+                request,
+                pk=self.plan.pk,
+            )
+
+    def test_user_with_change_permission_can_open_edit_plan(self):
+        permission = Permission.objects.get(
+            codename="change_plan",
+            content_type__app_label="pas",
+        )
+        self.user.user_permissions.add(permission)
+
+        request = self.factory.get(
+            f"/pas/{self.plan.pk}/edit/"
+        )
+        request.user = self.user
+
+        response = PlanUpdateView.as_view()(
+            request,
+            pk=self.plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+
+class PASClosedPlanTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="closedplanuser",
+            password="password",
+        )
+
+        permissions = Permission.objects.filter(
+            content_type__app_label="pas",
+            codename__in=[
+                "add_accion",
+                "change_accion",
+                "delete_accion",
+                "add_seguimiento",
+            ],
+        )
+        self.user.user_permissions.add(*permissions)
+
+        self.plan = Plan.objects.create(
+            nombre="Plan cerrado",
+            documento=1,
+            folio="CLOSED-001",
+            fecha_llenado=date.today(),
+            eliminacion=True,
+            user=self.user,
+        )
+
+        self.action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad existente",
+            responsable=self.user,
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+    def test_cannot_add_activity_to_closed_plan(self):
+        request = self.factory.get(
+            f"/pas/{self.plan.pk}/activities/add/"
+        )
+        request.user = self.user
+
+        response = ActivityCreateView.as_view()(
+            request,
+            pk=self.plan.pk,
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+    def test_cannot_edit_activity_in_closed_plan(self):
+        request = self.factory.get(
+            f"/pas/activities/{self.action.pk}/edit/"
+        )
+        request.user = self.user
+
+        with self.assertRaises(PermissionDenied):
+            ActivityUpdateView.as_view()(
+                request,
+                pk=self.action.pk,
+            )
+
+    def test_cannot_delete_activity_in_closed_plan(self):
+        request = self.factory.get(
+            f"/pas/activities/{self.action.pk}/delete/"
+        )
+        request.user = self.user
+
+        with self.assertRaises(PermissionDenied):
+            ActivityDeleteView.as_view()(
+                request,
+                pk=self.action.pk,
+            )
+
+    def test_cannot_add_followup_to_closed_plan(self):
+        request = self.factory.get(
+            f"/pas/activities/{self.action.pk}/followups/add/"
+        )
+        request.user = self.user
+
+        response = FollowUpCreateView.as_view()(
+            request,
+            pk=self.action.pk,
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+
+class PASAccionStateTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="stateuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan de estados",
+            documento=1,
+            folio="STATE-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+    def test_activity_without_followup_has_no_operational_state(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad sin seguimiento",
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        self.assertIsNone(action.estado_operativo)
+
+    def test_activity_due_today_reports_due_today(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad de hoy",
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        self.assertEqual(action.salud_plazo, "Vence hoy")
+
+    def test_operational_state_comes_from_latest_followup(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad con seguimiento",
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion="Esperando respuesta",
+            fecha=date.today(),
+            estado=3,
+            responsable=self.user,
+            user=self.user,
+        )
+
+        self.assertEqual(
+            action.estado_operativo,
+            "En espera de una respuesta",
+        )
+
+    def test_overdue_activity_reports_overdue(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad vencida",
+            fecha_fin=date(2026, 1, 1),
+            user=self.user,
+        )
+
+        self.assertEqual(action.salud_plazo, "Vencida")
+
+    def test_activity_without_due_date_reports_no_due_date(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad sin fecha",
+            fecha_fin=None,
+            user=self.user,
+        )
+
+        self.assertEqual(
+            action.salud_plazo,
+            "Sin fecha de término",
+        )
+
+    def test_closed_activity_reports_closed_in_time(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad cerrada",
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion="Actividad registrada como cerrada",
+            fecha=date.today(),
+            estado=99,
+            responsable=self.user,
+            user=self.user,
+        )
+
+        self.assertEqual(
+            action.salud_plazo,
+            "Cerrada en tiempo",
+        )
+
+    def test_closed_activity_reports_closed_late(self):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion="Actividad cerrada fuera de tiempo",
+            fecha_fin=date(2026, 1, 1),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion="Cierre registrado",
+            fecha=date.today(),
+            estado=99,
+            responsable=self.user,
+            user=self.user,
+        )
+
+        self.assertEqual(
+            action.salud_plazo,
+            "Cerrada fuera de tiempo",
+        )
+
+
+class PASIndexQueryTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="queryuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan de consultas",
+            documento=1,
+            folio="QUERY-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+    def create_activity_with_followup(self, number):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion=f"Actividad {number}",
+            responsable=self.user,
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion=f"Seguimiento {number}",
+            fecha=date.today(),
+            estado=1,
+            responsable=self.user,
+            user=self.user,
+        )
+
+    def get_index_query_count(self):
+        request = self.factory.get("/pas/")
+
+        with CaptureQueriesContext(connection) as queries:
+            response = PASIndex.as_view()(request)
+
+            self.assertEqual(response.status_code, 200)
+
+        return len(queries)
+
+    def test_index_queries_do_not_grow_with_number_of_activities(self):
+        self.create_activity_with_followup(1)
+
+        queries_with_one_activity = self.get_index_query_count()
+
+        for number in range(2, 11):
+            self.create_activity_with_followup(number)
+
+        queries_with_ten_activities = self.get_index_query_count()
+
+        self.assertEqual(
+            queries_with_ten_activities,
+            queries_with_one_activity,
+            (
+                "El número de consultas del índice creció de "
+                f"{queries_with_one_activity} a "
+                f"{queries_with_ten_activities}."
+            ),
+        )
+
+
+class PASPlanSummaryQueryTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="summaryqueryuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan resumen",
+            documento=1,
+            folio="SUMMARY-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+    def create_activity_with_followup(self, number):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion=f"Actividad {number}",
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion=f"Seguimiento {number}",
+            fecha=date.today(),
+            estado=1,
+            user=self.user,
+        )
+
+    def get_summary_query_count(self):
+        request = self.factory.get(
+            f"/pas/{self.plan.pk}/summary/"
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            response = PlanSummaryView.as_view()(
+                request,
+                pk=self.plan.pk,
+            )
+
+            self.assertEqual(response.status_code, 200)
+
+        return len(queries)
+
+    def test_summary_queries_do_not_grow_with_number_of_activities(self):
+        self.create_activity_with_followup(1)
+
+        queries_with_one = self.get_summary_query_count()
+
+        for number in range(2, 11):
+            self.create_activity_with_followup(number)
+
+        queries_with_ten = self.get_summary_query_count()
+
+        self.assertEqual(
+            queries_with_ten,
+            queries_with_one,
+        )
+
+
+class PASPlanActivitiesQueryTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+        self.user = User.objects.create_user(
+            username="activitiesqueryuser",
+            password="password",
+        )
+
+        self.plan = Plan.objects.create(
+            nombre="Plan actividades",
+            documento=1,
+            folio="ACTIVITIES-001",
+            fecha_llenado=date.today(),
+            user=self.user,
+        )
+
+    def create_activity_with_followups(self, number):
+        action = Accion.objects.create(
+            plan=self.plan,
+            accion=f"Actividad {number}",
+            responsable=self.user,
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion=f"Primer seguimiento {number}",
+            fecha=date.today(),
+            estado=1,
+            responsable=self.user,
+            user=self.user,
+        )
+
+        Seguimiento.objects.create(
+            accion=action,
+            descripcion=f"Segundo seguimiento {number}",
+            fecha=date.today(),
+            estado=3,
+            responsable=self.user,
+            user=self.user,
+        )
+
+    def get_activities_query_count(self):
+        request = self.factory.get(
+            f"/pas/{self.plan.pk}/activities/"
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            response = PlanActivitiesView.as_view()(
+                request,
+                pk=self.plan.pk,
+            )
+
+            self.assertEqual(response.status_code, 200)
+
+        return len(queries)
+
+    def test_activity_queries_do_not_grow_with_number_of_activities(self):
+        self.create_activity_with_followups(1)
+
+        queries_with_one = self.get_activities_query_count()
+
+        for number in range(2, 11):
+            self.create_activity_with_followups(number)
+
+        queries_with_ten = self.get_activities_query_count()
+
+        self.assertEqual(
+            queries_with_ten,
+            queries_with_one,
+            (
+                "El número de consultas de actividades creció de "
+                f"{queries_with_one} a {queries_with_ten}."
+            ),
+        )
