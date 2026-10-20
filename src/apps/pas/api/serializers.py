@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.pas.models import Plan, Accion, Seguimiento
+from apps.pas.models import Plan, Accion, Seguimiento, Evidencia
 
 
 class PlanSerializer(serializers.ModelSerializer):
@@ -155,3 +155,40 @@ class SeguimientoSerializer(serializers.ModelSerializer):
             "created",
             "modified",
         ]
+
+
+class EvidenciaSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+
+    class Meta:
+        model = Evidencia
+        fields = [
+            "id",
+            "accion",
+            "archivo",
+            "descripcion",
+            "fecha",
+            "user",
+            "created",
+            "modified",
+        ]
+        read_only_fields = [
+            "id",
+            "created",
+            "modified",
+        ]
+
+    def validate(self, attrs):
+        accion = attrs.get(
+            "accion",
+            getattr(self.instance, "accion", None),
+        )
+
+        if accion and not accion.plan.permite_modificaciones:
+            raise serializers.ValidationError(
+                "El plan se encuentra cerrado o con recurrencia registrada."
+            )
+
+        return attrs
