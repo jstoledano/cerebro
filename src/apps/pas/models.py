@@ -1,3 +1,5 @@
+import datetime
+
 import django.utils.timezone
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -441,6 +443,208 @@ class Accion(TrackingFields):
 
         return "En tiempo"
 
+    def generar_ejecuciones(self):
+        def normalizar_fecha(valor):
+            if valor is None:
+                return None
+
+            if isinstance(valor, datetime.datetime):
+                return valor.date()
+
+            if isinstance(valor, datetime.date):
+                return valor
+
+            if isinstance(valor, str):
+                return datetime.date.fromisoformat(valor)
+
+            raise TypeError(f"Tipo de fecha no soportado: {type(valor).__name__}")
+
+        fecha_inicio_actividad = normalizar_fecha(self.fecha_inicio)
+
+        fecha_fin_actividad = normalizar_fecha(self.fecha_fin)
+
+        if not fecha_inicio_actividad:
+            raise ValueError("La actividad debe tener fecha de inicio.")
+
+        fecha_fin_actividad = fecha_fin_actividad or fecha_inicio_actividad
+
+        if fecha_fin_actividad < fecha_inicio_actividad:
+            raise ValueError(
+                "La fecha de término no puede ser anterior a la fecha de inicio."
+            )
+
+        ambitos = self.ambitos or [AMBITO_JL]
+
+        ambitos_validos = {
+            AMBITO_JL,
+            AMBITO_D01,
+            AMBITO_D02,
+            AMBITO_D03,
+        }
+
+        ambitos_invalidos = set(ambitos) - ambitos_validos
+
+        if ambitos_invalidos:
+            raise ValueError(
+                "La actividad contiene ámbitos no válidos: "
+                + ", ".join(sorted(ambitos_invalidos))
+            )
+
+        def sumar_meses(fecha, meses):
+            mes = fecha.month - 1 + meses
+            anio = fecha.year + mes // 12
+            mes = mes % 12 + 1
+
+            if mes == 12:
+                primer_dia_siguiente_mes = datetime.date(
+                    anio + 1,
+                    1,
+                    1,
+                )
+            else:
+                primer_dia_siguiente_mes = datetime.date(
+                    anio,
+                    mes + 1,
+                    1,
+                )
+
+            ultimo_dia = (primer_dia_siguiente_mes - datetime.timedelta(days=1)).day
+
+            dia = min(
+                fecha.day,
+                ultimo_dia,
+            )
+
+            return datetime.date(
+                anio,
+                mes,
+                dia,
+            )
+
+        def construir_periodos():
+            if self.periodicidad == PERIODICIDAD_MANUAL:
+                return None
+
+            if self.periodicidad == PERIODICIDAD_UNICA:
+                return [
+                    {
+                        "numero": 1,
+                        "etiqueta": "Única",
+                        "fecha_inicio": fecha_inicio_actividad,
+                        "fecha_fin": fecha_fin_actividad,
+                    }
+                ]
+
+            periodos = []
+            inicio = fecha_inicio_actividad
+            numero = 1
+
+            while inicio <= fecha_fin_actividad:
+                if self.periodicidad == PERIODICIDAD_SEMANAL:
+                    siguiente_inicio = inicio + datetime.timedelta(days=7)
+                    etiqueta = f"Semana {numero}"
+
+                elif self.periodicidad == PERIODICIDAD_QUINCENAL:
+                    siguiente_inicio = inicio + datetime.timedelta(days=14)
+                    etiqueta = f"Quincena {numero}"
+
+                elif self.periodicidad == PERIODICIDAD_MENSUAL:
+                    siguiente_inicio = sumar_meses(
+                        inicio,
+                        1,
+                    )
+                    etiqueta = inicio.strftime("%B %Y").capitalize()
+
+                elif self.periodicidad == PERIODICIDAD_BIMESTRAL:
+                    siguiente_inicio = sumar_meses(
+                        inicio,
+                        2,
+                    )
+                    etiqueta = f"Bimestre {numero}"
+
+                else:
+                    raise ValueError("Periodicidad no reconocida.")
+
+                fin = min(
+                    siguiente_inicio - datetime.timedelta(days=1),
+                    fecha_fin_actividad,
+                )
+
+                periodos.append(
+                    {
+                        "numero": numero,
+                        "etiqueta": etiqueta,
+                        "fecha_inicio": inicio,
+                        "fecha_fin": fin,
+                    }
+                )
+
+                inicio = siguiente_inicio
+                numero += 1
+
+            return periodos
+
+        periodos = construir_periodos()
+
+        if periodos is None:
+            ciclos = list(
+                self.ciclos.order_by(
+                    "fecha_inicio",
+                    "numero",
+                )
+            )
+
+            if not ciclos:
+                raise ValueError(
+                    "La actividad utiliza fechas manuales "
+                    "pero todavía no tiene ciclos definidos."
+                )
+
+        else:
+            numeros_generados = set()
+
+            for periodo in periodos:
+                numeros_generados.add(periodo["numero"])
+
+                CicloActividad.objects.update_or_create(
+                    accion=self,
+                    numero=periodo["numero"],
+                    defaults={
+                        "etiqueta": periodo["etiqueta"],
+                        "fecha_inicio": periodo["fecha_inicio"],
+                        "fecha_fin": periodo["fecha_fin"],
+                        "user": self.user,
+                    },
+                )
+
+            self.ciclos.exclude(numero__in=numeros_generados).delete()
+
+            ciclos = list(
+                self.ciclos.order_by(
+                    "fecha_inicio",
+                    "numero",
+                )
+            )
+
+        ejecuciones = []
+
+        for ciclo in ciclos:
+            for ambito in ambitos:
+                ejecucion, _ = Ejecucion.objects.update_or_create(
+                    ciclo=ciclo,
+                    ambito=ambito,
+                    defaults={
+                        "responsable": self.responsable,
+                        "user": self.user,
+                    },
+                )
+
+                ejecuciones.append(ejecucion)
+
+            ciclo.ejecuciones.exclude(ambito__in=ambitos).delete()
+
+        return ejecuciones
+
     def __str__(self):
         return f"{self.id} - {self.plan}: {self.get_estado}"
 
@@ -520,6 +724,21 @@ class Ejecucion(TrackingFields):
         ),
     )
 
+    completada = models.BooleanField(
+        default=False,
+        help_text=(
+            "Indica que la ejecución fue registrada como terminada."
+        ),
+    )
+
+    fecha_completada = models.DateField(
+        blank=True,
+        null=True,
+        help_text=(
+            "Fecha en que la ejecución fue registrada como terminada."
+        ),
+    )
+
     class Meta:
         verbose_name = _("Ejecución")
         verbose_name_plural = _("Ejecuciones")
@@ -561,19 +780,144 @@ class Ejecucion(TrackingFields):
     def ambito_display(self):
         return self.get_ambito_display()
 
+    @property
+    def estado_agenda(self):
+        if self.completada:
+            return "terminada"
+
+        hoy = django.utils.timezone.localdate()
+
+        if self.fecha_fin < hoy:
+            return "vencida"
+
+        if self.fecha_inicio == hoy:
+            return "inicia_hoy"
+
+        if self.fecha_fin == hoy:
+            return "vence_hoy"
+
+        if self.fecha_inicio > hoy:
+            return "programada"
+
+        return "pendiente"
+
+    @property
+    def estado_agenda_display(self):
+        estados = {
+            "terminada": "Terminada",
+            "vencida": "Vencida",
+            "inicia_hoy": "Inicia hoy",
+            "vence_hoy": "Vence hoy",
+            "programada": "Programada",
+            "pendiente": "Pendiente",
+        }
+
+        return estados[self.estado_agenda]
+
+    @property
+    def esta_pendiente(self):
+        return not self.completada
+
+    @property
+    def esta_vencida(self):
+        return self.estado_agenda == "vencida"
+
+    @property
+    def inicia_hoy(self):
+        return (
+            not self.completada
+            and self.fecha_inicio
+            == django.utils.timezone.localdate()
+        )
+
+    @property
+    def vence_hoy(self):
+        return (
+            not self.completada
+            and self.fecha_fin
+            == django.utils.timezone.localdate()
+        )
+
+    @property
+    def tiene_evidencia(self):
+        try:
+            evidencia = self.evidencia_registrada
+        except Evidencia.DoesNotExist:
+            return False
+
+        return bool(evidencia.archivo)
+
+    @property
+    def evidencia(self):
+        try:
+            return self.evidencia_registrada
+        except Evidencia.DoesNotExist:
+            return None
+
+    def marcar_completada(self, fecha=None):
+        self.completada = True
+        self.fecha_completada = (
+            fecha
+            or django.utils.timezone.localdate()
+        )
+
+        self.save(
+            update_fields=[
+                "completada",
+                "fecha_completada",
+                "modified",
+            ]
+        )
+
+    def reabrir(self):
+        self.completada = False
+        self.fecha_completada = None
+
+        self.save(
+            update_fields=[
+                "completada",
+                "fecha_completada",
+                "modified",
+            ]
+        )
+
     def __str__(self):
+        etiqueta = (
+            self.ciclo.etiqueta
+            or f"Ciclo {self.ciclo.numero}"
+        )
+
         return (
             f"{self.ciclo.accion_id} - "
-            f"{self.ciclo.etiqueta or f'Ciclo {self.ciclo.numero}'} - "
+            f"{etiqueta} - "
             f"{self.get_ambito_display()}"
         )
 
 
 class Evidencia(TrackingFields):
+    ejecucion = models.OneToOneField(
+        Ejecucion,
+        on_delete=models.CASCADE,
+        related_name="evidencia_registrada",
+        blank=True,
+        null=True,
+        help_text=(
+            "Ejecución concreta a la que corresponde "
+            "el archivo de evidencia."
+        ),
+    )
+
     accion = models.ForeignKey(
         Accion,
         on_delete=models.CASCADE,
         related_name="evidencias",
+        blank=True,
+        null=True,
+        help_text=(
+            "Relación heredada con la actividad. "
+            "Se conserva temporalmente durante la migración "
+            "al modelo de ejecuciones."
+        ),
     )
 
     archivo = models.FileField(
@@ -586,21 +930,60 @@ class Evidencia(TrackingFields):
         max_length=255,
         blank=True,
         default="",
-        help_text="Descripción breve de la evidencia registrada.",
+        help_text=(
+            "Descripción opcional del archivo registrado."
+        ),
     )
 
     fecha = models.DateField(
         default=django.utils.timezone.now,
-        help_text="Fecha asociada a la evidencia.",
+        help_text=(
+            "Fecha asociada al registro de la evidencia."
+        ),
     )
 
     class Meta:
         verbose_name = _("Evidencia")
         verbose_name_plural = _("Evidencias")
-        ordering = ["-fecha", "-created"]
+        ordering = [
+            "-fecha",
+            "-created",
+        ]
+
+    @property
+    def actividad(self):
+        if self.ejecucion_id:
+            return self.ejecucion.accion
+
+        return self.accion
+
+    @property
+    def plan(self):
+        actividad = self.actividad
+
+        if actividad:
+            return actividad.plan
+
+        return None
+
+    @property
+    def ambito(self):
+        if not self.ejecucion_id:
+            return None
+
+        return self.ejecucion.ambito
 
     def __str__(self):
-        return f"Evidencia {self.pk} - Actividad {self.accion_id}"
+        if self.ejecucion_id:
+            return (
+                f"Evidencia {self.pk} - "
+                f"Ejecución {self.ejecucion_id}"
+            )
+
+        return (
+            f"Evidencia {self.pk} - "
+            f"Actividad {self.accion_id}"
+        )
 
 
 class Seguimiento(TrackingFields, models.Model):
