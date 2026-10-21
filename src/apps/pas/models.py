@@ -1015,3 +1015,60 @@ class Seguimiento(TrackingFields, models.Model):
         return user_display_name(self.responsable)
 
 
+def generar_ejecuciones_faltantes(plan):
+    actividades = (
+        plan.accion_set
+        .select_related(
+            "responsable",
+            "user",
+        )
+        .prefetch_related(
+            "ciclos",
+        )
+        .order_by(
+            "id",
+        )
+    )
+
+    resultado = {
+        "generadas": [],
+        "omitidas": [],
+        "errores": [],
+    }
+
+    for actividad in actividades:
+        if actividad.ciclos.exists():
+            resultado["omitidas"].append(
+                {
+                    "actividad_id": actividad.pk,
+                    "motivo": "Ya tiene ciclos.",
+                }
+            )
+            continue
+
+        try:
+            ejecuciones = (
+                actividad.generar_ejecuciones()
+            )
+
+            resultado["generadas"].append(
+                {
+                    "actividad_id": actividad.pk,
+                    "ciclos": (
+                        actividad.ciclos.count()
+                    ),
+                    "ejecuciones": len(
+                        ejecuciones
+                    ),
+                }
+            )
+
+        except Exception as exc:
+            resultado["errores"].append(
+                {
+                    "actividad_id": actividad.pk,
+                    "error": str(exc),
+                }
+            )
+
+    return resultado

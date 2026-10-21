@@ -14,7 +14,13 @@ from django.forms import (
     ClearableFileInput,
 )
 
-from .models import Plan, Accion, Seguimiento, Evidencia
+from .models import (
+    Plan,
+    Accion,
+    Seguimiento,
+    Evidencia,
+    AMBITO,
+)
 
 
 User = get_user_model()
@@ -104,37 +110,138 @@ class PlanForm(forms.ModelForm):
 
 class AccionForm(forms.ModelForm):
     responsable = ResponsableChoiceField(
-        queryset=User.objects.order_by('first_name', 'last_name', 'email'),
+        queryset=User.objects.order_by(
+            "first_name",
+            "last_name",
+            "email",
+        ),
         required=False,
-        label='Responsable',
+        label="Responsable",
+    )
+
+    ambitos = forms.MultipleChoiceField(
+        choices=AMBITO,
+        required=False,
+        label="Ámbitos de ejecución",
+        widget=forms.CheckboxSelectMultiple,
+        help_text=(
+            "Selecciona los ámbitos en los que se ejecutará "
+            "esta actividad."
+        ),
     )
 
     class Meta:
         model = Accion
-        exclude = ['user', 'plan']
+        exclude = [
+            "user",
+            "plan",
+        ]
         widgets = {
-            'fecha_inicio': DateInput(attrs={'type': 'date'}),
-            'fecha_fin': DateInput(attrs={'type': 'date'}),
+            "fecha_inicio": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "fecha_fin": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields[
+            "responsable"
+        ].empty_label = "Selecciona un responsable"
+
+        if self.instance and self.instance.pk:
+            self.fields["ambitos"].initial = (
+                self.instance.ambitos or []
+            )
+
+        apply_tailwind_widgets(self)
 
     def clean(self):
         cleaned_data = super().clean()
 
-        fecha_inicio = cleaned_data.get("fecha_inicio")
-        fecha_fin = cleaned_data.get("fecha_fin")
+        fecha_inicio = cleaned_data.get(
+            "fecha_inicio"
+        )
+        fecha_fin = cleaned_data.get(
+            "fecha_fin"
+        )
 
-        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+        if (
+            fecha_inicio
+            and fecha_fin
+            and fecha_inicio > fecha_fin
+        ):
             self.add_error(
                 "fecha_fin",
-                "La fecha de término no puede ser anterior a la fecha de inicio.",
+                (
+                    "La fecha de término no puede ser "
+                    "anterior a la fecha de inicio."
+                ),
+            )
+
+        ambitos = cleaned_data.get(
+            "ambitos"
+        ) or []
+
+        cleaned_data["ambitos"] = list(
+            ambitos
+        )
+
+        if not self.instance.pk:
+            return cleaned_data
+
+        original = Accion.objects.get(
+            pk=self.instance.pk
+        )
+
+        estructura_modificada = any(
+            [
+                original.periodicidad
+                != cleaned_data.get(
+                    "periodicidad"
+                ),
+                set(original.ambitos or [])
+                != set(ambitos),
+                original.fecha_inicio
+                != fecha_inicio,
+                original.fecha_fin
+                != fecha_fin,
+                original.formato_evidencia
+                != cleaned_data.get(
+                    "formato_evidencia"
+                ),
+            ]
+        )
+
+        if not estructura_modificada:
+            return cleaned_data
+
+        tiene_evidencias = (
+            Evidencia.objects
+            .filter(
+                ejecucion__ciclo__accion=original
+            )
+            .exists()
+        )
+
+        if tiene_evidencias:
+            raise forms.ValidationError(
+                (
+                    "No es posible modificar la periodicidad, "
+                    "las fechas, los ámbitos o el formato de "
+                    "evidencia porque esta actividad ya tiene "
+                    "evidencias registradas."
+                )
             )
 
         return cleaned_data
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['responsable'].empty_label = 'Selecciona un responsable'
-        apply_tailwind_widgets(self)
 
 
 class SeguimientoForm(forms.ModelForm):
@@ -175,11 +282,22 @@ class PlanClosureForm(forms.Form):
 class EvidenciaForm(forms.ModelForm):
     class Meta:
         model = Evidencia
-        exclude = ["user", "accion"]
+        exclude = [
+            "user",
+            "accion",
+            "ejecucion",
+        ]
         widgets = {
-            "fecha": DateInput(attrs={"type": "date"}),
+            "fecha": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.fields["archivo"].required = True
+
         apply_tailwind_widgets(self)

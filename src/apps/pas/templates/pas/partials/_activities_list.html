@@ -119,17 +119,8 @@
             </button>
           </td>
 
-          <td class="text-center text-base-content/80">
-            <button type="button"
-                    class="btn btn-ghost btn-sm px-3"
-                    hx-get="{% url 'pas:evidence-list' activity.pk %}"
-                    hx-target="#pas-modal-content"
-                    hx-swap="innerHTML"
-                    title="Ver evidencias registradas">
-              <span class="badge badge-outline badge-md min-w-[3rem] min-h-[2.5rem] items-center justify-center text-base">
-                {{ item.evidence_count }}
-              </span>
-            </button>
+          <td class="text-center align-middle">
+            {% include "pas/partials/_execution_summary.html" %}
           </td>
 
           <td class="text-center">

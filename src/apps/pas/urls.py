@@ -16,6 +16,9 @@ from .views import (
     EvidenceCreateView,
     EvidenceListView,
     EvidenceDownloadView,
+    ExecutionEvidenceDetailView,
+    ExecutionEvidenceBaseView,
+    ExecutionEvidenceCreateView,
 )
 
 app_name = 'pas'
@@ -49,5 +52,15 @@ urlpatterns = [
         "evidences/<int:pk>/download/",
         EvidenceDownloadView.as_view(),
         name="evidence-download",
+    ),
+    path(
+        "executions/<int:pk>/evidence/",
+        ExecutionEvidenceDetailView.as_view(),
+        name="execution-evidence",
+    ),
+    path(
+        "executions/<int:pk>/evidence/add/",
+        ExecutionEvidenceCreateView.as_view(),
+        name="execution-evidence-add",
     ),
 ]

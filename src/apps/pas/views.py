@@ -3,7 +3,7 @@ import json
 from datetime import date
 
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -17,7 +17,15 @@ from django.views.generic import (
     DeleteView,
 )
 from .forms import PlanForm, AccionForm, SeguimientoForm, PlanClosureForm, EvidenciaForm
-from .models import Plan, Accion, Seguimiento, Evidencia, CERRADA
+from .models import (
+    Plan,
+    Accion,
+    Seguimiento,
+    Evidencia,
+    Ejecucion,
+    CicloActividad,
+    CERRADA,
+)
 
 
 def hx_trigger_header(*events):
@@ -212,91 +220,228 @@ class PlanActivitiesView(DetailView):
     template_name = "pas/partials/_activities_list.html"
 
     def get_queryset(self):
-        return Plan.objects.visible_to(self.request.user)
+        return Plan.objects.visible_to(
+            self.request.user
+        )
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = super().get_context_data(
+            **kwargs
+        )
+
         plan = self.object
+        hoy = timezone.localdate()
 
         followups_prefetch = Prefetch(
             "seguimiento_set",
-            queryset=Seguimiento.objects.select_related(
+            queryset=Seguimiento.objects
+            .select_related(
                 "responsable"
-            ).order_by(
+            )
+            .order_by(
                 "-fecha",
                 "-created",
             ),
         )
 
+        executions_prefetch = Prefetch(
+            "ejecuciones",
+            queryset=Ejecucion.objects
+            .select_related(
+                "responsable",
+            )
+            .prefetch_related(
+                "evidencia_registrada",
+            )
+            .order_by(
+                "ambito",
+            ),
+        )
+
+        cycles_prefetch = Prefetch(
+            "ciclos",
+            queryset=CicloActividad.objects
+            .prefetch_related(
+                executions_prefetch,
+            )
+            .order_by(
+                "fecha_inicio",
+                "numero",
+            ),
+        )
+
         activities_queryset = (
             plan.accion_set
-            .select_related("responsable")
-            .annotate(
-                evidence_count=Count("evidencias")
+            .select_related(
+                "responsable"
             )
             .prefetch_related(
                 followups_prefetch,
+                cycles_prefetch,
             )
-            .order_by("fecha_fin", "id")
+            .order_by(
+                "fecha_fin",
+                "id",
+            )
         )
 
         def state_priority(estado):
             if estado == "Abierta Fuera de Tiempo":
                 return 0
+
             if estado == "Cerrada":
                 return 3
+
             if estado == "Abierta en Tiempo":
                 return 2
+
             return 1
 
-        def build_estado_badge(estado, closed_in_time):
+        def build_estado_badge(
+            estado,
+            closed_in_time,
+        ):
             if estado == "Abierta Fuera de Tiempo":
                 return {
-                    "classes": "badge-error text-error-content",
+                    "classes": (
+                        "badge-error "
+                        "text-error-content"
+                    ),
                     "text": "Abierta",
-                    "title": "Abierta fuera de tiempo",
+                    "title": (
+                        "Abierta fuera de tiempo"
+                    ),
                 }
 
             if estado == "Abierta en Tiempo":
                 return {
                     "classes": (
-                        "badge-outline border border-warning "
-                        "text-base-content bg-transparent"
+                        "badge-outline "
+                        "border border-warning "
+                        "text-base-content "
+                        "bg-transparent"
                     ),
                     "text": "Abierta",
-                    "title": "Abierta en tiempo",
+                    "title": (
+                        "Abierta en tiempo"
+                    ),
                 }
 
             if estado == "Cerrada":
                 if closed_in_time is False:
                     return {
                         "classes": (
-                            "badge-success badge-outline text-success"
+                            "badge-success "
+                            "badge-outline "
+                            "text-success"
                         ),
                         "text": "Cerrada",
-                        "title": "Cerrada fuera de tiempo",
+                        "title": (
+                            "Cerrada fuera de tiempo"
+                        ),
                     }
 
                 return {
-                    "classes": "badge-success text-success-content",
+                    "classes": (
+                        "badge-success "
+                        "text-success-content"
+                    ),
                     "text": "Cerrada",
-                    "title": "Cerrada en tiempo",
+                    "title": (
+                        "Cerrada en tiempo"
+                    ),
                 }
 
             return {
-                "classes": "badge-neutral badge-outline",
-                "text": estado or "Sin estado",
-                "title": estado or "Sin estado",
+                "classes": (
+                    "badge-neutral "
+                    "badge-outline"
+                ),
+                "text": (
+                    estado or "Sin estado"
+                ),
+                "title": (
+                    estado or "Sin estado"
+                ),
             }
+
+        def get_reference_cycle(cycles):
+            if not cycles:
+                return None
+
+            current = next(
+                (
+                    cycle
+                    for cycle in cycles
+                    if (
+                        cycle.fecha_inicio
+                        <= hoy
+                        <= cycle.fecha_fin
+                    )
+                ),
+                None,
+            )
+
+            if current:
+                return current
+
+            future = next(
+                (
+                    cycle
+                    for cycle in cycles
+                    if cycle.fecha_inicio > hoy
+                ),
+                None,
+            )
+
+            if future:
+                return future
+
+            return cycles[-1]
 
         activities = []
 
         for activity in activities_queryset:
             estado = activity.get_estado
-
             followups = list(
                 activity.seguimiento_set.all()
             )
+
+            cycles = list(
+                activity.ciclos.all()
+            )
+
+            reference_cycle = (
+                get_reference_cycle(cycles)
+            )
+
+            execution_summary = []
+
+            if reference_cycle:
+                for execution in (
+                    reference_cycle
+                    .ejecuciones.all()
+                ):
+                    execution_summary.append(
+                        {
+                            "execution": execution,
+                            "ambito": (
+                                execution.ambito
+                            ),
+                            "ambito_display": (
+                                execution
+                                .get_ambito_display()
+                            ),
+                            "tiene_evidencia": (
+                                execution
+                                .tiene_evidencia
+                            ),
+                            "estado": (
+                                execution
+                                .estado_agenda
+                            ),
+                        }
+                    )
 
             closure_followup = next(
                 (
@@ -322,22 +467,44 @@ class PlanActivitiesView(DetailView):
                 {
                     "activity": activity,
                     "estado": estado,
-                    "estado_priority": state_priority(
-                        estado
+                    "estado_priority": (
+                        state_priority(
+                            estado
+                        )
                     ),
-                    "followup_count": len(followups),
-                    "evidence_count": (
-                        activity.evidence_count
+                    "followup_count": len(
+                        followups
                     ),
                     "latest_followup": (
                         followups[0]
                         if followups
                         else None
                     ),
-                    "closed_in_time": closed_in_time,
-                    "badge": build_estado_badge(
-                        estado,
-                        closed_in_time,
+                    "closed_in_time": (
+                        closed_in_time
+                    ),
+                    "badge": (
+                        build_estado_badge(
+                            estado,
+                            closed_in_time,
+                        )
+                    ),
+                    "reference_cycle": (
+                        reference_cycle
+                    ),
+                    "execution_summary": (
+                        execution_summary
+                    ),
+                    "execution_total": len(
+                        execution_summary
+                    ),
+                    "execution_with_evidence": sum(
+                        1
+                        for item
+                        in execution_summary
+                        if item[
+                            "tiene_evidencia"
+                        ]
                     ),
                 }
             )
@@ -345,18 +512,21 @@ class PlanActivitiesView(DetailView):
         activities.sort(
             key=lambda item: (
                 item["estado_priority"],
-                item["activity"].fecha_fin or date.max,
+                (
+                    item["activity"].fecha_fin
+                    or date.max
+                ),
                 item["activity"].pk,
             )
         )
-
-        can_modify = plan.permite_modificaciones
 
         context.update(
             {
                 "plan": plan,
                 "activities": activities,
-                "can_modify": can_modify,
+                "can_modify": (
+                    plan.permite_modificaciones
+                ),
             }
         )
 
@@ -494,11 +664,25 @@ class ActivityBaseView:
 
     def form_valid(self, form):
         response = super().form_valid(form)
+
+        if self.object.periodicidad != PERIODICIDAD_MANUAL:
+            self.object.generar_ejecuciones()
+
         if self.request.headers.get("HX-Request"):
             header = hx_trigger_header(
-                "pas:refresh-activities", "pas:refresh-summary", "pas:close-modal"
+                "pas:refresh-activities",
+                "pas:refresh-summary",
+                "pas:close-modal",
             )
-            return HttpResponse("", status=204, headers={"HX-Trigger": header})
+
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": header,
+                },
+            )
+
         return response
 
     def dispatch(self, request, *args, **kwargs):
@@ -785,29 +969,263 @@ class EvidenceListView(DetailView):
         return context
 
 
-class EvidenceDownloadView(DetailView):
+class EvidenceDownloadView(
+    DetailView
+):
     model = Evidencia
 
     def get_queryset(self):
-        visible_plans = Plan.objects.visible_to(self.request.user)
-
-        return (
-            Evidencia.objects
-            .filter(accion__plan__in=visible_plans)
-            .select_related(
-                "accion",
-                "accion__plan",
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
             )
         )
 
-    def get(self, request, *args, **kwargs):
+        return (
+            Evidencia.objects
+            .filter(
+                Q(
+                    ejecucion__ciclo__accion__plan__in=(
+                        visible_plans
+                    )
+                )
+                |
+                Q(
+                    accion__plan__in=(
+                        visible_plans
+                    )
+                )
+            )
+            .select_related(
+                "accion",
+                "accion__plan",
+                "ejecucion",
+                "ejecucion__ciclo",
+                "ejecucion__ciclo__accion",
+                "ejecucion__ciclo__accion__plan",
+            )
+        )
+
+    def get(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
         evidence = self.get_object()
 
         if not evidence.archivo:
-            raise Http404("La evidencia no tiene archivo.")
+            raise Http404(
+                "La evidencia no tiene archivo."
+            )
 
         return FileResponse(
-            evidence.archivo.open("rb"),
+            evidence.archivo.open(
+                "rb"
+            ),
             as_attachment=False,
-            filename=evidence.archivo.name.rsplit("/", 1)[-1],
+            filename=(
+                evidence.archivo.name
+                .rsplit("/", 1)[-1]
+            ),
         )
+
+
+class ExecutionEvidenceBaseView(CreateView):
+    model = Evidencia
+    form_class = EvidenciaForm
+    template_name = "pas/partials/_evidence_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        visible_plans = Plan.objects.visible_to(request.user)
+
+        self.execution = get_object_or_404(
+            Ejecucion.objects
+            .select_related(
+                "ciclo",
+                "ciclo__accion",
+                "ciclo__accion__plan",
+                "responsable",
+            )
+            .filter(
+                ciclo__accion__plan__in=visible_plans,
+            ),
+            pk=kwargs["pk"],
+        )
+
+        if not self.execution.plan.permite_modificaciones:
+            return HttpResponse(
+                (
+                    "El plan se encuentra cerrado "
+                    "o con recurrencia registrada."
+                ),
+                status=409,
+            )
+
+        if Evidencia.objects.filter(
+            ejecucion=self.execution
+        ).exists():
+            return HttpResponse(
+                (
+                    "Esta ejecución ya tiene una "
+                    "evidencia registrada."
+                ),
+                status=409,
+            )
+
+        return super().dispatch(
+            request,
+            *args,
+            **kwargs,
+        )
+
+    def get_success_url(self):
+        return reverse(
+            "pas:detalle",
+            args=[
+                self.execution.plan.pk,
+            ],
+        )
+
+    def get_initial(self):
+        initial = super().get_initial()
+
+        initial.setdefault(
+            "fecha",
+            timezone.localdate(),
+        )
+
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(
+            **kwargs
+        )
+
+        context.update(
+            {
+                "execution": self.execution,
+                "activity": self.execution.accion,
+                "form_action": self.request.path,
+                "modal_id": "pas-modal",
+            }
+        )
+
+        return context
+
+    def form_invalid(self, form):
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            return self.render_to_response(
+                self.get_context_data(
+                    form=form
+                ),
+                status=422,
+            )
+
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        form.instance.ejecucion = (
+            self.execution
+        )
+
+        form.instance.accion = None
+
+        form.instance.user = (
+            self.request.user
+        )
+
+        response = super().form_valid(
+            form
+        )
+
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            header = hx_trigger_header(
+                "pas:refresh-activities",
+                "pas:close-modal",
+            )
+
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": header,
+                },
+            )
+
+        return response
+
+
+class ExecutionEvidenceCreateView(
+    PermissionRequiredMixin,
+    ExecutionEvidenceBaseView,
+):
+    permission_required = "pas.add_evidencia"
+
+
+class ExecutionEvidenceDetailView(
+    DetailView
+):
+    model = Ejecucion
+    template_name = (
+        "pas/partials/"
+        "_execution_evidence_detail.html"
+    )
+
+    def get_queryset(self):
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
+
+        return (
+            Ejecucion.objects
+            .filter(
+                ciclo__accion__plan__in=(
+                    visible_plans
+                )
+            )
+            .select_related(
+                "ciclo",
+                "ciclo__accion",
+                "ciclo__accion__plan",
+                "responsable",
+            )
+        )
+
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = (
+            super().get_context_data(
+                **kwargs
+            )
+        )
+
+        execution = self.object
+
+        try:
+            evidence = (
+                execution
+                .evidencia_registrada
+            )
+        except Evidencia.DoesNotExist:
+            evidence = None
+
+        context.update(
+            {
+                "execution": execution,
+                "activity": (
+                    execution.accion
+                ),
+                "evidence": evidence,
+            }
+        )
+
+        return context
