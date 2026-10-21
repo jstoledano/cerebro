@@ -496,6 +496,79 @@ class CicloActividad(TrackingFields):
         )
 
 
+class Ejecucion(TrackingFields):
+    ciclo = models.ForeignKey(
+        CicloActividad,
+        on_delete=models.CASCADE,
+        related_name="ejecuciones",
+    )
+
+    ambito = models.CharField(
+        max_length=10,
+        choices=AMBITO,
+        help_text="Ámbito responsable de esta ejecución.",
+    )
+
+    responsable = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="pas_ejecuciones_responsables",
+        blank=True,
+        null=True,
+        help_text=(
+            "Persona responsable concreta de esta ejecución."
+        ),
+    )
+
+    class Meta:
+        verbose_name = _("Ejecución")
+        verbose_name_plural = _("Ejecuciones")
+        ordering = [
+            "ciclo__fecha_inicio",
+            "ambito",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "ciclo",
+                    "ambito",
+                ],
+                name="pas_unique_cycle_scope",
+            ),
+        ]
+
+    @property
+    def accion(self):
+        return self.ciclo.accion
+
+    @property
+    def plan(self):
+        return self.ciclo.accion.plan
+
+    @property
+    def fecha_inicio(self):
+        return self.ciclo.fecha_inicio
+
+    @property
+    def fecha_fin(self):
+        return self.ciclo.fecha_fin
+
+    @property
+    def responsable_display(self):
+        return user_display_name(self.responsable)
+
+    @property
+    def ambito_display(self):
+        return self.get_ambito_display()
+
+    def __str__(self):
+        return (
+            f"{self.ciclo.accion_id} - "
+            f"{self.ciclo.etiqueta or f'Ciclo {self.ciclo.numero}'} - "
+            f"{self.get_ambito_display()}"
+        )
+
+
 class Evidencia(TrackingFields):
     accion = models.ForeignKey(
         Accion,
@@ -557,3 +630,5 @@ class Seguimiento(TrackingFields, models.Model):
     @property
     def responsable_display(self):
         return user_display_name(self.responsable)
+
+
