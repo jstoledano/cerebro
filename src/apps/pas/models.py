@@ -106,6 +106,51 @@ class PlanQuerySet(models.QuerySet):
         )
 
 
+PERIODICIDAD_UNICA = "unica"
+PERIODICIDAD_SEMANAL = "semanal"
+PERIODICIDAD_QUINCENAL = "quincenal"
+PERIODICIDAD_MENSUAL = "mensual"
+PERIODICIDAD_BIMESTRAL = "bimestral"
+PERIODICIDAD_MANUAL = "manual"
+
+PERIODICIDAD = (
+    (PERIODICIDAD_UNICA, "Una vez"),
+    (PERIODICIDAD_SEMANAL, "Semanal"),
+    (PERIODICIDAD_QUINCENAL, "Quincenal"),
+    (PERIODICIDAD_MENSUAL, "Mensual"),
+    (PERIODICIDAD_BIMESTRAL, "Bimestral"),
+    (PERIODICIDAD_MANUAL, "Fechas definidas manualmente"),
+)
+
+
+AMBITO_JL = "JL"
+AMBITO_D01 = "D01"
+AMBITO_D02 = "D02"
+AMBITO_D03 = "D03"
+
+AMBITO = (
+    (AMBITO_JL, "Junta Local"),
+    (AMBITO_D01, "Distrito 01"),
+    (AMBITO_D02, "Distrito 02"),
+    (AMBITO_D03, "Distrito 03"),
+)
+
+
+FORMATO_PDF = "pdf"
+FORMATO_XLSX = "xlsx"
+FORMATO_DOCX = "docx"
+FORMATO_PPTX = "pptx"
+FORMATO_ZIP = "zip"
+
+FORMATO_EVIDENCIA = (
+    (FORMATO_PDF, "PDF"),
+    (FORMATO_XLSX, "Excel (XLSX)"),
+    (FORMATO_DOCX, "Word (DOCX)"),
+    (FORMATO_PPTX, "PowerPoint (PPTX)"),
+    (FORMATO_ZIP, "Archivo comprimido (ZIP)"),
+)
+
+
 class Plan(TrackingFields):
     objects = PlanQuerySet.as_manager()
 
@@ -246,15 +291,12 @@ PRIORIDAD = (
 
 
 class Accion(TrackingFields):
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
-    accion = HTMLField()
-
-    prioridad = models.CharField(
-        max_length=10,
-        choices=PRIORIDAD,
-        default=PRIORIDAD_NORMAL,
-        help_text="Nivel de atención para el seguimiento de la actividad.",
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.CASCADE,
     )
+
+    accion = HTMLField()
 
     responsable = models.ForeignKey(
         User,
@@ -264,17 +306,64 @@ class Accion(TrackingFields):
         null=True,
         help_text="Persona responsable de la actividad",
     )
+
     recursos = models.CharField(
         blank=True,
         null=True,
         max_length=255,
         help_text="Recursos necesarios para realizar la actividad",
     )
+
     evidencia = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Evidencia documental esperada"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Descripción de la evidencia documental esperada",
     )
-    fecha_inicio = models.DateField(blank=True, null=True)
-    fecha_fin = models.DateField(blank=True, null=True)
+
+    formato_evidencia = models.CharField(
+        max_length=10,
+        choices=FORMATO_EVIDENCIA,
+        blank=True,
+        default="",
+        help_text=(
+            "Formato de archivo esperado para la evidencia "
+            "de cada ejecución."
+        ),
+    )
+
+    periodicidad = models.CharField(
+        max_length=20,
+        choices=PERIODICIDAD,
+        default=PERIODICIDAD_UNICA,
+        help_text="Periodicidad prevista para la actividad.",
+    )
+
+    ambitos = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "Ámbitos en los que debe ejecutarse la actividad. "
+            "Ejemplo: ['D01', 'D02', 'D03']."
+        ),
+    )
+
+    fecha_inicio = models.DateField(
+        blank=True,
+        null=True,
+    )
+
+    fecha_fin = models.DateField(
+        blank=True,
+        null=True,
+    )
+
+    prioridad = models.CharField(
+        max_length=10,
+        choices=PRIORIDAD,
+        default=PRIORIDAD_NORMAL,
+        help_text="Nivel de atención para el seguimiento de la actividad.",
+    )
 
     class Meta:
         verbose_name = _("Actividad")
@@ -301,23 +390,6 @@ class Accion(TrackingFields):
         return latest.estado if latest else None
 
     @property
-    def responsable_display(self):
-        return user_display_name(self.responsable)
-
-    @property
-    def get_estado(self):
-        """Regresa el estado de una acción correctiva, de acuerdo al último seguimiento capturado."""
-        latest = self._latest_seguimiento()
-        if latest and latest.estado == CERRADA:
-            return "Cerrada"
-
-        fecha_limite = self.fecha_fin
-        hoy = django.utils.timezone.localdate()
-        if fecha_limite and fecha_limite < hoy:
-            return "Abierta Fuera de Tiempo"
-        return "Abierta en Tiempo"
-
-    @property
     def estado_operativo(self):
         latest = self._latest_seguimiento()
 
@@ -325,6 +397,24 @@ class Accion(TrackingFields):
             return None
 
         return latest.get_estado_display()
+
+    @property
+    def responsable_display(self):
+        return user_display_name(self.responsable)
+
+    @property
+    def get_estado(self):
+        latest = self._latest_seguimiento()
+
+        if latest and latest.estado == CERRADA:
+            return "Cerrada"
+
+        hoy = django.utils.timezone.localdate()
+
+        if self.fecha_fin and self.fecha_fin < hoy:
+            return "Abierta Fuera de Tiempo"
+
+        return "Abierta en Tiempo"
 
     @property
     def salud_plazo(self):
@@ -353,6 +443,57 @@ class Accion(TrackingFields):
 
     def __str__(self):
         return f"{self.id} - {self.plan}: {self.get_estado}"
+
+
+class CicloActividad(TrackingFields):
+    accion = models.ForeignKey(
+        Accion,
+        on_delete=models.CASCADE,
+        related_name="ciclos",
+    )
+
+    numero = models.PositiveIntegerField(
+        help_text="Número consecutivo del ciclo dentro de la actividad.",
+    )
+
+    etiqueta = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text=(
+            "Descripción legible del ciclo. "
+            "Ejemplo: Semana 43, Primera quincena de octubre."
+        ),
+    )
+
+    fecha_inicio = models.DateField()
+
+    fecha_fin = models.DateField()
+
+    class Meta:
+        verbose_name = _("Ciclo de actividad")
+        verbose_name_plural = _("Ciclos de actividad")
+        ordering = [
+            "fecha_inicio",
+            "numero",
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "accion",
+                    "numero",
+                ],
+                name="pas_unique_action_cycle_number",
+            ),
+        ]
+
+    def __str__(self):
+        etiqueta = self.etiqueta or f"Ciclo {self.numero}"
+
+        return (
+            f"{self.accion_id} - {etiqueta} "
+            f"({self.fecha_inicio:%d/%m/%Y})"
+        )
 
 
 class Evidencia(TrackingFields):
