@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     PASIndex,
+    AgendaView,
     PASAdd,
     PASDetail,
     PlanSummaryView,
@@ -25,6 +26,11 @@ app_name = 'pas'
 
 urlpatterns = [
     path('', PASIndex.as_view(), name='index'),
+    path(
+        "agenda/",
+        AgendaView.as_view(),
+        name="agenda",
+    ),
     path('add/', PASAdd.as_view(), name='add'),
     path('detalle/<int:pk>/', PASDetail.as_view(), name='detalle'),
     path('<int:pk>/summary/', PlanSummaryView.as_view(), name='plan-summary'),

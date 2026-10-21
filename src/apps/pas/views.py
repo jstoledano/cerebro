@@ -1,7 +1,10 @@
 import json
 
+import datetime
 from datetime import date
 
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, FileResponse, Http404
@@ -15,6 +18,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
     DeleteView,
+    TemplateView,
 )
 from .forms import PlanForm, AccionForm, SeguimientoForm, PlanClosureForm, EvidenciaForm
 from .models import (
@@ -25,6 +29,7 @@ from .models import (
     Ejecucion,
     CicloActividad,
     CERRADA,
+    PERIODICIDAD_MANUAL,
 )
 
 
@@ -120,6 +125,162 @@ class PASIndex(ListView):
 
         context["plan_list"] = plan_list
         context["action_list"] = action_list
+        return context
+
+
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class AgendaView(TemplateView):
+    template_name = "pas/agenda.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(
+            **kwargs
+        )
+
+        hoy = timezone.localdate()
+
+        inicio_semana = (
+            hoy
+            - datetime.timedelta(
+                days=hoy.weekday()
+            )
+        )
+
+        fin_semana = (
+            inicio_semana
+            + datetime.timedelta(days=6)
+        )
+
+        ejecuciones = list(
+            Ejecucion.objects
+            .filter(
+                responsable=self.request.user,
+                ciclo__accion__plan__in=(
+                    Plan.objects.visible_to(
+                        self.request.user
+                    )
+                ),
+            )
+            .select_related(
+                "ciclo",
+                "ciclo__accion",
+                "ciclo__accion__plan",
+                "responsable",
+            )
+            .prefetch_related(
+                "evidencia_registrada",
+            )
+            .order_by(
+                "ciclo__fecha_inicio",
+                "ciclo__fecha_fin",
+                "ciclo__accion_id",
+            )
+        )
+
+        inician_hoy = []
+        vencen_hoy = []
+        vencidas = []
+        pendientes_semana = []
+        pendientes = []
+        terminadas = []
+
+        for ejecucion in ejecuciones:
+            if ejecucion.completada:
+                terminadas.append(
+                    ejecucion
+                )
+                continue
+
+            pendientes.append(
+                ejecucion
+            )
+
+            if (
+                ejecucion.fecha_inicio
+                == hoy
+            ):
+                inician_hoy.append(
+                    ejecucion
+                )
+
+            if (
+                ejecucion.fecha_fin
+                == hoy
+            ):
+                vencen_hoy.append(
+                    ejecucion
+                )
+
+            if (
+                ejecucion.fecha_fin
+                < hoy
+            ):
+                vencidas.append(
+                    ejecucion
+                )
+
+            if (
+                inicio_semana
+                <= ejecucion.fecha_fin
+                <= fin_semana
+            ):
+                pendientes_semana.append(
+                    ejecucion
+                )
+
+        context.update(
+            {
+                "hoy": hoy,
+                "inicio_semana": (
+                    inicio_semana
+                ),
+                "fin_semana": (
+                    fin_semana
+                ),
+
+                "inician_hoy": (
+                    inician_hoy
+                ),
+                "vencen_hoy": (
+                    vencen_hoy
+                ),
+                "vencidas": (
+                    vencidas
+                ),
+                "pendientes_semana": (
+                    pendientes_semana
+                ),
+                "pendientes": (
+                    pendientes
+                ),
+                "terminadas": (
+                    terminadas
+                ),
+
+                "total_inician_hoy": len(
+                    inician_hoy
+                ),
+                "total_vencen_hoy": len(
+                    vencen_hoy
+                ),
+                "total_vencidas": len(
+                    vencidas
+                ),
+                "total_pendientes_semana": len(
+                    pendientes_semana
+                ),
+                "total_pendientes": len(
+                    pendientes
+                ),
+                "total_terminadas": len(
+                    terminadas
+                ),
+            }
+        )
+
         return context
 
 

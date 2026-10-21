@@ -116,7 +116,11 @@ class AccionForm(forms.ModelForm):
             "email",
         ),
         required=False,
-        label="Responsable",
+        label="Responsable directo",
+        help_text=(
+            "Úsalo cuando la actividad corresponda "
+            "a una persona concreta."
+        ),
     )
 
     ambitos = forms.MultipleChoiceField(
@@ -125,8 +129,8 @@ class AccionForm(forms.ModelForm):
         label="Ámbitos de ejecución",
         widget=forms.CheckboxSelectMultiple,
         help_text=(
-            "Selecciona los ámbitos en los que se ejecutará "
-            "esta actividad."
+            "Selecciona los ámbitos en los que se "
+            "ejecutará esta actividad."
         ),
     )
 
@@ -136,6 +140,7 @@ class AccionForm(forms.ModelForm):
             "user",
             "plan",
         ]
+
         widgets = {
             "fecha_inicio": DateInput(
                 attrs={
@@ -154,7 +159,7 @@ class AccionForm(forms.ModelForm):
 
         self.fields[
             "responsable"
-        ].empty_label = "Selecciona un responsable"
+        ].empty_label = "Sin responsable directo"
 
         if self.instance and self.instance.pk:
             self.fields["ambitos"].initial = (
@@ -169,6 +174,7 @@ class AccionForm(forms.ModelForm):
         fecha_inicio = cleaned_data.get(
             "fecha_inicio"
         )
+
         fecha_fin = cleaned_data.get(
             "fecha_fin"
         )
@@ -181,8 +187,8 @@ class AccionForm(forms.ModelForm):
             self.add_error(
                 "fecha_fin",
                 (
-                    "La fecha de término no puede ser "
-                    "anterior a la fecha de inicio."
+                    "La fecha de término no puede "
+                    "ser anterior a la fecha de inicio."
                 ),
             )
 
@@ -193,6 +199,42 @@ class AccionForm(forms.ModelForm):
         cleaned_data["ambitos"] = list(
             ambitos
         )
+
+        puesto_responsable = (
+            cleaned_data.get(
+                "puesto_responsable"
+            )
+        )
+
+        responsable = cleaned_data.get(
+            "responsable"
+        )
+
+        if (
+            len(ambitos) > 1
+            and not puesto_responsable
+        ):
+            self.add_error(
+                "puesto_responsable",
+                (
+                    "Para una actividad con varios "
+                    "ámbitos selecciona el puesto "
+                    "responsable."
+                ),
+            )
+
+        if (
+            len(ambitos) <= 1
+            and not puesto_responsable
+            and not responsable
+        ):
+            self.add_error(
+                "responsable",
+                (
+                    "Selecciona un responsable directo "
+                    "o un puesto responsable."
+                ),
+            )
 
         if not self.instance.pk:
             return cleaned_data
@@ -217,6 +259,8 @@ class AccionForm(forms.ModelForm):
                 != cleaned_data.get(
                     "formato_evidencia"
                 ),
+                original.puesto_responsable
+                != puesto_responsable,
             ]
         )
 
@@ -234,10 +278,10 @@ class AccionForm(forms.ModelForm):
         if tiene_evidencias:
             raise forms.ValidationError(
                 (
-                    "No es posible modificar la periodicidad, "
-                    "las fechas, los ámbitos o el formato de "
-                    "evidencia porque esta actividad ya tiene "
-                    "evidencias registradas."
+                    "No es posible modificar la "
+                    "estructura de esta actividad "
+                    "porque ya tiene evidencias "
+                    "registradas."
                 )
             )
 
