@@ -128,6 +128,7 @@ PERIODICIDAD_SEMANAL = "semanal"
 PERIODICIDAD_QUINCENAL = "quincenal"
 PERIODICIDAD_MENSUAL = "mensual"
 PERIODICIDAD_BIMESTRAL = "bimestral"
+PERIODICIDAD_TRIMESTRAL = "trimestral"
 PERIODICIDAD_MANUAL = "manual"
 
 PERIODICIDAD = (
@@ -136,7 +137,11 @@ PERIODICIDAD = (
     (PERIODICIDAD_QUINCENAL, "Quincenal"),
     (PERIODICIDAD_MENSUAL, "Mensual"),
     (PERIODICIDAD_BIMESTRAL, "Bimestral"),
-    (PERIODICIDAD_MANUAL, "Fechas definidas manualmente"),
+    (PERIODICIDAD_TRIMESTRAL, "Trimestral"),
+    (
+        PERIODICIDAD_MANUAL,
+        "Fechas definidas manualmente",
+    ),
 )
 
 
@@ -655,32 +660,20 @@ class Accion(TrackingFields):
             if isinstance(valor, str):
                 return datetime.date.fromisoformat(valor)
 
-            raise TypeError(
-                f"Tipo de fecha no soportado: {type(valor).__name__}"
-            )
+            raise TypeError(f"Tipo de fecha no soportado: {type(valor).__name__}")
 
-        fecha_inicio_actividad = normalizar_fecha(
-            self.fecha_inicio
-        )
+        fecha_inicio_actividad = normalizar_fecha(self.fecha_inicio)
 
-        fecha_fin_actividad = normalizar_fecha(
-            self.fecha_fin
-        )
+        fecha_fin_actividad = normalizar_fecha(self.fecha_fin)
 
         if not fecha_inicio_actividad:
-            raise ValueError(
-                "La actividad debe tener fecha de inicio."
-            )
+            raise ValueError("La actividad debe tener fecha de inicio.")
 
-        fecha_fin_actividad = (
-            fecha_fin_actividad
-            or fecha_inicio_actividad
-        )
+        fecha_fin_actividad = fecha_fin_actividad or fecha_inicio_actividad
 
         if fecha_fin_actividad < fecha_inicio_actividad:
             raise ValueError(
-                "La fecha de término no puede ser anterior "
-                "a la fecha de inicio."
+                "La fecha de término no puede ser anterior a la fecha de inicio."
             )
 
         ambitos = self.ambitos or [AMBITO_JL]
@@ -692,22 +685,19 @@ class Accion(TrackingFields):
             AMBITO_D03,
         }
 
-        ambitos_invalidos = (
-            set(ambitos)
-            - ambitos_validos
-        )
+        ambitos_invalidos = set(ambitos) - ambitos_validos
 
         if ambitos_invalidos:
             raise ValueError(
                 "La actividad contiene ámbitos no válidos: "
-                + ", ".join(
-                    sorted(ambitos_invalidos)
-                )
+                + ", ".join(sorted(ambitos_invalidos))
             )
 
         def sumar_meses(fecha, meses):
             mes = fecha.month - 1 + meses
+
             anio = fecha.year + mes // 12
+
             mes = mes % 12 + 1
 
             if mes == 12:
@@ -723,10 +713,7 @@ class Accion(TrackingFields):
                     1,
                 )
 
-            ultimo_dia = (
-                primer_dia_siguiente_mes
-                - datetime.timedelta(days=1)
-            ).day
+            ultimo_dia = (primer_dia_siguiente_mes - datetime.timedelta(days=1)).day
 
             dia = min(
                 fecha.day,
@@ -748,8 +735,8 @@ class Accion(TrackingFields):
                     {
                         "numero": 1,
                         "etiqueta": "Única",
-                        "fecha_inicio": fecha_inicio_actividad,
-                        "fecha_fin": fecha_fin_actividad,
+                        "fecha_inicio": (fecha_inicio_actividad),
+                        "fecha_fin": (fecha_fin_actividad),
                     }
                 ]
 
@@ -759,17 +746,13 @@ class Accion(TrackingFields):
 
             while inicio <= fecha_fin_actividad:
                 if self.periodicidad == PERIODICIDAD_SEMANAL:
-                    siguiente_inicio = (
-                        inicio
-                        + datetime.timedelta(days=7)
-                    )
+                    siguiente_inicio = inicio + datetime.timedelta(days=7)
+
                     etiqueta = f"Semana {numero}"
 
                 elif self.periodicidad == PERIODICIDAD_QUINCENAL:
-                    siguiente_inicio = (
-                        inicio
-                        + datetime.timedelta(days=14)
-                    )
+                    siguiente_inicio = inicio + datetime.timedelta(days=14)
+
                     etiqueta = f"Quincena {numero}"
 
                 elif self.periodicidad == PERIODICIDAD_MENSUAL:
@@ -777,25 +760,30 @@ class Accion(TrackingFields):
                         inicio,
                         1,
                     )
-                    etiqueta = inicio.strftime(
-                        "%B %Y"
-                    ).capitalize()
+
+                    etiqueta = inicio.strftime("%B %Y").capitalize()
 
                 elif self.periodicidad == PERIODICIDAD_BIMESTRAL:
                     siguiente_inicio = sumar_meses(
                         inicio,
                         2,
                     )
+
                     etiqueta = f"Bimestre {numero}"
 
-                else:
-                    raise ValueError(
-                        "Periodicidad no reconocida."
+                elif self.periodicidad == PERIODICIDAD_TRIMESTRAL:
+                    siguiente_inicio = sumar_meses(
+                        inicio,
+                        3,
                     )
 
+                    etiqueta = f"Trimestre {numero}"
+
+                else:
+                    raise ValueError("Periodicidad no reconocida.")
+
                 fin = min(
-                    siguiente_inicio
-                    - datetime.timedelta(days=1),
+                    (siguiente_inicio - datetime.timedelta(days=1)),
                     fecha_fin_actividad,
                 )
 
@@ -833,24 +821,20 @@ class Accion(TrackingFields):
             numeros_generados = set()
 
             for periodo in periodos:
-                numeros_generados.add(
-                    periodo["numero"]
-                )
+                numeros_generados.add(periodo["numero"])
 
                 CicloActividad.objects.update_or_create(
                     accion=self,
                     numero=periodo["numero"],
                     defaults={
-                        "etiqueta": periodo["etiqueta"],
-                        "fecha_inicio": periodo["fecha_inicio"],
-                        "fecha_fin": periodo["fecha_fin"],
+                        "etiqueta": (periodo["etiqueta"]),
+                        "fecha_inicio": (periodo["fecha_inicio"]),
+                        "fecha_fin": (periodo["fecha_fin"]),
                         "user": self.user,
                     },
                 )
 
-            self.ciclos.exclude(
-                numero__in=numeros_generados
-            ).delete()
+            self.ciclos.exclude(numero__in=numeros_generados).delete()
 
             ciclos = list(
                 self.ciclos.order_by(
@@ -863,30 +847,20 @@ class Accion(TrackingFields):
 
         for ciclo in ciclos:
             for ambito in ambitos:
-                responsable = (
-                    self.resolver_responsable_ejecucion(
-                        ambito
-                    )
+                responsable = self.resolver_responsable_ejecucion(ambito)
+
+                ejecucion, _ = Ejecucion.objects.update_or_create(
+                    ciclo=ciclo,
+                    ambito=ambito,
+                    defaults={
+                        "responsable": (responsable),
+                        "user": self.user,
+                    },
                 )
 
-                ejecucion, _ = (
-                    Ejecucion.objects.update_or_create(
-                        ciclo=ciclo,
-                        ambito=ambito,
-                        defaults={
-                            "responsable": responsable,
-                            "user": self.user,
-                        },
-                    )
-                )
+                ejecuciones.append(ejecucion)
 
-                ejecuciones.append(
-                    ejecucion
-                )
-
-            ciclo.ejecuciones.exclude(
-                ambito__in=ambitos
-            ).delete()
+            ciclo.ejecuciones.exclude(ambito__in=ambitos).delete()
 
         return ejecuciones
 
