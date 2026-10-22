@@ -81,7 +81,7 @@
     </div>
 
 
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
 
       <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
         <p class="text-sm text-base-content/60">
@@ -123,6 +123,17 @@
 
         <p class="mt-2 text-3xl font-semibold">
           {{ total_pendientes_semana }}
+        </p>
+      </div>
+
+
+      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+        <p class="text-sm text-base-content/60">
+          Próximas
+        </p>
+
+        <p class="mt-2 text-3xl font-semibold">
+          {{ total_proximas }}
         </p>
       </div>
 
@@ -293,10 +304,7 @@
 
                     {% if execution.accion.formato_evidencia == "ninguno" %}
 
-                      <span
-                        class="badge badge-ghost"
-                        title="Esta actividad no requiere evidencia documental"
-                      >
+                      <span class="badge badge-ghost">
                         No requerida
                       </span>
 
@@ -344,17 +352,13 @@
                       >
                         {% csrf_token %}
 
-                        <input
-                          type="hidden"
-                          name="action"
-                          value="complete"
-                        >
+                        <input type="hidden"
+                               name="action"
+                               value="complete">
 
-                        <button
-                          type="submit"
-                          class="btn btn-success btn-outline btn-sm"
-                          title="Registrar esta ejecución como terminada"
-                        >
+                        <button type="submit"
+                                class="btn btn-success btn-outline btn-sm"
+                                title="Registrar esta ejecución como terminada">
                           Terminar
                         </button>
                       </form>
@@ -390,6 +394,196 @@
     </div>
 
   </section>
+
+
+  {% if proximas %}
+
+    <section class="space-y-6">
+
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+        <div class="flex items-center gap-3">
+
+          <div class="rounded-xl bg-info/10 p-3 text-info">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke-width="1.5"
+                 stroke="currentColor"
+                 class="size-6">
+              <path stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-2xl font-semibold">
+              Próximas actividades
+            </h2>
+
+            <p class="text-sm text-base-content/70">
+              Ejecuciones programadas después de la semana actual.
+            </p>
+          </div>
+
+        </div>
+
+        <span class="badge badge-lg badge-info badge-outline">
+          {{ total_proximas }} tareas
+        </span>
+
+      </div>
+
+
+      <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
+
+        <div class="overflow-x-auto">
+
+          <table class="table">
+
+            <thead class="bg-base-200/60 text-sm text-base-content/70">
+              <tr>
+                <th>Actividad</th>
+                <th class="text-center">Plan</th>
+                <th class="text-center">Ciclo</th>
+                <th class="text-center">Ámbito</th>
+                <th class="text-center">Fecha</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center">Evidencia</th>
+                <th class="text-center">Acción</th>
+              </tr>
+            </thead>
+
+            <tbody class="text-sm">
+
+              {% for execution in proximas %}
+
+                <tr class="align-top">
+
+                  <td class="max-w-md">
+                    <div class="prose prose-sm max-w-none text-base-content/80">
+                      {{ execution.accion.accion|safe }}
+                    </div>
+                  </td>
+
+                  <td class="text-center">
+                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                       class="link link-primary font-medium">
+                      {% if execution.plan.folio %}
+                        {{ execution.plan.folio }}
+                      {% else %}
+                        {{ execution.plan.nombre }}
+                      {% endif %}
+                    </a>
+                  </td>
+
+                  <td class="text-center text-base-content/80">
+                    {{ execution.ciclo.etiqueta }}
+                  </td>
+
+                  <td class="text-center text-base-content/80">
+                    {{ execution.get_ambito_display }}
+                  </td>
+
+                  <td class="text-center text-base-content/80">
+                    {{ execution.fecha_inicio|date:"d/m/Y" }}
+                  </td>
+
+                  <td class="text-center">
+                    <span class="badge badge-neutral badge-outline">
+                      Programada
+                    </span>
+                  </td>
+
+                  <td class="text-center">
+
+                    {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                      <span class="badge badge-ghost">
+                        No requerida
+                      </span>
+
+                    {% elif execution.tiene_evidencia %}
+
+                      <button type="button"
+                              class="btn btn-ghost btn-sm"
+                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                              hx-target="#pas-modal-content"
+                              hx-swap="innerHTML"
+                              title="Ver evidencia registrada">
+                        <span class="text-success text-lg">
+                          ✓
+                        </span>
+                      </button>
+
+                    {% elif execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
+
+                      <button type="button"
+                              class="btn btn-outline btn-sm"
+                              hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+                              hx-target="#pas-modal-content"
+                              hx-swap="innerHTML">
+                        Registrar
+                      </button>
+
+                    {% else %}
+
+                      <span class="text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
+
+                  </td>
+
+                  <td class="text-center">
+
+                    {% if execution.plan.permite_modificaciones %}
+
+                      <form
+                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                        hx-swap="none"
+                        class="inline"
+                      >
+                        {% csrf_token %}
+
+                        <input type="hidden"
+                               name="action"
+                               value="complete">
+
+                        <button type="submit"
+                                class="btn btn-success btn-outline btn-sm"
+                                title="Registrar esta ejecución como terminada">
+                          Terminar
+                        </button>
+                      </form>
+
+                    {% else %}
+
+                      <span class="text-xs text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
+
+                  </td>
+
+                </tr>
+
+              {% endfor %}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  {% endif %}
 
 
   {% if terminadas %}
@@ -519,16 +713,12 @@
                       >
                         {% csrf_token %}
 
-                        <input
-                          type="hidden"
-                          name="action"
-                          value="reopen"
-                        >
+                        <input type="hidden"
+                               name="action"
+                               value="reopen">
 
-                        <button
-                          type="submit"
-                          class="btn btn-ghost btn-sm"
-                        >
+                        <button type="submit"
+                                class="btn btn-ghost btn-sm">
                           Reabrir
                         </button>
                       </form>

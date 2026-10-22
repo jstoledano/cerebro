@@ -135,10 +135,6 @@ class PASIndex(ListView):
     login_required,
     name="dispatch",
 )
-@method_decorator(
-    login_required,
-    name="dispatch",
-)
 class AgendaView(TemplateView):
     template_name = "pas/agenda.html"
 
@@ -146,10 +142,8 @@ class AgendaView(TemplateView):
         self,
         **kwargs,
     ):
-        context = (
-            super().get_context_data(
-                **kwargs
-            )
+        context = super().get_context_data(
+            **kwargs
         )
 
         hoy = timezone.localdate()
@@ -200,9 +194,7 @@ class AgendaView(TemplateView):
         ejecuciones = list(
             Ejecucion.objects
             .filter(
-                responsable=(
-                    self.request.user
-                ),
+                responsable=self.request.user,
                 ciclo__accion__plan__in=(
                     visible_plans
                 ),
@@ -227,6 +219,7 @@ class AgendaView(TemplateView):
         vencen_hoy = []
         vencidas = []
         pendientes_semana = []
+        proximas = []
         pendientes = []
         terminadas = []
 
@@ -264,6 +257,7 @@ class AgendaView(TemplateView):
                 vencidas.append(
                     ejecucion
                 )
+                continue
 
             if (
                 inicio_semana
@@ -271,6 +265,15 @@ class AgendaView(TemplateView):
                 <= fin_semana
             ):
                 pendientes_semana.append(
+                    ejecucion
+                )
+                continue
+
+            if (
+                ejecucion.fecha_fin
+                > fin_semana
+            ):
+                proximas.append(
                     ejecucion
                 )
 
@@ -283,6 +286,7 @@ class AgendaView(TemplateView):
                 "fin_semana": (
                     fin_semana
                 ),
+
                 "inician_hoy": (
                     inician_hoy
                 ),
@@ -295,12 +299,16 @@ class AgendaView(TemplateView):
                 "pendientes_semana": (
                     pendientes_semana
                 ),
+                "proximas": (
+                    proximas
+                ),
                 "pendientes": (
                     pendientes
                 ),
                 "terminadas": (
                     terminadas
                 ),
+
                 "total_inician_hoy": len(
                     inician_hoy
                 ),
@@ -312,6 +320,9 @@ class AgendaView(TemplateView):
                 ),
                 "total_pendientes_semana": len(
                     pendientes_semana
+                ),
+                "total_proximas": len(
+                    proximas
                 ),
                 "total_pendientes": len(
                     pendientes

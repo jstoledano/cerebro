@@ -633,9 +633,15 @@ class Accion(TrackingFields):
 
         return "En tiempo"
 
-    def resolver_responsable_ejecucion(self, ambito):
-        if not self.puesto_responsable:
+    def resolver_responsable_ejecucion(
+        self,
+        ambito,
+    ):
+        if self.responsable_id:
             return self.responsable
+
+        if not self.puesto_responsable:
+            return None
 
         sitios = {
             AMBITO_JL: JL,
@@ -650,11 +656,10 @@ class Accion(TrackingFields):
             return None
 
         return (
-            User.objects
-            .filter(
+            User.objects.filter(
                 is_active=True,
                 profile__site=site,
-                profile__position=self.puesto_responsable,
+                profile__position=(self.puesto_responsable),
             )
             .order_by(
                 "profile__order",
