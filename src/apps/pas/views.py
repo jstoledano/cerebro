@@ -19,6 +19,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     TemplateView,
+    View,
 )
 from .forms import PlanForm, AccionForm, SeguimientoForm, PlanClosureForm, EvidenciaForm
 from .models import (
@@ -29,6 +30,7 @@ from .models import (
     CicloActividad,
     Ejecucion,
     CERRADA,
+    PERIODICIDAD_UNICA,
     PERIODICIDAD_MANUAL,
     FORMATO_SIN_EVIDENCIA,
 )
@@ -133,12 +135,21 @@ class PASIndex(ListView):
     login_required,
     name="dispatch",
 )
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
 class AgendaView(TemplateView):
     template_name = "pas/agenda.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(
-            **kwargs
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = (
+            super().get_context_data(
+                **kwargs
+            )
         )
 
         hoy = timezone.localdate()
@@ -152,17 +163,48 @@ class AgendaView(TemplateView):
 
         fin_semana = (
             inicio_semana
-            + datetime.timedelta(days=6)
+            + datetime.timedelta(
+                days=6
+            )
         )
+
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
+
+        actividades_recurrentes_abiertas = (
+            Accion.objects
+            .filter(
+                plan__in=visible_plans,
+                fecha_fin__isnull=True,
+            )
+            .exclude(
+                periodicidad__in=[
+                    PERIODICIDAD_UNICA,
+                    PERIODICIDAD_MANUAL,
+                ]
+            )
+            .select_related(
+                "plan",
+                "responsable",
+            )
+        )
+
+        for actividad in (
+            actividades_recurrentes_abiertas
+        ):
+            actividad.generar_ejecuciones()
 
         ejecuciones = list(
             Ejecucion.objects
             .filter(
-                responsable=self.request.user,
+                responsable=(
+                    self.request.user
+                ),
                 ciclo__accion__plan__in=(
-                    Plan.objects.visible_to(
-                        self.request.user
-                    )
+                    visible_plans
                 ),
             )
             .select_related(
@@ -241,7 +283,6 @@ class AgendaView(TemplateView):
                 "fin_semana": (
                     fin_semana
                 ),
-
                 "inician_hoy": (
                     inician_hoy
                 ),
@@ -260,7 +301,6 @@ class AgendaView(TemplateView):
                 "terminadas": (
                     terminadas
                 ),
-
                 "total_inician_hoy": len(
                     inician_hoy
                 ),
@@ -1430,3 +1470,89 @@ class ExecutionEvidenceDetailView(
         )
 
         return context
+
+
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class ExecutionCompleteView(View):
+    def post(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
+
+        execution = get_object_or_404(
+            Ejecucion.objects
+            .select_related(
+                "ciclo",
+                "ciclo__accion",
+                "ciclo__accion__plan",
+                "responsable",
+            )
+            .filter(
+                ciclo__accion__plan__in=(
+                    visible_plans
+                )
+            ),
+            pk=kwargs["pk"],
+        )
+
+        puede_actualizar = (
+            execution.responsable_id
+            == request.user.id
+            or request.user.has_perm(
+                "pas.change_ejecucion"
+            )
+        )
+
+        if not puede_actualizar:
+            return HttpResponse(
+                (
+                    "No tienes permiso para "
+                    "actualizar esta ejecución."
+                ),
+                status=403,
+            )
+
+        if not execution.plan.permite_modificaciones:
+            return HttpResponse(
+                (
+                    "El plan se encuentra cerrado "
+                    "o con recurrencia registrada."
+                ),
+                status=409,
+            )
+
+        action = request.POST.get(
+            "action",
+            "complete",
+        )
+
+        if action == "reopen":
+            execution.reabrir()
+
+        else:
+            execution.marcar_completada()
+
+        if request.headers.get(
+            "HX-Request"
+        ):
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Refresh": "true",
+                },
+            )
+
+        return HttpResponse(
+            status=204
+        )

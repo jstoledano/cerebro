@@ -273,6 +273,15 @@ class Plan(TrackingFields):
         ),
     )
 
+    visibilidad = models.CharField(
+        max_length=20,
+        choices=VISIBILIDAD,
+        default=VISIBILIDAD_PUBLICA,
+        help_text=(
+            "Define quién puede consultar el plan."
+        ),
+    )
+
     # #################################### #
     # II. Datos específicos de CNC
 
@@ -679,9 +688,7 @@ class Accion(TrackingFields):
         if not fecha_inicio_actividad:
             raise ValueError("La actividad debe tener fecha de inicio.")
 
-        fecha_fin_actividad = fecha_fin_actividad or fecha_inicio_actividad
-
-        if fecha_fin_actividad < fecha_inicio_actividad:
+        if fecha_fin_actividad and fecha_fin_actividad < fecha_inicio_actividad:
             raise ValueError(
                 "La fecha de término no puede ser anterior a la fecha de inicio."
             )
@@ -736,6 +743,54 @@ class Accion(TrackingFields):
                 dia,
             )
 
+        def siguiente_fecha(fecha):
+            if self.periodicidad == PERIODICIDAD_SEMANAL:
+                return fecha + datetime.timedelta(days=7)
+
+            if self.periodicidad == PERIODICIDAD_QUINCENAL:
+                return fecha + datetime.timedelta(days=14)
+
+            if self.periodicidad == PERIODICIDAD_MENSUAL:
+                return sumar_meses(
+                    fecha,
+                    1,
+                )
+
+            if self.periodicidad == PERIODICIDAD_BIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    2,
+                )
+
+            if self.periodicidad == PERIODICIDAD_TRIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    3,
+                )
+
+            raise ValueError("Periodicidad no reconocida.")
+
+        def construir_etiqueta(
+            numero,
+            fecha,
+        ):
+            if self.periodicidad == PERIODICIDAD_SEMANAL:
+                return f"Semana {numero}"
+
+            if self.periodicidad == PERIODICIDAD_QUINCENAL:
+                return f"Quincena {numero}"
+
+            if self.periodicidad == PERIODICIDAD_MENSUAL:
+                return fecha.strftime("%B %Y").capitalize()
+
+            if self.periodicidad == PERIODICIDAD_BIMESTRAL:
+                return f"Bimestre {numero}"
+
+            if self.periodicidad == PERIODICIDAD_TRIMESTRAL:
+                return f"Trimestre {numero}"
+
+            return f"Ciclo {numero}"
+
         def construir_periodos():
             if self.periodicidad == PERIODICIDAD_MANUAL:
                 return None
@@ -746,67 +801,44 @@ class Accion(TrackingFields):
                         "numero": 1,
                         "etiqueta": "Única",
                         "fecha_inicio": (fecha_inicio_actividad),
-                        "fecha_fin": (fecha_fin_actividad),
+                        "fecha_fin": (fecha_fin_actividad or fecha_inicio_actividad),
                     }
                 ]
 
             periodos = []
-            inicio = fecha_inicio_actividad
+
+            fecha = fecha_inicio_actividad
+
             numero = 1
 
-            while inicio <= fecha_fin_actividad:
-                if self.periodicidad == PERIODICIDAD_SEMANAL:
-                    siguiente_inicio = inicio + datetime.timedelta(days=7)
+            hoy = django.utils.timezone.localdate()
 
-                    etiqueta = f"Semana {numero}"
+            referencia_abierta = max(
+                hoy,
+                fecha_inicio_actividad,
+            )
 
-                elif self.periodicidad == PERIODICIDAD_QUINCENAL:
-                    siguiente_inicio = inicio + datetime.timedelta(days=14)
-
-                    etiqueta = f"Quincena {numero}"
-
-                elif self.periodicidad == PERIODICIDAD_MENSUAL:
-                    siguiente_inicio = sumar_meses(
-                        inicio,
-                        1,
-                    )
-
-                    etiqueta = inicio.strftime("%B %Y").capitalize()
-
-                elif self.periodicidad == PERIODICIDAD_BIMESTRAL:
-                    siguiente_inicio = sumar_meses(
-                        inicio,
-                        2,
-                    )
-
-                    etiqueta = f"Bimestre {numero}"
-
-                elif self.periodicidad == PERIODICIDAD_TRIMESTRAL:
-                    siguiente_inicio = sumar_meses(
-                        inicio,
-                        3,
-                    )
-
-                    etiqueta = f"Trimestre {numero}"
-
-                else:
-                    raise ValueError("Periodicidad no reconocida.")
-
-                fin = min(
-                    (siguiente_inicio - datetime.timedelta(days=1)),
-                    fecha_fin_actividad,
-                )
+            while True:
+                if fecha_fin_actividad and fecha > fecha_fin_actividad:
+                    break
 
                 periodos.append(
                     {
                         "numero": numero,
-                        "etiqueta": etiqueta,
-                        "fecha_inicio": inicio,
-                        "fecha_fin": fin,
+                        "etiqueta": construir_etiqueta(
+                            numero,
+                            fecha,
+                        ),
+                        "fecha_inicio": fecha,
+                        "fecha_fin": fecha,
                     }
                 )
 
-                inicio = siguiente_inicio
+                if fecha_fin_actividad is None and fecha > referencia_abierta:
+                    break
+
+                fecha = siguiente_fecha(fecha)
+
                 numero += 1
 
             return periodos
@@ -864,7 +896,7 @@ class Accion(TrackingFields):
                     ambito=ambito,
                     defaults={
                         "responsable": (responsable),
-                        "user": self.user,
+                        "user": (self.user),
                     },
                 )
 

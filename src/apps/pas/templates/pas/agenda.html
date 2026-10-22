@@ -210,6 +210,7 @@
                 <th class="text-center">Vence</th>
                 <th class="text-center">Estado</th>
                 <th class="text-center">Evidencia</th>
+                <th class="text-center">Acción</th>
               </tr>
             </thead>
 
@@ -228,7 +229,11 @@
                   <td class="text-center">
                     <a href="{% url 'pas:detalle' execution.plan.pk %}"
                        class="link link-primary font-medium">
-                      {{ execution.plan.folio }}
+                      {% if execution.plan.folio %}
+                        {{ execution.plan.folio }}
+                      {% else %}
+                        {{ execution.plan.nombre }}
+                      {% endif %}
                     </a>
                   </td>
 
@@ -328,6 +333,42 @@
 
                   </td>
 
+                  <td class="text-center">
+
+                    {% if execution.plan.permite_modificaciones %}
+
+                      <form
+                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                        hx-swap="none"
+                        class="inline"
+                      >
+                        {% csrf_token %}
+
+                        <input
+                          type="hidden"
+                          name="action"
+                          value="complete"
+                        >
+
+                        <button
+                          type="submit"
+                          class="btn btn-success btn-outline btn-sm"
+                          title="Registrar esta ejecución como terminada"
+                        >
+                          Terminar
+                        </button>
+                      </form>
+
+                    {% else %}
+
+                      <span class="text-xs text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
+
+                  </td>
+
                 </tr>
 
               {% endfor %}
@@ -349,6 +390,174 @@
     </div>
 
   </section>
+
+
+  {% if terminadas %}
+
+    <section class="space-y-6">
+
+      <div class="flex items-center gap-3">
+
+        <div class="rounded-xl bg-success/10 p-3 text-success">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke-width="1.5"
+               stroke="currentColor"
+               class="size-6">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-semibold">
+            Terminadas
+          </h2>
+
+          <p class="text-sm text-base-content/70">
+            Ejecuciones que ya registraste como terminadas.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
+
+        <div class="overflow-x-auto">
+
+          <table class="table">
+
+            <thead class="bg-base-200/60 text-sm text-base-content/70">
+              <tr>
+                <th>Actividad</th>
+                <th class="text-center">Plan</th>
+                <th class="text-center">Ciclo</th>
+                <th class="text-center">Ámbito</th>
+                <th class="text-center">Terminada</th>
+                <th class="text-center">Evidencia</th>
+                <th class="text-center">Acción</th>
+              </tr>
+            </thead>
+
+            <tbody class="text-sm">
+
+              {% for execution in terminadas %}
+
+                <tr>
+
+                  <td class="max-w-md">
+                    <div class="prose prose-sm max-w-none text-base-content/80">
+                      {{ execution.accion.accion|safe }}
+                    </div>
+                  </td>
+
+                  <td class="text-center">
+                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                       class="link link-primary font-medium">
+                      {% if execution.plan.folio %}
+                        {{ execution.plan.folio }}
+                      {% else %}
+                        {{ execution.plan.nombre }}
+                      {% endif %}
+                    </a>
+                  </td>
+
+                  <td class="text-center">
+                    {{ execution.ciclo.etiqueta }}
+                  </td>
+
+                  <td class="text-center">
+                    {{ execution.get_ambito_display }}
+                  </td>
+
+                  <td class="text-center">
+                    {{ execution.fecha_completada|date:"d/m/Y" }}
+                  </td>
+
+                  <td class="text-center">
+
+                    {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                      <span class="badge badge-ghost">
+                        No requerida
+                      </span>
+
+                    {% elif execution.tiene_evidencia %}
+
+                      <button type="button"
+                              class="btn btn-ghost btn-sm"
+                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                              hx-target="#pas-modal-content"
+                              hx-swap="innerHTML"
+                              title="Ver evidencia registrada">
+                        <span class="text-success text-lg">
+                          ✓
+                        </span>
+                      </button>
+
+                    {% else %}
+
+                      <span class="text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
+
+                  </td>
+
+                  <td class="text-center">
+
+                    {% if execution.plan.permite_modificaciones %}
+
+                      <form
+                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                        hx-swap="none"
+                        class="inline"
+                      >
+                        {% csrf_token %}
+
+                        <input
+                          type="hidden"
+                          name="action"
+                          value="reopen"
+                        >
+
+                        <button
+                          type="submit"
+                          class="btn btn-ghost btn-sm"
+                        >
+                          Reabrir
+                        </button>
+                      </form>
+
+                    {% else %}
+
+                      <span class="text-xs text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
+
+                  </td>
+
+                </tr>
+
+              {% endfor %}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  {% endif %}
 
 </section>
 
@@ -372,11 +581,18 @@
 
 <script>
   (function () {
-    const modal = document.getElementById('pas-modal');
-    const modalContent = document.getElementById('pas-modal-content');
+    const modal = document.getElementById(
+      'pas-modal'
+    );
+
+    const modalContent = document.getElementById(
+      'pas-modal-content'
+    );
 
     function closePasModal() {
-      if (!modal || !modal.open) return;
+      if (!modal || !modal.open) {
+        return;
+      }
 
       modal.close();
 
@@ -388,11 +604,16 @@
     document.body.addEventListener(
       'htmx:beforeRequest',
       function (event) {
-        if (!event.detail || !event.detail.requestConfig) {
+        if (
+          !event.detail
+          || !event.detail.requestConfig
+        ) {
           return;
         }
 
-        const target = event.detail.requestConfig.target;
+        const target = (
+          event.detail.requestConfig.target
+        );
 
         if (
           target
@@ -426,8 +647,10 @@
     document.body.addEventListener(
       'click',
       function (event) {
-        const closeButton = event.target.closest(
-          '[data-close-modal]'
+        const closeButton = (
+          event.target.closest(
+            '[data-close-modal]'
+          )
         );
 
         if (closeButton) {
