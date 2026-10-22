@@ -224,47 +224,97 @@ class AccionForm(forms.ModelForm):
 
     class Meta:
         model = Accion
+
         exclude = [
             "user",
             "plan",
         ]
 
+        labels = {
+            "accion": "Descripción de la actividad",
+            "puesto_responsable": "Puesto responsable",
+            "recursos": "Recursos",
+            "periodicidad": "Periodicidad",
+            "formato_evidencia": "Formato de evidencia",
+            "fecha_inicio": "Fecha de inicio",
+            "fecha_fin": "Fecha de término",
+            "evidencia": "Evidencia esperada",
+            "prioridad": "Prioridad",
+        }
+
         widgets = {
             "fecha_inicio": DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
-                }
+                },
             ),
             "fecha_fin": DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
-                }
+                },
             ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
 
         self.fields[
             "responsable"
-        ].empty_label = "Sin responsable directo"
-
-        if self.instance and self.instance.pk:
-            self.fields["ambitos"].initial = (
-                self.instance.ambitos or []
-            )
-
-        apply_tailwind_widgets(self)
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        fecha_inicio = cleaned_data.get(
-            "fecha_inicio"
+        ].empty_label = (
+            "Sin responsable directo"
         )
 
-        fecha_fin = cleaned_data.get(
+        self.fields[
+            "fecha_inicio"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        self.fields[
             "fecha_fin"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        if (
+            self.instance
+            and self.instance.pk
+        ):
+            self.fields[
+                "ambitos"
+            ].initial = (
+                self.instance.ambitos
+                or []
+            )
+
+        apply_tailwind_widgets(
+            self
+        )
+
+    def clean(self):
+        cleaned_data = (
+            super().clean()
+        )
+
+        fecha_inicio = (
+            cleaned_data.get(
+                "fecha_inicio"
+            )
+        )
+
+        fecha_fin = (
+            cleaned_data.get(
+                "fecha_fin"
+            )
         )
 
         if (
@@ -280,11 +330,16 @@ class AccionForm(forms.ModelForm):
                 ),
             )
 
-        ambitos = cleaned_data.get(
-            "ambitos"
-        ) or []
+        ambitos = (
+            cleaned_data.get(
+                "ambitos"
+            )
+            or []
+        )
 
-        cleaned_data["ambitos"] = list(
+        cleaned_data[
+            "ambitos"
+        ] = list(
             ambitos
         )
 
@@ -294,8 +349,10 @@ class AccionForm(forms.ModelForm):
             )
         )
 
-        responsable = cleaned_data.get(
-            "responsable"
+        responsable = (
+            cleaned_data.get(
+                "responsable"
+            )
         )
 
         if (
@@ -327,8 +384,10 @@ class AccionForm(forms.ModelForm):
         if not self.instance.pk:
             return cleaned_data
 
-        original = Accion.objects.get(
-            pk=self.instance.pk
+        original = (
+            Accion.objects.get(
+                pk=self.instance.pk
+            )
         )
 
         estructura_modificada = any(
@@ -337,8 +396,13 @@ class AccionForm(forms.ModelForm):
                 != cleaned_data.get(
                     "periodicidad"
                 ),
-                set(original.ambitos or [])
-                != set(ambitos),
+                set(
+                    original.ambitos
+                    or []
+                )
+                != set(
+                    ambitos
+                ),
                 original.fecha_inicio
                 != fecha_inicio,
                 original.fecha_fin
@@ -358,7 +422,9 @@ class AccionForm(forms.ModelForm):
         tiene_evidencias = (
             Evidencia.objects
             .filter(
-                ejecucion__ciclo__accion=original
+                ejecucion__ciclo__accion=(
+                    original
+                )
             )
             .exists()
         )
