@@ -158,6 +158,7 @@ AMBITO = (
 )
 
 
+FORMATO_SIN_EVIDENCIA = "ninguno"
 FORMATO_PDF = "pdf"
 FORMATO_XLSX = "xlsx"
 FORMATO_DOCX = "docx"
@@ -165,11 +166,30 @@ FORMATO_PPTX = "pptx"
 FORMATO_ZIP = "zip"
 
 FORMATO_EVIDENCIA = (
-    (FORMATO_PDF, "PDF"),
-    (FORMATO_XLSX, "Excel (XLSX)"),
-    (FORMATO_DOCX, "Word (DOCX)"),
-    (FORMATO_PPTX, "PowerPoint (PPTX)"),
-    (FORMATO_ZIP, "Archivo comprimido (ZIP)"),
+    (
+        FORMATO_SIN_EVIDENCIA,
+        "Sin evidencia requerida",
+    ),
+    (
+        FORMATO_PDF,
+        "PDF",
+    ),
+    (
+        FORMATO_XLSX,
+        "Excel (XLSX)",
+    ),
+    (
+        FORMATO_DOCX,
+        "Word (DOCX)",
+    ),
+    (
+        FORMATO_PPTX,
+        "PowerPoint (PPTX)",
+    ),
+    (
+        FORMATO_ZIP,
+        "Archivo comprimido (ZIP)",
+    ),
 )
 
 

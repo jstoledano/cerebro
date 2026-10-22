@@ -26,10 +26,11 @@ from .models import (
     Accion,
     Seguimiento,
     Evidencia,
-    Ejecucion,
     CicloActividad,
+    Ejecucion,
     CERRADA,
     PERIODICIDAD_MANUAL,
+    FORMATO_SIN_EVIDENCIA,
 )
 
 
@@ -1197,8 +1198,17 @@ class ExecutionEvidenceBaseView(CreateView):
     form_class = EvidenciaForm
     template_name = "pas/partials/_evidence_form.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        visible_plans = Plan.objects.visible_to(request.user)
+    def dispatch(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
 
         self.execution = get_object_or_404(
             Ejecucion.objects
@@ -1209,12 +1219,29 @@ class ExecutionEvidenceBaseView(CreateView):
                 "responsable",
             )
             .filter(
-                ciclo__accion__plan__in=visible_plans,
+                ciclo__accion__plan__in=(
+                    visible_plans
+                ),
             ),
             pk=kwargs["pk"],
         )
 
-        if not self.execution.plan.permite_modificaciones:
+        if (
+            self.execution.accion.formato_evidencia
+            == FORMATO_SIN_EVIDENCIA
+        ):
+            return HttpResponse(
+                (
+                    "Esta actividad no requiere "
+                    "evidencia documental."
+                ),
+                status=409,
+            )
+
+        if (
+            not self.execution.plan
+            .permite_modificaciones
+        ):
             return HttpResponse(
                 (
                     "El plan se encuentra cerrado "
@@ -1258,16 +1285,27 @@ class ExecutionEvidenceBaseView(CreateView):
 
         return initial
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(
-            **kwargs
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = (
+            super().get_context_data(
+                **kwargs
+            )
         )
 
         context.update(
             {
-                "execution": self.execution,
-                "activity": self.execution.accion,
-                "form_action": self.request.path,
+                "execution": (
+                    self.execution
+                ),
+                "activity": (
+                    self.execution.accion
+                ),
+                "form_action": (
+                    self.request.path
+                ),
                 "modal_id": "pas-modal",
             }
         )
@@ -1285,7 +1323,9 @@ class ExecutionEvidenceBaseView(CreateView):
                 status=422,
             )
 
-        return super().form_invalid(form)
+        return super().form_invalid(
+            form
+        )
 
     def form_valid(self, form):
         form.instance.ejecucion = (
