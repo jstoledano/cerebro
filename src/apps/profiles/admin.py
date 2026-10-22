@@ -52,6 +52,7 @@ class ProfileInline(admin.StackedInline):
         "state",
         "site",
         "position",
+        "siglas",
         "unidad_organizacional",
         "order",
         "recibe_notificaciones",

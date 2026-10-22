@@ -670,6 +670,112 @@ class Accion(TrackingFields):
             .first()
         )
 
+    def fechas_programadas_en_rango(
+        self,
+        fecha_desde,
+        fecha_hasta,
+    ):
+        if not self.fecha_inicio:
+            return []
+
+        if self.periodicidad in {
+            PERIODICIDAD_UNICA,
+            PERIODICIDAD_MANUAL,
+        }:
+            return []
+
+        fecha_inicio = self.fecha_inicio
+        fecha_fin = self.fecha_fin
+
+        def sumar_meses(
+            fecha,
+            meses,
+        ):
+            mes = fecha.month - 1 + meses
+
+            anio = fecha.year + mes // 12
+
+            mes = mes % 12 + 1
+
+            if mes == 12:
+                siguiente_mes = datetime.date(
+                    anio + 1,
+                    1,
+                    1,
+                )
+            else:
+                siguiente_mes = datetime.date(
+                    anio,
+                    mes + 1,
+                    1,
+                )
+
+            ultimo_dia = (siguiente_mes - datetime.timedelta(days=1)).day
+
+            return datetime.date(
+                anio,
+                mes,
+                min(
+                    fecha.day,
+                    ultimo_dia,
+                ),
+            )
+
+        def siguiente_fecha(
+            fecha,
+        ):
+            if self.periodicidad == PERIODICIDAD_SEMANAL:
+                return fecha + datetime.timedelta(days=7)
+
+            if self.periodicidad == PERIODICIDAD_QUINCENAL:
+                return fecha + datetime.timedelta(days=14)
+
+            if self.periodicidad == PERIODICIDAD_MENSUAL:
+                return sumar_meses(
+                    fecha,
+                    1,
+                )
+
+            if self.periodicidad == PERIODICIDAD_BIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    2,
+                )
+
+            if self.periodicidad == PERIODICIDAD_TRIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    3,
+                )
+
+            return None
+
+        fechas = []
+
+        fecha = fecha_inicio
+
+        while fecha < fecha_desde:
+            fecha = siguiente_fecha(fecha)
+
+            if fecha is None:
+                return []
+
+            if fecha_fin and fecha > fecha_fin:
+                return []
+
+        while fecha < fecha_hasta:
+            if fecha_fin and fecha > fecha_fin:
+                break
+
+            fechas.append(fecha)
+
+            fecha = siguiente_fecha(fecha)
+
+            if fecha is None:
+                break
+
+        return fechas
+
     def generar_ejecuciones(self):
         def normalizar_fecha(valor):
             if valor is None:

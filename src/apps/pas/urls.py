@@ -20,6 +20,7 @@ from .views import (
     ExecutionEvidenceDetailView,
     ExecutionEvidenceCreateView,
     ExecutionCompleteView,
+    CalendarEventsView,
 )
 
 
@@ -29,13 +30,23 @@ app_name = "pas"
 urlpatterns = [
     path(
         "",
-        PASIndex.as_view(),
+        AgendaView.as_view(),
         name="index",
     ),
     path(
         "agenda/",
         AgendaView.as_view(),
         name="agenda",
+    ),
+    path(
+        "calendar/events/",
+        CalendarEventsView.as_view(),
+        name="calendar-events",
+    ),
+    path(
+        "plans/",
+        PASIndex.as_view(),
+        name="plans",
     ),
     path(
         "add/",

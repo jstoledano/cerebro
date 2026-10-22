@@ -7,10 +7,16 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Count, Prefetch, Q
-from django.http import HttpResponse, FileResponse, Http404
+from django.http import (
+    HttpResponse,
+    FileResponse,
+    Http404,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import strip_tags
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -29,10 +35,16 @@ from .models import (
     Evidencia,
     CicloActividad,
     Ejecucion,
+    AMBITO,
     CERRADA,
     PERIODICIDAD_UNICA,
     PERIODICIDAD_MANUAL,
     FORMATO_SIN_EVIDENCIA,
+    PERIODICIDAD_SEMANAL,
+    PERIODICIDAD_QUINCENAL,
+    PERIODICIDAD_MENSUAL,
+    PERIODICIDAD_BIMESTRAL,
+    PERIODICIDAD_TRIMESTRAL,
 )
 
 
@@ -43,25 +55,44 @@ def hx_trigger_header(*events):
     return json.dumps(payload)
 
 
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
 class PASIndex(ListView):
     model = Plan
     template_name = "pas/index.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs
+        )
 
         followups_prefetch = Prefetch(
             "seguimiento_set",
-            queryset=Seguimiento.objects.select_related("responsable").order_by(
-                "-fecha",
-                "-created",
+            queryset=(
+                Seguimiento.objects
+                .select_related(
+                    "responsable"
+                )
+                .order_by(
+                    "-fecha",
+                    "-created",
+                )
             ),
         )
 
         plan_actions_prefetch = Prefetch(
             "accion_set",
             queryset=(
-                Accion.objects.select_related("responsable").prefetch_related(
+                Accion.objects
+                .select_related(
+                    "responsable"
+                )
+                .prefetch_related(
                     followups_prefetch
                 )
             ),
@@ -69,30 +100,58 @@ class PASIndex(ListView):
         )
 
         plan_list = (
-            Plan.objects.visible_to(self.request.user)
-            .prefetch_related(plan_actions_prefetch)
-            .order_by("-fecha_llenado")
+            Plan.objects
+            .visible_to(
+                self.request.user
+            )
+            .prefetch_related(
+                plan_actions_prefetch
+            )
+            .order_by(
+                "-fecha_llenado"
+            )
         )
 
-        def state_priority(estado):
+        def state_priority(
+            estado,
+        ):
             if estado == "Abierta Fuera de Tiempo":
                 return 0
+
             if estado == "Cerrada":
                 return 3
+
             if estado == "Abierta en Tiempo":
                 return 2
+
             return 1
 
         action_items = []
-        action_qs = Accion.objects.select_related(
-            "plan", "responsable"
-        ).prefetch_related(followups_prefetch)
+
+        action_qs = (
+            Accion.objects
+            .filter(
+                plan__in=plan_list
+            )
+            .select_related(
+                "plan",
+                "responsable",
+            )
+            .prefetch_related(
+                followups_prefetch
+            )
+        )
 
         for action in action_qs:
             estado = action.get_estado
+
             if estado == "Cerrada":
                 continue
-            priority = state_priority(estado)
+
+            priority = state_priority(
+                estado
+            )
+
             action_items.append(
                 (
                     priority,
@@ -102,8 +161,18 @@ class PASIndex(ListView):
                 )
             )
 
-        action_items.sort(key=lambda item: (item[0], item[1], item[2]))
-        action_list = [item[3] for item in action_items]
+        action_items.sort(
+            key=lambda item: (
+                item[0],
+                item[1],
+                item[2],
+            )
+        )
+
+        action_list = [
+            item[3]
+            for item in action_items
+        ]
 
         for plan in plan_list:
             cerradas = 0
@@ -112,22 +181,40 @@ class PASIndex(ListView):
 
             for accion in plan.pas_actions:
                 estado = accion.get_estado
+
                 if estado == "Cerrada":
                     cerradas += 1
+
                 elif estado == "Abierta en Tiempo":
                     abiertas_en_tiempo += 1
+
                 elif estado == "Abierta Fuera de Tiempo":
                     abiertas_fuera_de_tiempo += 1
 
             plan.cerradas = cerradas
-            plan.abiertas_en_tiempo = abiertas_en_tiempo
-            plan.abiertas_fuera_de_tiempo = abiertas_fuera_de_tiempo
-            plan.total_actividades = (
-                cerradas + abiertas_en_tiempo + abiertas_fuera_de_tiempo
+
+            plan.abiertas_en_tiempo = (
+                abiertas_en_tiempo
             )
 
-        context["plan_list"] = plan_list
-        context["action_list"] = action_list
+            plan.abiertas_fuera_de_tiempo = (
+                abiertas_fuera_de_tiempo
+            )
+
+            plan.total_actividades = (
+                cerradas
+                + abiertas_en_tiempo
+                + abiertas_fuera_de_tiempo
+            )
+
+        context[
+            "plan_list"
+        ] = plan_list
+
+        context[
+            "action_list"
+        ] = action_list
+
         return context
 
 
@@ -296,6 +383,8 @@ class AgendaView(TemplateView):
         unidad_supervision = None
         usuarios_supervisados = []
 
+        supervision_inician_hoy = []
+        supervision_vencen_hoy = []
         supervision_pendientes = []
         supervision_pendientes_semana = []
         supervision_proximas = []
@@ -349,6 +438,12 @@ class AgendaView(TemplateView):
                     ejecucion
                 )
 
+                if ejecucion.fecha_inicio == hoy:
+                    supervision_inician_hoy.append(ejecucion)
+
+                if ejecucion.fecha_fin == hoy:
+                    supervision_vencen_hoy.append(ejecucion)
+
                 if (
                     ejecucion.fecha_fin
                     < hoy
@@ -379,104 +474,541 @@ class AgendaView(TemplateView):
         context.update(
             {
                 "hoy": hoy,
-                "inicio_semana": (
-                    inicio_semana
-                ),
-                "fin_semana": (
-                    fin_semana
-                ),
-
+                "inicio_semana": (inicio_semana),
+                "fin_semana": (fin_semana),
                 # Agenda personal
-                "inician_hoy": (
-                    inician_hoy
-                ),
-                "vencen_hoy": (
-                    vencen_hoy
-                ),
-                "vencidas": (
-                    vencidas
-                ),
-                "pendientes_semana": (
-                    pendientes_semana
-                ),
-                "proximas": (
-                    proximas
-                ),
-                "pendientes": (
-                    pendientes
-                ),
-                "terminadas": (
-                    terminadas
-                ),
-
-                "total_inician_hoy": len(
-                    inician_hoy
-                ),
-                "total_vencen_hoy": len(
-                    vencen_hoy
-                ),
-                "total_vencidas": len(
-                    vencidas
-                ),
-                "total_pendientes_semana": len(
-                    pendientes_semana
-                ),
-                "total_proximas": len(
-                    proximas
-                ),
-                "total_pendientes": len(
-                    pendientes
-                ),
-                "total_terminadas": len(
-                    terminadas
-                ),
-
+                "inician_hoy": (inician_hoy),
+                "vencen_hoy": (vencen_hoy),
+                "vencidas": (vencidas),
+                "pendientes_semana": (pendientes_semana),
+                "proximas": (proximas),
+                "pendientes": (pendientes),
+                "terminadas": (terminadas),
+                "total_inician_hoy": len(inician_hoy),
+                "total_vencen_hoy": len(vencen_hoy),
+                "total_vencidas": len(vencidas),
+                "total_pendientes_semana": len(pendientes_semana),
+                "total_proximas": len(proximas),
+                "total_pendientes": len(pendientes),
+                "total_terminadas": len(terminadas),
                 # Supervisión jerárquica
-                "supervision_activa": (
-                    supervision_activa
-                ),
-                "unidad_supervision": (
-                    unidad_supervision
-                ),
-                "usuarios_supervisados": (
-                    usuarios_supervisados
-                ),
-
-                "supervision_pendientes": (
-                    supervision_pendientes
-                ),
-                "supervision_pendientes_semana": (
-                    supervision_pendientes_semana
-                ),
-                "supervision_proximas": (
-                    supervision_proximas
-                ),
-                "supervision_vencidas": (
-                    supervision_vencidas
-                ),
-                "supervision_terminadas": (
-                    supervision_terminadas
-                ),
-
-                "total_supervision_pendientes": len(
-                    supervision_pendientes
-                ),
+                "supervision_activa": (supervision_activa),
+                "unidad_supervision": (unidad_supervision),
+                "usuarios_supervisados": (usuarios_supervisados),
+                "supervision_pendientes": (supervision_pendientes),
+                "supervision_pendientes_semana": (supervision_pendientes_semana),
+                "supervision_proximas": (supervision_proximas),
+                "supervision_vencidas": (supervision_vencidas),
+                "supervision_terminadas": (supervision_terminadas),
+                "total_supervision_pendientes": len(supervision_pendientes),
                 "total_supervision_pendientes_semana": len(
                     supervision_pendientes_semana
                 ),
-                "total_supervision_proximas": len(
-                    supervision_proximas
-                ),
-                "total_supervision_vencidas": len(
-                    supervision_vencidas
-                ),
-                "total_supervision_terminadas": len(
-                    supervision_terminadas
-                ),
+                "total_supervision_proximas": len(supervision_proximas),
+                "total_supervision_vencidas": len(supervision_vencidas),
+                "total_supervision_terminadas": len(supervision_terminadas),
+                "total_supervision_inician_hoy": len(supervision_inician_hoy),
+                "total_supervision_vencen_hoy": len(supervision_vencen_hoy),
             }
         )
 
         return context
+
+
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class CalendarEventsView(View):
+
+    def get(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        start_value = request.GET.get(
+            "start"
+        )
+
+        end_value = request.GET.get(
+            "end"
+        )
+
+        modo = request.GET.get(
+            "mode",
+            "personal",
+        )
+
+        if modo not in {
+            "personal",
+            "supervision",
+        }:
+            return JsonResponse(
+                {
+                    "error": (
+                        "El modo de calendario "
+                        "no es válido."
+                    )
+                },
+                status=400,
+            )
+
+        try:
+            fecha_inicio = (
+                date.fromisoformat(
+                    start_value[:10]
+                )
+                if start_value
+                else None
+            )
+
+            fecha_fin = (
+                date.fromisoformat(
+                    end_value[:10]
+                )
+                if end_value
+                else None
+            )
+
+        except ValueError:
+            return JsonResponse(
+                {
+                    "error": (
+                        "El rango de fechas "
+                        "no es válido."
+                    )
+                },
+                status=400,
+            )
+
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
+
+        responsables = [
+            request.user
+        ]
+
+        if modo == "supervision":
+            perfil = getattr(
+                request.user,
+                "profile",
+                None,
+            )
+
+            if (
+                not perfil
+                or not perfil.unidad_organizacional
+            ):
+                return JsonResponse(
+                    [],
+                    safe=False,
+                )
+
+            responsables = list(
+                perfil.unidad_organizacional
+                .obtener_usuarios(
+                    incluir_self=False,
+                )
+            )
+
+            if not responsables:
+                return JsonResponse(
+                    [],
+                    safe=False,
+                )
+
+        responsables_ids = {
+            usuario.pk
+            for usuario in responsables
+        }
+
+        ejecuciones = (
+            Ejecucion.objects
+            .filter(
+                responsable__in=responsables,
+                ciclo__accion__plan__in=(
+                    visible_plans
+                ),
+            )
+            .select_related(
+                "ciclo",
+                "ciclo__accion",
+                "ciclo__accion__plan",
+                "responsable",
+                "responsable__profile",
+                "responsable__profile__unidad_organizacional",
+            )
+            .prefetch_related(
+                "evidencia_registrada",
+            )
+            .order_by(
+                "ciclo__fecha_fin",
+                "responsable__first_name",
+                "responsable__last_name",
+                "pk",
+            )
+        )
+
+        if fecha_inicio:
+            ejecuciones = (
+                ejecuciones.filter(
+                    ciclo__fecha_fin__gte=(
+                        fecha_inicio
+                    )
+                )
+            )
+
+        if fecha_fin:
+            ejecuciones = (
+                ejecuciones.filter(
+                    ciclo__fecha_fin__lt=(
+                        fecha_fin
+                    )
+                )
+            )
+
+        eventos = []
+
+        eventos_existentes = set()
+
+        hoy = timezone.localdate()
+
+        for ejecucion in ejecuciones:
+            actividad = strip_tags(
+                ejecucion.accion.accion
+                or ""
+            ).strip()
+
+            if not actividad:
+                actividad = (
+                    f"Actividad "
+                    f"{ejecucion.accion_id}"
+                )
+
+            if (
+                ejecucion.accion.formato_evidencia
+                == FORMATO_SIN_EVIDENCIA
+            ):
+                evidencia_estado = (
+                    "No requerida"
+                )
+
+            elif ejecucion.tiene_evidencia:
+                evidencia_estado = (
+                    "Registrada"
+                )
+
+            else:
+                evidencia_estado = (
+                    "Pendiente"
+                )
+
+            responsable = ejecucion.responsable.profile.nombre_calendario
+
+            titulo = actividad
+
+            if modo == "supervision":
+                titulo = (
+                    f"{responsable} — "
+                    f"{actividad}"
+                )
+
+            unidad = ""
+
+            if (
+                ejecucion.responsable
+                and ejecucion.responsable.profile
+                .unidad_organizacional
+            ):
+                unidad = (
+                    ejecucion.responsable
+                    .profile
+                    .unidad_organizacional
+                    .clave
+                )
+
+            eventos_existentes.add(
+                (
+                    ejecucion.accion.pk,
+                    ejecucion.ambito,
+                    ejecucion.fecha_fin,
+                )
+            )
+
+            eventos.append(
+                {
+                    "id": str(
+                        ejecucion.pk
+                    ),
+                    "title": titulo,
+                    "start": (
+                        ejecucion.fecha_fin
+                        .isoformat()
+                    ),
+                    "allDay": True,
+                    "extendedProps": {
+                        "planId": (
+                            ejecucion.plan.pk
+                        ),
+                        "plan": (
+                            ejecucion.plan.nombre
+                        ),
+                        "planUrl": reverse(
+                            "pas:detalle",
+                            args=[
+                                ejecucion.plan.pk
+                            ],
+                        ),
+                        "folio": (
+                            ejecucion.plan.folio
+                            or ""
+                        ),
+                        "ciclo": (
+                            ejecucion.ciclo.etiqueta
+                        ),
+                        "ambito": (
+                            ejecucion
+                            .get_ambito_display()
+                        ),
+                        "responsable": (
+                            responsable
+                        ),
+                        "unidad": unidad,
+                        "estado": (
+                            ejecucion.estado_agenda
+                        ),
+                        "estadoDisplay": (
+                            ejecucion
+                            .estado_agenda_display
+                        ),
+                        "evidencia": (
+                            evidencia_estado
+                        ),
+                        "completada": (
+                            ejecucion.completada
+                        ),
+                        "modo": modo,
+                        "proyectada": False,
+                    },
+                }
+            )
+
+        if (
+            fecha_inicio
+            and fecha_fin
+        ):
+            actividades = (
+                Accion.objects
+                .filter(
+                    plan__in=visible_plans,
+                    periodicidad__in=[
+                        PERIODICIDAD_SEMANAL,
+                        PERIODICIDAD_QUINCENAL,
+                        PERIODICIDAD_MENSUAL,
+                        PERIODICIDAD_BIMESTRAL,
+                        PERIODICIDAD_TRIMESTRAL,
+                    ],
+                )
+                .select_related(
+                    "plan",
+                    "responsable",
+                )
+            )
+
+            for actividad in actividades:
+                fechas = (
+                    actividad
+                    .fechas_programadas_en_rango(
+                        fecha_inicio,
+                        fecha_fin,
+                    )
+                )
+
+                ambitos = (
+                    actividad.ambitos
+                    or ["JL"]
+                )
+
+                descripcion = strip_tags(
+                    actividad.accion
+                    or ""
+                ).strip()
+
+                if not descripcion:
+                    descripcion = (
+                        f"Actividad "
+                        f"{actividad.pk}"
+                    )
+
+                for ambito in ambitos:
+                    responsable = (
+                        actividad
+                        .resolver_responsable_ejecucion(
+                            ambito
+                        )
+                    )
+
+                    if (
+                        not responsable
+                        or responsable.pk
+                        not in responsables_ids
+                    ):
+                        continue
+
+                    responsable_nombre = (
+                        responsable.get_full_name()
+                        or responsable.username
+                    )
+
+                    unidad = ""
+
+                    if (
+                        responsable.profile
+                        .unidad_organizacional
+                    ):
+                        unidad = (
+                            responsable.profile
+                            .unidad_organizacional
+                            .clave
+                        )
+
+                    for fecha in fechas:
+                        clave = (
+                            actividad.pk,
+                            ambito,
+                            fecha,
+                        )
+
+                        if (
+                            clave
+                            in eventos_existentes
+                        ):
+                            continue
+
+                        estado = (
+                            "programada"
+                            if fecha > hoy
+                            else "pendiente"
+                        )
+
+                        estado_display = (
+                            "Programada"
+                            if fecha > hoy
+                            else "Pendiente"
+                        )
+
+                        titulo = descripcion
+
+                        if (
+                            modo
+                            == "supervision"
+                        ):
+                            titulo = (
+                                f"{responsable_nombre} — "
+                                f"{descripcion}"
+                            )
+
+                        if (
+                            actividad.formato_evidencia
+                            == FORMATO_SIN_EVIDENCIA
+                        ):
+                            evidencia = (
+                                "No requerida"
+                            )
+                        else:
+                            evidencia = (
+                                "Pendiente"
+                            )
+
+                        eventos.append(
+                            {
+                                "id": (
+                                    "proyectada-"
+                                    f"{actividad.pk}-"
+                                    f"{ambito}-"
+                                    f"{fecha.isoformat()}"
+                                ),
+
+                                "title": titulo,
+
+                                "start": (
+                                    fecha.isoformat()
+                                ),
+
+                                "allDay": True,
+
+                                "extendedProps": {
+                                    "planId": (
+                                        actividad.plan.pk
+                                    ),
+
+                                    "plan": (
+                                        actividad.plan.nombre
+                                    ),
+
+                                    "planUrl": reverse(
+                                        "pas:detalle",
+                                        args=[
+                                            actividad.plan.pk
+                                        ],
+                                    ),
+
+                                    "folio": (
+                                        actividad.plan.folio
+                                        or ""
+                                    ),
+
+                                    "ciclo": (
+                                        "Proyección"
+                                    ),
+
+                                    "ambito": (
+                                    dict(AMBITO).get(
+                                            ambito,
+                                            ambito,
+                                        )
+                                    ),
+
+                                    "responsable": (
+                                        responsable_nombre
+                                    ),
+
+                                    "unidad": unidad,
+
+                                    "estado": estado,
+
+                                    "estadoDisplay": (
+                                        estado_display
+                                    ),
+
+                                    "evidencia": (
+                                        evidencia
+                                    ),
+
+                                    "completada": False,
+
+                                    "modo": modo,
+
+                                    "proyectada": True,
+                                },
+                            }
+                        )
+
+        eventos.sort(
+            key=lambda evento: (
+                evento["start"],
+                evento["title"],
+            )
+        )
+
+        return JsonResponse(
+            eventos,
+            safe=False,
+        )
 
 
 class PASAdd(PermissionRequiredMixin, CreateView):

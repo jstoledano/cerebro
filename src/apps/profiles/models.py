@@ -255,6 +255,18 @@ class Profile(models.Model):
         default=RA,
     )
 
+    siglas = models.CharField(
+        max_length=4,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Siglas",
+        help_text=(
+            "Identificador corto del usuario. "
+            "Ejemplo: JST."
+        ),
+    )
+
     unidad_organizacional = models.ForeignKey(
         UnidadOrganizacional,
         on_delete=models.SET_NULL,
@@ -277,6 +289,41 @@ class Profile(models.Model):
     recibe_notificaciones = models.BooleanField(
         default=False,
     )
+
+    @property
+    def nombre_calendario(self):
+        if self.siglas:
+            return self.siglas
+
+        nombre = (
+            self.user.get_full_name()
+            or self.user.username
+        ).strip()
+
+        if len(nombre) <= 10:
+            return nombre
+
+        return nombre[:10]
+
+    def save(
+        self,
+        *args,
+        **kwargs,
+    ):
+        if self.siglas:
+            self.siglas = (
+                self.siglas
+                .strip()
+                .upper()
+                or None
+            )
+        else:
+            self.siglas = None
+
+        return super().save(
+            *args,
+            **kwargs,
+        )
 
     def __str__(self):
         nombre = (

@@ -2,161 +2,395 @@
 
 {% block title %}Mi agenda{% endblock %}
 
+
+{% block head %}
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/skeleton.css">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/theme.css">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/palette.css">
+
+{% endblock head %}
+
+
 {% block content %}
 
 <section class="space-y-10">
 
   <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
       <div class="flex items-center gap-4">
 
         <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+
           <svg xmlns="http://www.w3.org/2000/svg"
                fill="none"
                viewBox="0 0 24 24"
                stroke-width="1.5"
                stroke="currentColor"
                class="size-10">
+
             <path stroke-linecap="round"
                   stroke-linejoin="round"
                   d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-15 12h13.5A1.5 1.5 0 0 0 20.25 18.75V6.75a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+
           </svg>
+
         </div>
 
+
         <div>
+
           <h1 class="text-3xl font-bold text-base-content">
             Mi agenda
           </h1>
 
           <p class="mt-1 max-w-2xl text-sm text-base-content/70">
-            Consulta las actividades que tienes asignadas y su situación
-            dentro de los planes de acción.
+            Consulta las actividades que requieren tu atención
+            y las próximas ejecuciones programadas.
           </p>
+
         </div>
 
       </div>
 
-      <div class="flex flex-col items-end gap-2">
-        <span class="badge badge-outline badge-primary badge-lg">
-          PAS
-        </span>
+
+      <div class="flex flex-wrap items-center gap-3">
 
         <span class="text-sm text-base-content/60">
           {{ hoy|date:"d/m/Y" }}
         </span>
+
+        <a href="{% url 'pas:plans' %}"
+           class="btn btn-outline btn-sm">
+          Planes
+        </a>
+
       </div>
 
     </div>
+
   </header>
+
+
+  {% if total_vencidas %}
+
+    <div class="alert alert-warning">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+           fill="none"
+           viewBox="0 0 24 24"
+           stroke-width="1.5"
+           stroke="currentColor"
+           class="size-6 shrink-0">
+
+        <path stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l7.354 12.748ZM12 15.75h.007v.008H12v-.008Z" />
+
+      </svg>
+
+
+      <div>
+
+        <span class="font-semibold">
+
+          Tienes {{ total_vencidas }}
+
+          {% if total_vencidas == 1 %}
+            actividad vencida.
+          {% else %}
+            actividades vencidas.
+          {% endif %}
+
+        </span>
+
+        <span class="ml-1 text-sm">
+          Revisa los pendientes que requieren atención.
+        </span>
+
+      </div>
+
+    </div>
+
+  {% endif %}
 
 
   <section class="space-y-6">
 
-    <div class="flex items-center gap-3">
+    <div>
 
-      <div class="rounded-xl bg-primary/10 p-3 text-primary">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             fill="none"
-             viewBox="0 0 24 24"
-             stroke-width="1.5"
-             stroke="currentColor"
-             class="size-6">
-          <path stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75zm0 5.25h.007v.008H3.75zm0 5.25h.007v.008H3.75z" />
-        </svg>
-      </div>
+      <h2 class="text-2xl font-semibold">
+        Resumen
+      </h2>
 
-      <div>
-        <h2 class="text-2xl font-semibold">
-          Resumen
-        </h2>
-
-        <p class="text-sm text-base-content/70">
-          Situación actual de tus ejecuciones asignadas.
-        </p>
-      </div>
+      <p class="mt-1 text-sm text-base-content/70">
+        Distribución de tus tareas y compromisos próximos.
+      </p>
 
     </div>
 
 
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+    <div class="grid gap-6 xl:grid-cols-9">
 
-      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Inician hoy
-        </p>
 
-        <p class="mt-2 text-3xl font-semibold">
-          {{ total_inician_hoy }}
-        </p>
+      {# ================================================== #}
+      {# CALENDARIO                                         #}
+      {# ================================================== #}
+
+      <div class="xl:col-span-7">
+
+        <div class="h-full rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+
+          <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+
+            <div>
+
+              <h3 class="text-xl font-semibold">
+                Calendario de tareas
+              </h3>
+
+              <p class="text-sm text-base-content/60">
+                Ejecuciones programadas por fecha.
+              </p>
+
+            </div>
+
+
+            {% if supervision_activa %}
+
+              <div class="join">
+
+                <button type="button"
+                        class="btn btn-sm join-item btn-primary"
+                        data-calendar-mode="personal">
+                  Mi calendario
+                </button>
+
+                <button type="button"
+                        class="btn btn-sm join-item btn-outline"
+                        data-calendar-mode="supervision">
+                  Supervisión
+                </button>
+
+              </div>
+
+            {% endif %}
+
+          </div>
+
+
+          <div id="pas-calendar"
+               class="min-h-96">
+          </div>
+
+        </div>
+
       </div>
 
 
-      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Vencen hoy
-        </p>
+      {# ================================================== #}
+      {# INDICADORES                                        #}
+      {# ================================================== #}
 
-        <p class="mt-2 text-3xl font-semibold">
-          {{ total_vencen_hoy }}
-        </p>
-      </div>
+      <div class="grid gap-4 sm:grid-cols-2 xl:col-span-2 xl:grid-cols-1">
 
 
-      <div class="rounded-2xl border border-error/30 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Vencidas
-        </p>
+        <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
 
-        <p class="mt-2 text-3xl font-semibold text-error">
-          {{ total_vencidas }}
-        </p>
-      </div>
+          <div class="flex items-center justify-between gap-4">
 
+            <div>
 
-      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Esta semana
-        </p>
+              <p class="text-sm text-base-content/60">
+                Inician hoy
+              </p>
 
-        <p class="mt-2 text-3xl font-semibold">
-          {{ total_pendientes_semana }}
-        </p>
-      </div>
+              <p class="mt-2 text-3xl font-semibold">
 
+                <span id="calendar-total-inician"
+                      data-personal="{{ total_inician_hoy }}"
+                      data-supervision="{{ total_supervision_inician_hoy }}">
+                  {{ total_inician_hoy }}
+                </span>
 
-      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Próximas
-        </p>
+              </p>
 
-        <p class="mt-2 text-3xl font-semibold">
-          {{ total_proximas }}
-        </p>
-      </div>
+            </div>
 
 
-      <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Pendientes
-        </p>
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-info/10 text-info">
 
-        <p class="mt-2 text-3xl font-semibold">
-          {{ total_pendientes }}
-        </p>
-      </div>
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="size-6">
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6h4.5" />
+
+                <circle cx="12"
+                        cy="12"
+                        r="9" />
+
+              </svg>
+
+            </div>
+
+          </div>
+
+        </div>
 
 
-      <div class="rounded-2xl border border-success/30 bg-base-100 p-5 shadow-sm">
-        <p class="text-sm text-base-content/60">
-          Terminadas
-        </p>
+        <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
 
-        <p class="mt-2 text-3xl font-semibold text-success">
-          {{ total_terminadas }}
-        </p>
+          <div class="flex items-center justify-between gap-4">
+
+            <div>
+
+              <p class="text-sm text-base-content/60">
+                Vencen hoy
+              </p>
+
+              <p class="mt-2 text-3xl font-semibold">
+
+                <span id="calendar-total-vencen"
+                      data-personal="{{ total_vencen_hoy }}"
+                      data-supervision="{{ total_supervision_vencen_hoy }}">
+                  {{ total_vencen_hoy }}
+                </span>
+
+              </p>
+
+            </div>
+
+
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-warning/10 text-warning">
+
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="size-6">
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6l3 3" />
+
+                <circle cx="12"
+                        cy="12"
+                        r="9" />
+
+              </svg>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+
+          <div class="flex items-center justify-between gap-4">
+
+            <div>
+
+              <p class="text-sm text-base-content/60">
+                Esta semana
+              </p>
+
+              <p class="mt-2 text-3xl font-semibold">
+
+                <span id="calendar-total-semana"
+                      data-personal="{{ total_pendientes_semana }}"
+                      data-supervision="{{ total_supervision_pendientes_semana }}">
+                  {{ total_pendientes_semana }}
+                </span>
+
+              </p>
+
+            </div>
+
+
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-secondary/10 text-secondary">
+
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="size-6">
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-15 12h13.5A1.5 1.5 0 0 0 20.25 18.75V6.75a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+
+              </svg>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+
+          <div class="flex items-center justify-between gap-4">
+
+            <div>
+
+              <p class="text-sm text-base-content/60">
+                Próximas
+              </p>
+
+              <p class="mt-2 text-3xl font-semibold">
+
+                <span id="calendar-total-proximas"
+                      data-personal="{{ total_proximas }}"
+                      data-supervision="{{ total_supervision_proximas }}">
+                  {{ total_proximas }}
+                </span>
+
+              </p>
+
+            </div>
+
+
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="size-6">
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="m9 18 6-6-6-6" />
+
+              </svg>
+
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -164,37 +398,27 @@
   </section>
 
 
+  {# ====================================================== #}
+  {# PENDIENTES DE LA SEMANA                                #}
+  {# ====================================================== #}
+
   <section class="space-y-6">
 
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
-      <div class="flex items-center gap-3">
+      <div>
 
-        <div class="rounded-xl bg-secondary/10 p-3 text-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               fill="none"
-               viewBox="0 0 24 24"
-               stroke-width="1.5"
-               stroke="currentColor"
-               class="size-6">
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-15 12h13.5A1.5 1.5 0 0 0 20.25 18.75V6.75a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5Z" />
-          </svg>
-        </div>
+        <h2 class="text-2xl font-semibold">
+          Pendientes esta semana
+        </h2>
 
-        <div>
-          <h2 class="text-2xl font-semibold">
-            Pendientes esta semana
-          </h2>
-
-          <p class="text-sm text-base-content/70">
-            Del {{ inicio_semana|date:"d/m/Y" }}
-            al {{ fin_semana|date:"d/m/Y" }}
-          </p>
-        </div>
+        <p class="text-sm text-base-content/70">
+          Del {{ inicio_semana|date:"d/m/Y" }}
+          al {{ fin_semana|date:"d/m/Y" }}
+        </p>
 
       </div>
+
 
       <span class="badge badge-lg badge-secondary badge-outline">
         {{ total_pendientes_semana }} tareas
@@ -205,6 +429,7 @@
 
     <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
 
+
       {% if pendientes_semana %}
 
         <div class="overflow-x-auto">
@@ -212,6 +437,7 @@
           <table class="table table-zebra">
 
             <thead class="bg-base-200/60 text-sm text-base-content/70">
+
               <tr>
                 <th>Actividad</th>
                 <th class="text-center">Plan</th>
@@ -223,7 +449,9 @@
                 <th class="text-center">Evidencia</th>
                 <th class="text-center">Acción</th>
               </tr>
+
             </thead>
+
 
             <tbody class="text-sm">
 
@@ -231,68 +459,88 @@
 
                 <tr class="align-top">
 
+
                   <td class="max-w-md">
+
                     <div class="prose prose-sm max-w-none text-base-content/80">
                       {{ execution.accion.accion|safe }}
                     </div>
+
                   </td>
 
+
                   <td class="text-center">
+
                     <a href="{% url 'pas:detalle' execution.plan.pk %}"
                        class="link link-primary font-medium">
+
                       {% if execution.plan.folio %}
                         {{ execution.plan.folio }}
                       {% else %}
                         {{ execution.plan.nombre }}
                       {% endif %}
+
                     </a>
+
                   </td>
+
 
                   <td class="text-center">
                     {{ execution.ciclo.etiqueta }}
                   </td>
 
+
                   <td class="text-center">
                     {{ execution.get_ambito_display }}
                   </td>
+
 
                   <td class="text-center">
                     {{ execution.fecha_inicio|date:"d/m/Y" }}
                   </td>
 
+
                   <td class="text-center">
                     {{ execution.fecha_fin|date:"d/m/Y" }}
                   </td>
 
+
                   <td class="text-center">
 
                     {% if execution.estado_agenda == "vencida" %}
+
                       <span class="badge badge-error">
                         Vencida
                       </span>
 
                     {% elif execution.estado_agenda == "vence_hoy" %}
+
                       <span class="badge badge-warning">
                         Vence hoy
                       </span>
 
                     {% elif execution.estado_agenda == "inicia_hoy" %}
+
                       <span class="badge badge-info badge-outline">
                         Inicia hoy
                       </span>
 
                     {% elif execution.estado_agenda == "programada" %}
+
                       <span class="badge badge-neutral badge-outline">
                         Programada
                       </span>
 
                     {% else %}
+
                       <span class="badge badge-primary badge-outline">
                         Pendiente
                       </span>
+
                     {% endif %}
 
                   </td>
+
 
                   <td class="text-center">
 
@@ -309,9 +557,11 @@
                               hx-get="{% url 'pas:execution-evidence' execution.pk %}"
                               hx-target="#pas-modal-content"
                               hx-swap="innerHTML">
+
                         <span class="text-success text-lg">
                           ✓
                         </span>
+
                       </button>
 
                     {% elif execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
@@ -334,6 +584,7 @@
 
                   </td>
 
+
                   <td class="text-center">
 
                     {% if execution.plan.permite_modificaciones %}
@@ -341,8 +592,8 @@
                       <form
                         hx-post="{% url 'pas:execution-complete' execution.pk %}"
                         hx-swap="none"
-                        class="inline"
-                      >
+                        class="inline">
+
                         {% csrf_token %}
 
                         <input type="hidden"
@@ -353,6 +604,7 @@
                                 class="btn btn-success btn-outline btn-sm">
                           Terminar
                         </button>
+
                       </form>
 
                     {% else %}
@@ -388,6 +640,10 @@
   </section>
 
 
+  {# ====================================================== #}
+  {# PRÓXIMAS                                               #}
+  {# ====================================================== #}
+
   {% if proximas %}
 
     <section class="space-y-6">
@@ -395,6 +651,7 @@
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
         <div>
+
           <h2 class="text-2xl font-semibold">
             Próximas actividades
           </h2>
@@ -402,7 +659,9 @@
           <p class="text-sm text-base-content/70">
             Ejecuciones programadas después de la semana actual.
           </p>
+
         </div>
+
 
         <span class="badge badge-lg badge-info badge-outline">
           {{ total_proximas }} tareas
@@ -418,6 +677,7 @@
           <table class="table">
 
             <thead class="bg-base-200/60 text-sm text-base-content/70">
+
               <tr>
                 <th>Actividad</th>
                 <th class="text-center">Plan</th>
@@ -428,7 +688,9 @@
                 <th class="text-center">Evidencia</th>
                 <th class="text-center">Acción</th>
               </tr>
+
             </thead>
+
 
             <tbody class="text-sm">
 
@@ -436,36 +698,49 @@
 
                 <tr>
 
+
                   <td class="max-w-md">
+
                     <div class="prose prose-sm max-w-none text-base-content/80">
                       {{ execution.accion.accion|safe }}
                     </div>
+
                   </td>
 
+
                   <td class="text-center">
+
                     <a href="{% url 'pas:detalle' execution.plan.pk %}"
                        class="link link-primary font-medium">
                       {{ execution.plan.nombre }}
                     </a>
+
                   </td>
+
 
                   <td class="text-center">
                     {{ execution.ciclo.etiqueta }}
                   </td>
 
+
                   <td class="text-center">
                     {{ execution.get_ambito_display }}
                   </td>
+
 
                   <td class="text-center">
                     {{ execution.fecha_inicio|date:"d/m/Y" }}
                   </td>
 
+
                   <td class="text-center">
+
                     <span class="badge badge-neutral badge-outline">
                       Programada
                     </span>
+
                   </td>
+
 
                   <td class="text-center">
 
@@ -491,24 +766,36 @@
 
                   </td>
 
+
                   <td class="text-center">
 
-                    <form
-                      hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                      hx-swap="none"
-                      class="inline"
-                    >
-                      {% csrf_token %}
+                    {% if execution.plan.permite_modificaciones %}
 
-                      <input type="hidden"
-                             name="action"
-                             value="complete">
+                      <form
+                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                        hx-swap="none"
+                        class="inline">
 
-                      <button type="submit"
-                              class="btn btn-success btn-outline btn-sm">
-                        Terminar
-                      </button>
-                    </form>
+                        {% csrf_token %}
+
+                        <input type="hidden"
+                               name="action"
+                               value="complete">
+
+                        <button type="submit"
+                                class="btn btn-success btn-outline btn-sm">
+                          Terminar
+                        </button>
+
+                      </form>
+
+                    {% else %}
+
+                      <span class="text-base-content/40">
+                        —
+                      </span>
+
+                    {% endif %}
 
                   </td>
 
@@ -529,18 +816,25 @@
   {% endif %}
 
 
+  {# ====================================================== #}
+  {# TERMINADAS                                             #}
+  {# ====================================================== #}
+
   {% if terminadas %}
 
     <section class="space-y-6">
 
       <div>
-        <h2 class="text-2xl font-semibold">
-          Terminadas
+
+        <h2 class="text-xl font-semibold">
+          Terminadas recientemente
         </h2>
 
-        <p class="text-sm text-base-content/70">
-          Ejecuciones que ya registraste como terminadas.
+        <p class="text-sm text-base-content/60">
+          Se conservan aquí para consulta y para permitir reabrir
+          una ejecución cuando sea necesario.
         </p>
+
       </div>
 
 
@@ -551,16 +845,17 @@
           <table class="table">
 
             <thead class="bg-base-200/60 text-sm text-base-content/70">
+
               <tr>
                 <th>Actividad</th>
                 <th class="text-center">Plan</th>
                 <th class="text-center">Ciclo</th>
-                <th class="text-center">Ámbito</th>
                 <th class="text-center">Terminada</th>
-                <th class="text-center">Evidencia</th>
                 <th class="text-center">Acción</th>
               </tr>
+
             </thead>
+
 
             <tbody>
 
@@ -581,47 +876,38 @@
                   </td>
 
                   <td class="text-center">
-                    {{ execution.get_ambito_display }}
-                  </td>
-
-                  <td class="text-center">
                     {{ execution.fecha_completada|date:"d/m/Y" }}
                   </td>
 
                   <td class="text-center">
 
-                    {% if execution.accion.formato_evidencia == "ninguno" %}
-                      <span class="badge badge-ghost">
-                        No requerida
-                      </span>
-                    {% elif execution.tiene_evidencia %}
-                      <span class="text-success text-lg">
-                        ✓
-                      </span>
+                    {% if execution.plan.permite_modificaciones %}
+
+                      <form
+                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                        hx-swap="none"
+                        class="inline">
+
+                        {% csrf_token %}
+
+                        <input type="hidden"
+                               name="action"
+                               value="reopen">
+
+                        <button type="submit"
+                                class="btn btn-ghost btn-sm">
+                          Reabrir
+                        </button>
+
+                      </form>
+
                     {% else %}
-                      —
+
+                      <span class="text-base-content/40">
+                        —
+                      </span>
+
                     {% endif %}
-
-                  </td>
-
-                  <td class="text-center">
-
-                    <form
-                      hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                      hx-swap="none"
-                      class="inline"
-                    >
-                      {% csrf_token %}
-
-                      <input type="hidden"
-                             name="action"
-                             value="reopen">
-
-                      <button type="submit"
-                              class="btn btn-ghost btn-sm">
-                        Reabrir
-                      </button>
-                    </form>
 
                   </td>
 
@@ -642,9 +928,14 @@
   {% endif %}
 
 
+  {# ====================================================== #}
+  {# SUPERVISIÓN                                            #}
+  {# ====================================================== #}
+
   {% if supervision_activa %}
 
     <section class="space-y-6 border-t border-base-300 pt-10">
+
 
       <header class="rounded-3xl border border-primary/30 bg-primary/5 p-6">
 
@@ -664,12 +955,17 @@
 
             </div>
 
+
             <p class="mt-2 text-sm text-base-content/70">
+
               Actividades asignadas a personas de unidades subordinadas a
-              {{ unidad_supervision.clave }} — {{ unidad_supervision.nombre }}.
+              {{ unidad_supervision.clave }} —
+              {{ unidad_supervision.nombre }}.
+
             </p>
 
           </div>
+
 
           <div class="text-right">
 
@@ -688,20 +984,35 @@
       </header>
 
 
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {% if total_supervision_vencidas %}
 
-        <div class="rounded-2xl border border-error/30 bg-base-100 p-5 shadow-sm">
-          <p class="text-sm text-base-content/60">
-            Vencidas
-          </p>
+        <div class="alert alert-warning">
 
-          <p class="mt-2 text-3xl font-semibold text-error">
-            {{ total_supervision_vencidas }}
-          </p>
+          <span>
+
+            Hay
+            <strong>{{ total_supervision_vencidas }}</strong>
+
+            {% if total_supervision_vencidas == 1 %}
+              actividad vencida
+            {% else %}
+              actividades vencidas
+            {% endif %}
+
+            en las unidades supervisadas.
+
+          </span>
+
         </div>
+
+      {% endif %}
+
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
 
         <div class="rounded-2xl border border-secondary/30 bg-base-100 p-5 shadow-sm">
+
           <p class="text-sm text-base-content/60">
             Esta semana
           </p>
@@ -709,10 +1020,12 @@
           <p class="mt-2 text-3xl font-semibold">
             {{ total_supervision_pendientes_semana }}
           </p>
+
         </div>
 
 
         <div class="rounded-2xl border border-info/30 bg-base-100 p-5 shadow-sm">
+
           <p class="text-sm text-base-content/60">
             Próximas
           </p>
@@ -720,10 +1033,12 @@
           <p class="mt-2 text-3xl font-semibold">
             {{ total_supervision_proximas }}
           </p>
+
         </div>
 
 
         <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+
           <p class="text-sm text-base-content/60">
             Pendientes
           </p>
@@ -731,17 +1046,7 @@
           <p class="mt-2 text-3xl font-semibold">
             {{ total_supervision_pendientes }}
           </p>
-        </div>
 
-
-        <div class="rounded-2xl border border-success/30 bg-base-100 p-5 shadow-sm">
-          <p class="text-sm text-base-content/60">
-            Terminadas
-          </p>
-
-          <p class="mt-2 text-3xl font-semibold text-success">
-            {{ total_supervision_terminadas }}
-          </p>
         </div>
 
       </div>
@@ -752,14 +1057,18 @@
         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 
           <div>
+
             <h3 class="text-xl font-semibold">
               Pendientes del equipo
             </h3>
 
             <p class="text-sm text-base-content/60">
-              Vista consolidada de las ejecuciones pendientes bajo tu estructura.
+              Vista consolidada de las ejecuciones pendientes
+              bajo tu estructura.
             </p>
+
           </div>
+
 
           <span class="badge badge-outline badge-lg">
             {{ total_supervision_pendientes }} pendientes
@@ -770,6 +1079,7 @@
 
         <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
 
+
           {% if supervision_pendientes %}
 
             <div class="overflow-x-auto">
@@ -777,6 +1087,7 @@
               <table class="table table-zebra">
 
                 <thead class="bg-base-200/60 text-sm text-base-content/70">
+
                   <tr>
                     <th>Responsable</th>
                     <th>Actividad</th>
@@ -787,7 +1098,9 @@
                     <th class="text-center">Estado</th>
                     <th class="text-center">Evidencia</th>
                   </tr>
+
                 </thead>
+
 
                 <tbody class="text-sm">
 
@@ -795,20 +1108,26 @@
 
                     <tr class="align-top">
 
+
                       <td>
 
                         <div class="font-semibold">
+
                           {% if execution.responsable.get_full_name %}
                             {{ execution.responsable.get_full_name }}
                           {% else %}
                             {{ execution.responsable.username }}
                           {% endif %}
+
                         </div>
 
+
                         {% if execution.responsable.profile.unidad_organizacional %}
+
                           <div class="mt-1 text-xs text-base-content/50">
                             {{ execution.responsable.profile.unidad_organizacional.clave }}
                           </div>
+
                         {% endif %}
 
                       </td>
@@ -827,11 +1146,13 @@
 
                         <a href="{% url 'pas:detalle' execution.plan.pk %}"
                            class="link link-primary font-medium">
+
                           {% if execution.plan.folio %}
                             {{ execution.plan.folio }}
                           {% else %}
                             {{ execution.plan.nombre }}
                           {% endif %}
+
                         </a>
 
                       </td>
@@ -903,11 +1224,12 @@
                                   class="btn btn-ghost btn-sm"
                                   hx-get="{% url 'pas:execution-evidence' execution.pk %}"
                                   hx-target="#pas-modal-content"
-                                  hx-swap="innerHTML"
-                                  title="Ver evidencia registrada">
+                                  hx-swap="innerHTML">
+
                             <span class="text-success text-lg">
                               ✓
                             </span>
+
                           </button>
 
                         {% else %}
@@ -949,6 +1271,10 @@
 </section>
 
 
+{# ======================================================== #}
+{# MODAL                                                    #}
+{# ======================================================== #}
+
 <dialog id="pas-modal"
         class="modal">
 
@@ -958,39 +1284,756 @@
 
   <form method="dialog"
         class="modal-backdrop">
+
     <button class="hidden">
       Cerrar
     </button>
+
   </form>
 
 </dialog>
 
+{% endblock content %}
+
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/all/global.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/global.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/locales/es/global.js"></script>
+
 
 <script>
-  (function () {
-    const modal = document.getElementById(
-      'pas-modal'
-    );
+  document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-    const modalContent = document.getElementById(
-      'pas-modal-content'
-    );
+      const calendarElement = (
+        document.getElementById(
+          'pas-calendar'
+        )
+      );
 
-    function closePasModal() {
-      if (!modal || !modal.open) {
+      const modal = (
+        document.getElementById(
+          'pas-modal'
+        )
+      );
+
+      const modalContent = (
+        document.getElementById(
+          'pas-modal-content'
+        )
+      );
+
+
+      if (
+        !calendarElement
+        || typeof FullCalendar === 'undefined'
+      ) {
         return;
       }
 
+
+      function updateSummaryCards(
+        mode
+      ) {
+
+        const counters = [
+          'calendar-total-inician',
+          'calendar-total-vencen',
+          'calendar-total-semana',
+          'calendar-total-proximas'
+        ];
+
+
+        counters.forEach(
+          function (id) {
+
+            const element = (
+              document.getElementById(id)
+            );
+
+            if (!element) {
+              return;
+            }
+
+
+            const value = (
+              mode === 'supervision'
+                ? element.dataset.supervision
+                : element.dataset.personal
+            );
+
+
+            element.textContent = (
+              value || '0'
+            );
+
+          }
+        );
+
+      }
+
+
+      function applyEventStyle(
+        info
+      ) {
+
+        const estado = (
+          info.event
+          .extendedProps
+          .estado
+        );
+
+
+        if (estado === 'vencida') {
+
+          info.el.style.backgroundColor = (
+            'var(--fallback-er, oklch(var(--er)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-er, oklch(var(--er)))'
+          );
+
+          info.el.style.color = 'white';
+
+        }
+
+        else if (estado === 'vence_hoy') {
+
+          info.el.style.backgroundColor = (
+            'var(--fallback-wa, oklch(var(--wa)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-wa, oklch(var(--wa)))'
+          );
+
+          info.el.style.color = (
+            'var(--fallback-wac, oklch(var(--wac)))'
+          );
+
+        }
+
+        else if (estado === 'inicia_hoy') {
+
+          info.el.style.backgroundColor = (
+            'var(--fallback-in, oklch(var(--in)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-in, oklch(var(--in)))'
+          );
+
+          info.el.style.color = (
+            'var(--fallback-inc, oklch(var(--inc)))'
+          );
+
+        }
+
+        else if (estado === 'terminada') {
+
+          info.el.style.opacity = (
+            '0.55'
+          );
+
+          info.el.style.textDecoration = (
+            'line-through'
+          );
+
+        }
+
+
+        info.el.style.cursor = (
+          'pointer'
+        );
+
+
+        info.el.title = [
+          info.event.title,
+          info.event.extendedProps.plan,
+          info.event.extendedProps.estadoDisplay
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
+      }
+
+
+      function addDetailRow(
+        container,
+        label,
+        value
+      ) {
+
+        const row = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        row.className = (
+          'grid gap-1 border-b '
+          + 'border-base-200 py-3 '
+          + 'sm:grid-cols-3'
+        );
+
+
+        const labelElement = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        labelElement.className = (
+          'text-sm font-semibold '
+          + 'text-base-content/60'
+        );
+
+        labelElement.textContent = (
+          label
+        );
+
+
+        const valueElement = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        valueElement.className = (
+          'text-sm text-base-content '
+          + 'sm:col-span-2'
+        );
+
+        valueElement.textContent = (
+          value || '—'
+        );
+
+
+        row.appendChild(
+          labelElement
+        );
+
+        row.appendChild(
+          valueElement
+        );
+
+        container.appendChild(
+          row
+        );
+
+      }
+
+
+      function showEventDetail(
+        event
+      ) {
+
+        if (
+          !modal
+          || !modalContent
+        ) {
+          return;
+        }
+
+
+        modalContent.innerHTML = '';
+
+
+        const props = (
+          event.extendedProps
+        );
+
+
+        const header = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        header.className = (
+          'flex items-start '
+          + 'justify-between gap-4'
+        );
+
+
+        const headingWrapper = (
+          document.createElement(
+            'div'
+          )
+        );
+
+
+        const eyebrow = (
+          document.createElement(
+            'p'
+          )
+        );
+
+        eyebrow.className = (
+          'text-sm font-medium '
+          + 'text-primary'
+        );
+
+        eyebrow.textContent = (
+          props.modo === 'supervision'
+            ? 'Tarea supervisada'
+            : 'Tarea programada'
+        );
+
+
+        const heading = (
+          document.createElement(
+            'h3'
+          )
+        );
+
+        heading.className = (
+          'mt-1 text-xl font-bold '
+          + 'text-base-content'
+        );
+
+        heading.textContent = (
+          event.title
+        );
+
+
+        headingWrapper.appendChild(
+          eyebrow
+        );
+
+        headingWrapper.appendChild(
+          heading
+        );
+
+
+        const closeButton = (
+          document.createElement(
+            'button'
+          )
+        );
+
+        closeButton.type = (
+          'button'
+        );
+
+        closeButton.className = (
+          'btn btn-ghost btn-sm '
+          + 'btn-circle'
+        );
+
+        closeButton.textContent = (
+          '✕'
+        );
+
+        closeButton.addEventListener(
+          'click',
+          function () {
+            modal.close();
+          }
+        );
+
+
+        header.appendChild(
+          headingWrapper
+        );
+
+        header.appendChild(
+          closeButton
+        );
+
+
+        const details = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        details.className = (
+          'mt-6'
+        );
+
+
+        addDetailRow(
+          details,
+          'Plan',
+          (
+            props.folio
+              ? (
+                  props.folio
+                  + ' — '
+                  + props.plan
+                )
+              : props.plan
+          )
+        );
+
+
+        addDetailRow(
+          details,
+          'Responsable',
+          props.responsable
+        );
+
+
+        if (props.unidad) {
+
+          addDetailRow(
+            details,
+            'Unidad',
+            props.unidad
+          );
+
+        }
+
+
+        addDetailRow(
+          details,
+          'Ciclo',
+          props.ciclo
+        );
+
+
+        addDetailRow(
+          details,
+          'Ámbito',
+          props.ambito
+        );
+
+
+        addDetailRow(
+          details,
+          'Fecha',
+          event.startStr
+        );
+
+
+        addDetailRow(
+          details,
+          'Estado',
+          props.estadoDisplay
+        );
+
+
+        addDetailRow(
+          details,
+          'Evidencia',
+          props.evidencia
+        );
+
+
+        const actions = (
+          document.createElement(
+            'div'
+          )
+        );
+
+        actions.className = (
+          'mt-6 flex flex-wrap '
+          + 'justify-end gap-3'
+        );
+
+
+        const closeAction = (
+          document.createElement(
+            'button'
+          )
+        );
+
+        closeAction.type = (
+          'button'
+        );
+
+        closeAction.className = (
+          'btn btn-ghost btn-sm'
+        );
+
+        closeAction.textContent = (
+          'Cerrar'
+        );
+
+        closeAction.addEventListener(
+          'click',
+          function () {
+            modal.close();
+          }
+        );
+
+
+        const planLink = (
+          document.createElement(
+            'a'
+          )
+        );
+
+        planLink.href = (
+          props.planUrl
+        );
+
+        planLink.className = (
+          'btn btn-primary btn-sm'
+        );
+
+        planLink.textContent = (
+          'Ver plan'
+        );
+
+
+        actions.appendChild(
+          closeAction
+        );
+
+        actions.appendChild(
+          planLink
+        );
+
+
+        modalContent.appendChild(
+          header
+        );
+
+        modalContent.appendChild(
+          details
+        );
+
+        modalContent.appendChild(
+          actions
+        );
+
+
+        if (!modal.open) {
+          modal.showModal();
+        }
+
+      }
+
+
+      calendarElement.dataset.mode = (
+        'personal'
+      );
+
+
+      const calendar = (
+        new FullCalendar.Calendar(
+          calendarElement,
+          {
+
+            initialView: (
+              'dayGridMonth'
+            ),
+
+            locale: 'es',
+
+            firstDay: 1,
+
+            height: 'auto',
+
+            contentHeight: 'auto',
+
+            fixedWeekCount: false,
+
+            showNonCurrentDates: true,
+
+            editable: false,
+
+            selectable: false,
+
+            navLinks: false,
+
+            dayMaxEvents: 3,
+
+
+            headerToolbar: {
+              left: (
+                'prev,next today'
+              ),
+              center: 'title',
+              right: ''
+            },
+
+
+            buttons: {
+              today: {
+                text: 'Hoy'
+              }
+            },
+
+
+            events: {
+
+              url: (
+                "{% url 'pas:calendar-events' %}"
+              ),
+
+              method: 'GET',
+
+
+              extraParams: function () {
+
+                return {
+                  mode: (
+                    calendarElement.dataset.mode
+                    || 'personal'
+                  )
+                };
+
+              },
+
+
+              failure: function () {
+
+                console.error(
+                  'No fue posible cargar '
+                  + 'las tareas del calendario.'
+                );
+
+              }
+
+            },
+
+
+            eventDidMount: (
+              applyEventStyle
+            ),
+
+
+            eventClick: function (
+              info
+            ) {
+
+              info.jsEvent.preventDefault();
+
+              showEventDetail(
+                info.event
+              );
+
+            }
+
+          }
+        )
+      );
+
+
+      const calendarModeButtons = (
+        document.querySelectorAll(
+          '[data-calendar-mode]'
+        )
+      );
+
+
+      calendarModeButtons.forEach(
+        function (button) {
+
+          button.addEventListener(
+            'click',
+            function () {
+
+              const mode = (
+                button.dataset.calendarMode
+              );
+
+
+              calendarElement.dataset.mode = (
+                mode
+              );
+
+
+              updateSummaryCards(
+                mode
+              );
+
+
+              calendarModeButtons.forEach(
+                function (otherButton) {
+
+                  const isActive = (
+                    otherButton
+                    .dataset
+                    .calendarMode
+                    === mode
+                  );
+
+
+                  otherButton.classList.toggle(
+                    'btn-primary',
+                    isActive
+                  );
+
+                  otherButton.classList.toggle(
+                    'btn-outline',
+                    !isActive
+                  );
+
+                }
+              );
+
+
+              calendar.refetchEvents();
+
+            }
+          );
+
+        }
+      );
+
+
+      updateSummaryCards(
+        'personal'
+      );
+
+
+      calendar.render();
+
+    }
+  );
+</script>
+
+
+<script>
+  (function () {
+
+    const modal = (
+      document.getElementById(
+        'pas-modal'
+      )
+    );
+
+    const modalContent = (
+      document.getElementById(
+        'pas-modal-content'
+      )
+    );
+
+
+    function closePasModal() {
+
+      if (
+        !modal
+        || !modal.open
+      ) {
+        return;
+      }
+
+
       modal.close();
+
 
       if (modalContent) {
         modalContent.innerHTML = '';
       }
+
     }
+
 
     document.body.addEventListener(
       'htmx:beforeRequest',
       function (event) {
+
         if (
           !event.detail
           || !event.detail.requestConfig
@@ -998,9 +2041,13 @@
           return;
         }
 
+
         const target = (
-          event.detail.requestConfig.target
+          event.detail
+          .requestConfig
+          .target
         );
+
 
         if (
           target
@@ -1010,12 +2057,15 @@
         ) {
           modal.showModal();
         }
+
       }
     );
+
 
     document.body.addEventListener(
       'htmx:afterSwap',
       function (event) {
+
         if (
           event.target === modalContent
           && modal
@@ -1023,27 +2073,36 @@
         ) {
           modal.showModal();
         }
+
       }
     );
+
 
     document.body.addEventListener(
       'pas:close-modal',
       closePasModal
     );
 
+
     document.body.addEventListener(
       'click',
       function (event) {
-        const closeButton = event.target.closest(
-          '[data-close-modal]'
+
+        const closeButton = (
+          event.target.closest(
+            '[data-close-modal]'
+          )
         );
+
 
         if (closeButton) {
           closePasModal();
         }
+
       }
     );
+
   })();
 </script>
 
-{% endblock content %}
+{% endblock scripts %}
