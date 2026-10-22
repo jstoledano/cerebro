@@ -1,13 +1,19 @@
 {% load static %}
+
 {% with form_action=form_action|default:request.path hx_target=hx_target|default:'#pas-form-container' hx_swap=hx_swap|default:'innerHTML' %}
+
 <div class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg">
+
   <form hx-post="{{ form_action }}"
         hx-target="{{ hx_target }}"
         hx-swap="{{ hx_swap }}"
         hx-encoding="multipart/form-data"
-        class="space-y-6"
+        class="space-y-8"
         enctype="multipart/form-data">
+
     {% csrf_token %}
+
+    {{ form.media }}
 
     {% if form.non_field_errors %}
       <div class="alert alert-error">
@@ -17,199 +23,371 @@
       </div>
     {% endif %}
 
-    <div class="grid gap-6 md:grid-cols-2">
-      <div class="form-control md:col-span-2">
-        <label class="label">
-          <span class="label-text font-semibold">{{ form.nombre.label }}</span>
-        </label>
-        {{ form.nombre }}
-        {% if form.nombre.help_text %}<p class="mt-1 text-xs text-base-content/60">{{ form.nombre.help_text }}</p>{% endif %}
-        {% for error in form.nombre.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-      </div>
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">{{ form.documento.label }}</span>
-        </label>
-        {{ form.documento }}
-        {% for error in form.documento.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-      </div>
+    <section class="space-y-6">
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">{{ form.fecha_llenado.label }}</span>
-        </label>
-        {{ form.fecha_llenado }}
-        {% for error in form.fecha_llenado.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-      </div>
-
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">{{ form.folio.label }}</span>
-        </label>
-        {{ form.folio }}
-        {% for error in form.folio.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-      </div>
-    </div>
-
-    <section id="pas-section-cnc" class="space-y-4 rounded-2xl border border-base-300 bg-base-200/40 p-6 hidden">
       <header class="space-y-1">
-        <h3 class="text-lg font-semibold text-base-content">Descripción de la No Conformidad / Riesgo</h3>
-        <p class="text-sm text-base-content/70">Completa estos campos cuando el plan derive de una CNC.</p>
-      </header>
-      <div class="grid gap-6 md:grid-cols-2">
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text font-semibold">{{ form.tipo.label }}</span>
-          </label>
-          {{ form.tipo }}
-          {% for error in form.tipo.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-        <div class="form-control">
-          <label class="label">
-            <span class="label-text font-semibold">{{ form.fuente.label }}</span>
-          </label>
-          {{ form.fuente }}
-          {% for error in form.fuente.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-        <div class="form-control md:col-span-2">
-          <label class="label">
-            <span class="label-text font-semibold">{{ form.otra_fuente.label }}</span>
-          </label>
-          {{ form.otra_fuente }}
-          {% for error in form.otra_fuente.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-        <div class="form-control md:col-span-2">
-          <label class="label">
-            <span class="label-text font-semibold">{{ form.desc_cnc.label }}</span>
-          </label>
-          {{ form.desc_cnc }}
-          {% for error in form.desc_cnc.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-        <div class="form-control md:col-span-2">
-          <label class="label">
-            <span class="label-text font-semibold">{{ form.correccion.label }}</span>
-          </label>
-          {{ form.correccion }}
-          {% for error in form.correccion.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-      </div>
-    </section>
+        <h3 class="text-xl font-semibold text-base-content">
+          Identificación
+        </h3>
 
-    <section id="pas-section-pcm" class="space-y-4 rounded-2xl border border-base-300 bg-base-200/40 p-6 hidden">
-      <header class="space-y-1">
-        <h3 class="text-lg font-semibold text-base-content">Plan de Cambios y Mejoras al SGC</h3>
-        <p class="text-sm text-base-content/70">Completa estos campos cuando el plan sea un PCM.</p>
+        <p class="text-sm text-base-content/70">
+          Registra la información general del plan, proyecto,
+          programa o meta.
+        </p>
       </header>
+
+
       <div class="grid gap-6 md:grid-cols-2">
+
         <div class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.fecha_inicio.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.documento.label }}
+            </span>
           </label>
+
+          {{ form.documento }}
+
+          {% if form.documento.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.documento.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.documento.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">
+              {{ form.fecha_llenado.label }}
+            </span>
+          </label>
+
+          {{ form.fecha_llenado }}
+
+          {% for error in form.fecha_llenado.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+
+        <div class="form-control md:col-span-2">
+          <label class="label">
+            <span class="label-text font-semibold">
+              {{ form.nombre.label }}
+            </span>
+          </label>
+
+          {{ form.nombre }}
+
+          {% if form.nombre.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.nombre.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.nombre.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">
+              {{ form.folio.label }}
+            </span>
+          </label>
+
+          {{ form.folio }}
+
+          {% if form.folio.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.folio.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.folio.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">
+              {{ form.documento_fuente.label }}
+            </span>
+          </label>
+
+          {{ form.documento_fuente }}
+
+          {% if form.documento_fuente.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.documento_fuente.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.documento_fuente.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">
+              {{ form.fecha_inicio.label }}
+            </span>
+          </label>
+
           {{ form.fecha_inicio }}
-          {% for error in form.fecha_inicio.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {% if form.fecha_inicio.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.fecha_inicio.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.fecha_inicio.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+
         <div class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.fecha_termino.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.fecha_termino.label }}
+            </span>
           </label>
+
           {{ form.fecha_termino }}
-          {% for error in form.fecha_termino.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {% if form.fecha_termino.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.fecha_termino.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.fecha_termino.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+
         <div class="form-control md:col-span-2">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.proposito.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.descripcion.label }}
+            </span>
           </label>
-          {{ form.proposito }}
-          {% for error in form.proposito.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {{ form.descripcion }}
+
+          {% if form.descripcion.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.descripcion.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.descripcion.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="pas-section-cnc"
+             class="hidden space-y-6 rounded-2xl border border-base-300 bg-base-200/40 p-6">
+
+      <header class="space-y-1">
+        <h3 class="text-lg font-semibold text-base-content">
+          Cédula de No Conformidad
+        </h3>
+
+        <p class="text-sm text-base-content/70">
+          Información específica de la no conformidad,
+          corrección y análisis de causa raíz.
+        </p>
+      </header>
+
+
+      <div class="grid gap-6 md:grid-cols-2">
+
         <div class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.requisito.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.tipo.label }}
+            </span>
           </label>
-          {{ form.requisito }}
-          {% for error in form.requisito.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {{ form.tipo }}
+
+          {% for error in form.tipo.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+
         <div class="form-control">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.proceso.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.fuente.label }}
+            </span>
           </label>
-          {{ form.proceso }}
-          {% for error in form.proceso.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {{ form.fuente }}
+
+          {% for error in form.fuente.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+
         <div class="form-control md:col-span-2">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.desc_pcm.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.otra_fuente.label }}
+            </span>
           </label>
-          {{ form.desc_pcm }}
-          {% for error in form.desc_pcm.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {{ form.otra_fuente }}
+
+          {% for error in form.otra_fuente.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
+
         <div class="form-control md:col-span-2">
           <label class="label">
-            <span class="label-text font-semibold">{{ form.consecuencias.label }}</span>
+            <span class="label-text font-semibold">
+              {{ form.correccion.label }}
+            </span>
           </label>
-          {{ form.consecuencias }}
-          {% for error in form.consecuencias.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+          {{ form.correccion }}
+
+          {% if form.correccion.help_text %}
+            <p class="mt-1 text-xs text-base-content/60">
+              {{ form.correccion.help_text }}
+            </p>
+          {% endif %}
+
+          {% for error in form.correccion.errors %}
+            <p class="mt-1 text-xs text-error">
+              {{ error }}
+            </p>
+          {% endfor %}
         </div>
+
       </div>
+
+
+      <div class="border-t border-base-300 pt-6">
+
+        <header class="mb-4 space-y-1">
+          <h4 class="font-semibold text-base-content">
+            Análisis de causa raíz
+          </h4>
+
+          <p class="text-sm text-base-content/70">
+            Registra el análisis realizado y, cuando exista,
+            adjunta el archivo correspondiente.
+          </p>
+        </header>
+
+
+        <div class="grid gap-6">
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">
+                {{ form.analisis.label }}
+              </span>
+            </label>
+
+            {{ form.analisis }}
+
+            {% for error in form.analisis.errors %}
+              <p class="mt-1 text-xs text-error">
+                {{ error }}
+              </p>
+            {% endfor %}
+          </div>
+
+
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">
+                {{ form.evidencia_analisis.label }}
+              </span>
+            </label>
+
+            {{ form.evidencia_analisis }}
+
+            {% for error in form.evidencia_analisis.errors %}
+              <p class="mt-1 text-xs text-error">
+                {{ error }}
+              </p>
+            {% endfor %}
+          </div>
+
+        </div>
+
+      </div>
+
     </section>
 
-    <section class="space-y-4 rounded-2xl border border-base-300 bg-base-200/40 p-6">
-      <header class="space-y-1">
-        <h3 class="text-lg font-semibold text-base-content">Análisis de causa raíz</h3>
-      </header>
-      <div class="grid gap-6 md:grid-cols-2">
-        <div class="form-control md:col-span-2">
-          {{ form.analisis.label_tag }}
-          {{ form.analisis }}
-          {% for error in form.analisis.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-        <div class="form-control md:col-span-2">
-          {{ form.evidencia_analisis.label_tag }}
-          {{ form.evidencia_analisis }}
-          {% for error in form.evidencia_analisis.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-      </div>
-    </section>
-
-    <section class="space-y-4 rounded-2xl border border-base-300 bg-base-200/40 p-6">
-      <header class="space-y-1">
-        <h3 class="text-lg font-semibold text-base-content">Cierre</h3>
-      </header>
-      <div class="grid gap-6 md:grid-cols-2">
-        <label class="label cursor-pointer justify-start gap-4 md:col-span-2">
-          {{ form.eliminacion }}
-          <span class="label-text font-semibold">{{ form.eliminacion.label }}</span>
-        </label>
-        <div class="form-control md:col-span-2">
-          {{ form.txt_eliminacion.label_tag }}
-          {{ form.txt_eliminacion }}
-          {% for error in form.txt_eliminacion.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-
-        <label class="label cursor-pointer justify-start gap-4 md:col-span-2">
-          {{ form.recurrencia }}
-          <span class="label-text font-semibold">{{ form.recurrencia.label }}</span>
-        </label>
-        <div class="form-control md:col-span-2">
-          {{ form.txt_recurrencia.label_tag }}
-          {{ form.txt_recurrencia }}
-          {% for error in form.txt_recurrencia.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
-        </div>
-      </div>
-    </section>
-
-    {{ form.media }}
 
     <div class="flex flex-wrap items-center gap-3">
-      <button type="submit" class="btn btn-primary">Guardar plan</button>
+
+      <button type="submit"
+              class="btn btn-primary">
+        Guardar
+      </button>
+
       {% if form_in_modal %}
+
         <button type="button"
                 class="btn btn-ghost"
                 data-close-modal="{{ modal_id|default:'pas-modal' }}">
           Cancelar
         </button>
+
       {% else %}
+
         <button type="button"
                 class="btn btn-ghost"
                 hx-get="{% if cancel_hx_get %}{{ cancel_hx_get }}{% else %}{{ form_action }}?close=1{% endif %}"
@@ -217,70 +395,115 @@
                 hx-swap="innerHTML">
           Cancelar
         </button>
+
       {% endif %}
+
     </div>
+
   </form>
+
 </div>
+
 {% endwith %}
+
 
 <script>
   (function () {
-    function initPasForm(scope) {
-      const root = scope || document;
-      const documentoField = root.querySelector('#id_documento');
-      const fuenteField = root.querySelector('#id_fuente');
-      const otraFuenteField = root.querySelector('#id_otra_fuente');
-      const cncSection = root.querySelector('#pas-section-cnc');
-      const pcmSection = root.querySelector('#pas-section-pcm');
 
-      function toggleSections() {
-        const value = documentoField ? documentoField.value : null;
-        if (!value) {
-          cncSection?.classList.add('hidden');
-          pcmSection?.classList.add('hidden');
+    function initPasPlanForm(scope) {
+      const root = scope || document;
+
+      const documentoField = root.querySelector(
+        '#id_documento'
+      );
+
+      const cncSection = root.querySelector(
+        '#pas-section-cnc'
+      );
+
+      const fuenteField = root.querySelector(
+        '#id_fuente'
+      );
+
+      const otraFuenteField = root.querySelector(
+        '#id_otra_fuente'
+      );
+
+
+      function toggleCncSection() {
+        if (!documentoField || !cncSection) {
           return;
         }
-        if (value === '1') {
-          cncSection?.classList.remove('hidden');
-          pcmSection?.classList.add('hidden');
-        } else if (value === '2') {
-          cncSection?.classList.add('hidden');
-          pcmSection?.classList.remove('hidden');
-        } else {
-          cncSection?.classList.remove('hidden');
-          pcmSection?.classList.remove('hidden');
-        }
+
+        const isCnc = (
+          documentoField.value === '1'
+        );
+
+        cncSection.classList.toggle(
+          'hidden',
+          !isCnc
+        );
       }
+
 
       function toggleOtraFuente() {
-        if (!fuenteField || !otraFuenteField) return;
-        if (fuenteField.value === '9') {
-          otraFuenteField.removeAttribute('disabled');
+        if (!fuenteField || !otraFuenteField) {
+          return;
+        }
+
+        const isOtra = (
+          fuenteField.value === '9'
+        );
+
+        if (isOtra) {
+          otraFuenteField.removeAttribute(
+            'disabled'
+          );
         } else {
           otraFuenteField.value = '';
-          otraFuenteField.setAttribute('disabled', 'disabled');
+          otraFuenteField.setAttribute(
+            'disabled',
+            'disabled'
+          );
         }
       }
 
-      documentoField?.addEventListener('change', toggleSections);
-      fuenteField?.addEventListener('change', toggleOtraFuente);
 
-      toggleSections();
+      documentoField?.addEventListener(
+        'change',
+        toggleCncSection
+      );
+
+      fuenteField?.addEventListener(
+        'change',
+        toggleOtraFuente
+      );
+
+
+      toggleCncSection();
       toggleOtraFuente();
     }
 
-    if (!window.__pasInitFormBound) {
-      window.__pasInitFormBound = true;
-    document.addEventListener('DOMContentLoaded', function () {
-        initPasForm(document);
-      });
-      document.body.addEventListener('htmx:afterSwap', function (evt) {
-        if (evt.target && evt.target.id === 'pas-form-container') {
-          initPasForm(evt.target);
-        }
-      });
-    } else {
-      initPasForm(document);
-    }
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      function () {
+        initPasPlanForm(document);
+      }
+    );
+
+
+    document.body.addEventListener(
+      'htmx:afterSwap',
+      function (event) {
+        initPasPlanForm(
+          event.target
+        );
+      }
+    );
+
+
+    initPasPlanForm(document);
+
   })();
 </script>

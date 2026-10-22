@@ -20,6 +20,7 @@ from .models import (
     Seguimiento,
     Evidencia,
     AMBITO,
+    CNC,
 )
 
 
@@ -61,51 +62,138 @@ class ResponsableChoiceField(forms.ModelChoiceField):
 
 class PlanForm(forms.ModelForm):
     otra_fuente = forms.CharField(
-        label='Otra fuente',
+        label="Otra fuente",
         required=False,
-        widget=forms.TextInput(attrs={'disabled': 'disabled'})
+        widget=forms.TextInput(
+            attrs={
+                "disabled": "disabled",
+            }
+        ),
     )
 
     class Meta:
         model = Plan
-        exclude = [
-            "user",
-            "eliminacion",
-            "txt_eliminacion",
-            "recurrencia",
-            "txt_recurrencia",
+        fields = [
+            "documento",
+            "nombre",
+            "folio",
+            "fecha_llenado",
+            "descripcion",
+            "fecha_inicio",
+            "fecha_termino",
+            "documento_fuente",
+
+            # Campos específicos de CNC
+            "tipo",
+            "fuente",
+            "otra_fuente",
+            "correccion",
+            "analisis",
+            "evidencia_analisis",
         ]
+
         widgets = {
-            'fecha_llenado': DateInput(attrs={'type': 'date'}),
-            'fecha_inicio': DateInput(attrs={'type': 'date'}),
-            'fecha_termino': DateInput(attrs={'type': 'date'}),
+            "fecha_llenado": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "fecha_inicio": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "fecha_termino": DateInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
         }
+
+        labels = {
+            "documento": "Tipo",
+            "fecha_llenado": "Fecha de registro",
+            "documento_fuente": "Documento fuente",
+            "analisis": "Análisis de causa raíz",
+            "evidencia_analisis": (
+                "Archivo del análisis de causa raíz"
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        apply_tailwind_widgets(self)
 
     def clean(self):
         cleaned_data = super().clean()
 
-        fuente = cleaned_data.get("fuente")
-        otra_fuente = cleaned_data.get("otra_fuente")
+        documento = cleaned_data.get(
+            "documento"
+        )
 
-        if fuente == 9 and not otra_fuente:
-            self.add_error(
-                "otra_fuente", "Este campo es obligatorio si seleccionó Otros"
-            )
+        fecha_inicio = cleaned_data.get(
+            "fecha_inicio"
+        )
 
-        fecha_inicio = cleaned_data.get("fecha_inicio")
-        fecha_termino = cleaned_data.get("fecha_termino")
+        fecha_termino = cleaned_data.get(
+            "fecha_termino"
+        )
 
-        if fecha_inicio and fecha_termino and fecha_inicio > fecha_termino:
+        if (
+            fecha_inicio
+            and fecha_termino
+            and fecha_inicio > fecha_termino
+        ):
             self.add_error(
                 "fecha_termino",
-                "La fecha de término no puede ser anterior a la fecha de inicio.",
+                (
+                    "La fecha de término no puede ser "
+                    "anterior a la fecha de inicio."
+                ),
             )
+
+        if documento == CNC:
+            fuente = cleaned_data.get(
+                "fuente"
+            )
+
+            otra_fuente = cleaned_data.get(
+                "otra_fuente"
+            )
+
+            if (
+                fuente == 9
+                and not otra_fuente
+            ):
+                self.add_error(
+                    "otra_fuente",
+                    (
+                        "Este campo es obligatorio "
+                        "si seleccionó Otros."
+                    ),
+                )
 
         return cleaned_data
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        apply_tailwind_widgets(self)
+    def save(self, commit=True):
+        plan = super().save(
+            commit=False
+        )
+
+        if plan.documento != CNC:
+            plan.tipo = None
+            plan.fuente = None
+            plan.otra_fuente = None
+            plan.correccion = ""
+            plan.analisis = ""
+            plan.evidencia_analisis = None
+
+        if commit:
+            plan.save()
+            self.save_m2m()
+
+        return plan
 
 
 class AccionForm(forms.ModelForm):
