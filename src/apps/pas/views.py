@@ -186,15 +186,12 @@ class AgendaView(TemplateView):
             )
         )
 
-        for actividad in (
-            actividades_recurrentes_abiertas
-        ):
+        for actividad in actividades_recurrentes_abiertas:
             actividad.generar_ejecuciones()
 
-        ejecuciones = list(
+        queryset_ejecuciones = (
             Ejecucion.objects
             .filter(
-                responsable=self.request.user,
                 ciclo__accion__plan__in=(
                     visible_plans
                 ),
@@ -212,6 +209,12 @@ class AgendaView(TemplateView):
                 "ciclo__fecha_inicio",
                 "ciclo__fecha_fin",
                 "ciclo__accion_id",
+            )
+        )
+
+        ejecuciones = list(
+            queryset_ejecuciones.filter(
+                responsable=self.request.user
             )
         )
 
@@ -277,6 +280,61 @@ class AgendaView(TemplateView):
                     ejecucion
                 )
 
+        supervisa_equipo = (
+            self.request.user.has_perm(
+                "pas.view_ejecucion"
+            )
+        )
+
+        supervision_pendientes_semana = []
+        supervision_vencidas = []
+        supervision_proximas = []
+        supervision_pendientes = []
+        supervision_terminadas = []
+
+        if supervisa_equipo:
+            ejecuciones_supervision = list(
+                queryset_ejecuciones
+            )
+
+            for ejecucion in ejecuciones_supervision:
+                if ejecucion.completada:
+                    supervision_terminadas.append(
+                        ejecucion
+                    )
+                    continue
+
+                supervision_pendientes.append(
+                    ejecucion
+                )
+
+                if (
+                    ejecucion.fecha_fin
+                    < hoy
+                ):
+                    supervision_vencidas.append(
+                        ejecucion
+                    )
+                    continue
+
+                if (
+                    inicio_semana
+                    <= ejecucion.fecha_fin
+                    <= fin_semana
+                ):
+                    supervision_pendientes_semana.append(
+                        ejecucion
+                    )
+                    continue
+
+                if (
+                    ejecucion.fecha_fin
+                    > fin_semana
+                ):
+                    supervision_proximas.append(
+                        ejecucion
+                    )
+
         context.update(
             {
                 "hoy": hoy,
@@ -287,6 +345,7 @@ class AgendaView(TemplateView):
                     fin_semana
                 ),
 
+                # Agenda personal
                 "inician_hoy": (
                     inician_hoy
                 ),
@@ -329,6 +388,42 @@ class AgendaView(TemplateView):
                 ),
                 "total_terminadas": len(
                     terminadas
+                ),
+
+                # Agenda de supervisión
+                "supervisa_equipo": (
+                    supervisa_equipo
+                ),
+                "supervision_pendientes_semana": (
+                    supervision_pendientes_semana
+                ),
+                "supervision_vencidas": (
+                    supervision_vencidas
+                ),
+                "supervision_proximas": (
+                    supervision_proximas
+                ),
+                "supervision_pendientes": (
+                    supervision_pendientes
+                ),
+                "supervision_terminadas": (
+                    supervision_terminadas
+                ),
+
+                "total_supervision_pendientes_semana": len(
+                    supervision_pendientes_semana
+                ),
+                "total_supervision_vencidas": len(
+                    supervision_vencidas
+                ),
+                "total_supervision_proximas": len(
+                    supervision_proximas
+                ),
+                "total_supervision_pendientes": len(
+                    supervision_pendientes
+                ),
+                "total_supervision_terminadas": len(
+                    supervision_terminadas
                 ),
             }
         )
