@@ -15,7 +15,7 @@
     </h3>
 
     <p class="text-sm text-base-content/70">
-      Define la actividad que formará parte del plan de acción.
+      Define la actividad que formará parte del plan.
     </p>
   </header>
 
@@ -42,6 +42,7 @@
       {% endfor %}
     </div>
 
+
     <div class="grid gap-6 md:grid-cols-3">
 
       <div class="form-control">
@@ -66,6 +67,7 @@
         {% endfor %}
       </div>
 
+
       <div class="form-control">
         <label class="label">
           <span class="label-text font-semibold">
@@ -74,6 +76,7 @@
         </label>
 
         <div class="flex items-center gap-2">
+
           {{ form.responsable }}
 
           <button type="button"
@@ -102,9 +105,11 @@
               <path stroke-linecap="round"
                     stroke-linejoin="round"
                     d="M18 8.25V12m1.875-1.875H22.5" />
+
             </svg>
 
           </button>
+
         </div>
 
         {% if form.responsable.help_text %}
@@ -120,6 +125,7 @@
         {% endfor %}
       </div>
 
+
       <div class="form-control">
         {{ form.recursos.label_tag }}
         {{ form.recursos }}
@@ -133,7 +139,8 @@
 
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2">
+
+    <div class="grid gap-6 md:grid-cols-3">
 
       <div class="form-control">
         <label class="label">
@@ -157,6 +164,7 @@
         {% endfor %}
       </div>
 
+
       <div class="form-control">
         <label class="label">
           <span class="label-text font-semibold">
@@ -179,9 +187,34 @@
         {% endfor %}
       </div>
 
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">
+            {{ form.prioridad.label }}
+          </span>
+        </label>
+
+        {{ form.prioridad }}
+
+        {% if form.prioridad.help_text %}
+          <p class="mt-1 text-xs text-base-content/60">
+            {{ form.prioridad.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in form.prioridad.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
+      </div>
+
     </div>
 
+
     <div class="form-control">
+
       <label class="label">
         <span class="label-text font-semibold">
           {{ form.ambitos.label }}
@@ -189,19 +222,25 @@
       </label>
 
       <div class="rounded-lg border border-base-300 p-4">
+
         <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
 
           {% for checkbox in form.ambitos %}
+
             <label class="flex cursor-pointer items-center gap-3">
+
               {{ checkbox.tag }}
 
               <span class="text-sm">
                 {{ checkbox.choice_label }}
               </span>
+
             </label>
+
           {% endfor %}
 
         </div>
+
       </div>
 
       {% if form.ambitos.help_text %}
@@ -215,7 +254,9 @@
           {{ error }}
         </p>
       {% endfor %}
+
     </div>
+
 
     <div class="grid gap-6 md:grid-cols-2">
 
@@ -230,6 +271,7 @@
         {% endfor %}
       </div>
 
+
       <div class="form-control">
         {{ form.fecha_fin.label_tag }}
         {{ form.fecha_fin }}
@@ -242,6 +284,7 @@
       </div>
 
     </div>
+
 
     <div class="form-control">
       {{ form.evidencia.label_tag }}
@@ -262,7 +305,9 @@
 
   </div>
 
+
   <div class="flex flex-wrap items-center gap-3">
+
     <button type="submit"
             class="btn btn-primary">
       Guardar actividad
@@ -273,5 +318,7 @@
             data-close-modal="{{ modal_id|default:'pas-modal' }}">
       Cancelar
     </button>
+
   </div>
+
 </form>
