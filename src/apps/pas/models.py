@@ -174,6 +174,8 @@ FORMATO_EVIDENCIA = (
 
 
 class Plan(TrackingFields):
+    objects = PlanQuerySet.as_manager()
+
     class Meta:
         verbose_name = _("Plan")
         verbose_name_plural = _("Planes")
@@ -253,10 +255,6 @@ class Plan(TrackingFields):
 
     # #################################### #
     # II. Datos específicos de CNC
-    #
-    # Estos campos se conservan durante la
-    # transición. Posteriormente podremos
-    # retirar los que ya no sean necesarios.
 
     tipo = models.IntegerField(
         choices=TIPO,
@@ -298,10 +296,6 @@ class Plan(TrackingFields):
 
     # #################################### #
     # III. Datos heredados de PCM
-    #
-    # Se conservan temporalmente para no
-    # romper formularios, vistas ni datos
-    # existentes durante la transición.
 
     proposito = models.CharField(
         "Propósito",
@@ -356,10 +350,6 @@ class Plan(TrackingFields):
 
     # #################################### #
     # IV. Análisis de causa raíz
-    #
-    # Conceptualmente corresponde a CNC.
-    # La visibilidad la resolveremos en el
-    # formulario en el siguiente paso.
 
     analisis = HTMLField(
         default="",
