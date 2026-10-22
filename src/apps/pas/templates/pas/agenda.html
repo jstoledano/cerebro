@@ -248,54 +248,48 @@
                     </a>
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.ciclo.etiqueta }}
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.get_ambito_display }}
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.fecha_inicio|date:"d/m/Y" }}
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.fecha_fin|date:"d/m/Y" }}
                   </td>
 
                   <td class="text-center">
 
                     {% if execution.estado_agenda == "vencida" %}
-
                       <span class="badge badge-error">
                         Vencida
                       </span>
 
                     {% elif execution.estado_agenda == "vence_hoy" %}
-
                       <span class="badge badge-warning">
                         Vence hoy
                       </span>
 
                     {% elif execution.estado_agenda == "inicia_hoy" %}
-
                       <span class="badge badge-info badge-outline">
                         Inicia hoy
                       </span>
 
                     {% elif execution.estado_agenda == "programada" %}
-
                       <span class="badge badge-neutral badge-outline">
                         Programada
                       </span>
 
                     {% else %}
-
                       <span class="badge badge-primary badge-outline">
                         Pendiente
                       </span>
-
                     {% endif %}
 
                   </td>
@@ -314,8 +308,7 @@
                               class="btn btn-ghost btn-sm"
                               hx-get="{% url 'pas:execution-evidence' execution.pk %}"
                               hx-target="#pas-modal-content"
-                              hx-swap="innerHTML"
-                              title="Ver evidencia registrada">
+                              hx-swap="innerHTML">
                         <span class="text-success text-lg">
                           ✓
                         </span>
@@ -357,15 +350,14 @@
                                value="complete">
 
                         <button type="submit"
-                                class="btn btn-success btn-outline btn-sm"
-                                title="Registrar esta ejecución como terminada">
+                                class="btn btn-success btn-outline btn-sm">
                           Terminar
                         </button>
                       </form>
 
                     {% else %}
 
-                      <span class="text-xs text-base-content/40">
+                      <span class="text-base-content/40">
                         —
                       </span>
 
@@ -402,31 +394,14 @@
 
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
-        <div class="flex items-center gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold">
+            Próximas actividades
+          </h2>
 
-          <div class="rounded-xl bg-info/10 p-3 text-info">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 stroke-width="1.5"
-                 stroke="currentColor"
-                 class="size-6">
-              <path stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-          </div>
-
-          <div>
-            <h2 class="text-2xl font-semibold">
-              Próximas actividades
-            </h2>
-
-            <p class="text-sm text-base-content/70">
-              Ejecuciones programadas después de la semana actual.
-            </p>
-          </div>
-
+          <p class="text-sm text-base-content/70">
+            Ejecuciones programadas después de la semana actual.
+          </p>
         </div>
 
         <span class="badge badge-lg badge-info badge-outline">
@@ -459,7 +434,7 @@
 
               {% for execution in proximas %}
 
-                <tr class="align-top">
+                <tr>
 
                   <td class="max-w-md">
                     <div class="prose prose-sm max-w-none text-base-content/80">
@@ -470,23 +445,19 @@
                   <td class="text-center">
                     <a href="{% url 'pas:detalle' execution.plan.pk %}"
                        class="link link-primary font-medium">
-                      {% if execution.plan.folio %}
-                        {{ execution.plan.folio }}
-                      {% else %}
-                        {{ execution.plan.nombre }}
-                      {% endif %}
+                      {{ execution.plan.nombre }}
                     </a>
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.ciclo.etiqueta }}
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.get_ambito_display }}
                   </td>
 
-                  <td class="text-center text-base-content/80">
+                  <td class="text-center">
                     {{ execution.fecha_inicio|date:"d/m/Y" }}
                   </td>
 
@@ -506,26 +477,9 @@
 
                     {% elif execution.tiene_evidencia %}
 
-                      <button type="button"
-                              class="btn btn-ghost btn-sm"
-                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML"
-                              title="Ver evidencia registrada">
-                        <span class="text-success text-lg">
-                          ✓
-                        </span>
-                      </button>
-
-                    {% elif execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-outline btn-sm"
-                              hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML">
-                        Registrar
-                      </button>
+                      <span class="text-success text-lg">
+                        ✓
+                      </span>
 
                     {% else %}
 
@@ -539,33 +493,22 @@
 
                   <td class="text-center">
 
-                    {% if execution.plan.permite_modificaciones %}
+                    <form
+                      hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                      hx-swap="none"
+                      class="inline"
+                    >
+                      {% csrf_token %}
 
-                      <form
-                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                        hx-swap="none"
-                        class="inline"
-                      >
-                        {% csrf_token %}
+                      <input type="hidden"
+                             name="action"
+                             value="complete">
 
-                        <input type="hidden"
-                               name="action"
-                               value="complete">
-
-                        <button type="submit"
-                                class="btn btn-success btn-outline btn-sm"
-                                title="Registrar esta ejecución como terminada">
-                          Terminar
-                        </button>
-                      </form>
-
-                    {% else %}
-
-                      <span class="text-xs text-base-content/40">
-                        —
-                      </span>
-
-                    {% endif %}
+                      <button type="submit"
+                              class="btn btn-success btn-outline btn-sm">
+                        Terminar
+                      </button>
+                    </form>
 
                   </td>
 
@@ -590,31 +533,14 @@
 
     <section class="space-y-6">
 
-      <div class="flex items-center gap-3">
+      <div>
+        <h2 class="text-2xl font-semibold">
+          Terminadas
+        </h2>
 
-        <div class="rounded-xl bg-success/10 p-3 text-success">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               fill="none"
-               viewBox="0 0 24 24"
-               stroke-width="1.5"
-               stroke="currentColor"
-               class="size-6">
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="m4.5 12.75 6 6 9-13.5" />
-          </svg>
-        </div>
-
-        <div>
-          <h2 class="text-2xl font-semibold">
-            Terminadas
-          </h2>
-
-          <p class="text-sm text-base-content/70">
-            Ejecuciones que ya registraste como terminadas.
-          </p>
-        </div>
-
+        <p class="text-sm text-base-content/70">
+          Ejecuciones que ya registraste como terminadas.
+        </p>
       </div>
 
 
@@ -636,27 +562,18 @@
               </tr>
             </thead>
 
-            <tbody class="text-sm">
+            <tbody>
 
               {% for execution in terminadas %}
 
                 <tr>
 
-                  <td class="max-w-md">
-                    <div class="prose prose-sm max-w-none text-base-content/80">
-                      {{ execution.accion.accion|safe }}
-                    </div>
+                  <td>
+                    {{ execution.accion.accion|safe }}
                   </td>
 
                   <td class="text-center">
-                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
-                       class="link link-primary font-medium">
-                      {% if execution.plan.folio %}
-                        {{ execution.plan.folio }}
-                      {% else %}
-                        {{ execution.plan.nombre }}
-                      {% endif %}
-                    </a>
+                    {{ execution.plan.nombre }}
                   </td>
 
                   <td class="text-center">
@@ -674,62 +591,37 @@
                   <td class="text-center">
 
                     {% if execution.accion.formato_evidencia == "ninguno" %}
-
                       <span class="badge badge-ghost">
                         No requerida
                       </span>
-
                     {% elif execution.tiene_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-ghost btn-sm"
-                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML"
-                              title="Ver evidencia registrada">
-                        <span class="text-success text-lg">
-                          ✓
-                        </span>
-                      </button>
-
-                    {% else %}
-
-                      <span class="text-base-content/40">
-                        —
+                      <span class="text-success text-lg">
+                        ✓
                       </span>
-
+                    {% else %}
+                      —
                     {% endif %}
 
                   </td>
 
                   <td class="text-center">
 
-                    {% if execution.plan.permite_modificaciones %}
+                    <form
+                      hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                      hx-swap="none"
+                      class="inline"
+                    >
+                      {% csrf_token %}
 
-                      <form
-                        hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                        hx-swap="none"
-                        class="inline"
-                      >
-                        {% csrf_token %}
+                      <input type="hidden"
+                             name="action"
+                             value="reopen">
 
-                        <input type="hidden"
-                               name="action"
-                               value="reopen">
-
-                        <button type="submit"
-                                class="btn btn-ghost btn-sm">
-                          Reabrir
-                        </button>
-                      </form>
-
-                    {% else %}
-
-                      <span class="text-xs text-base-content/40">
-                        —
-                      </span>
-
-                    {% endif %}
+                      <button type="submit"
+                              class="btn btn-ghost btn-sm">
+                        Reabrir
+                      </button>
+                    </form>
 
                   </td>
 
@@ -740,6 +632,311 @@
             </tbody>
 
           </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  {% endif %}
+
+
+  {% if supervision_activa %}
+
+    <section class="space-y-6 border-t border-base-300 pt-10">
+
+      <header class="rounded-3xl border border-primary/30 bg-primary/5 p-6">
+
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+          <div>
+
+            <div class="flex items-center gap-3">
+
+              <span class="badge badge-primary">
+                Supervisión
+              </span>
+
+              <h2 class="text-2xl font-bold">
+                Supervisión del equipo
+              </h2>
+
+            </div>
+
+            <p class="mt-2 text-sm text-base-content/70">
+              Actividades asignadas a personas de unidades subordinadas a
+              {{ unidad_supervision.clave }} — {{ unidad_supervision.nombre }}.
+            </p>
+
+          </div>
+
+          <div class="text-right">
+
+            <p class="text-xs uppercase tracking-wide text-base-content/50">
+              Personas supervisadas
+            </p>
+
+            <p class="text-3xl font-semibold">
+              {{ usuarios_supervisados|length }}
+            </p>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+
+        <div class="rounded-2xl border border-error/30 bg-base-100 p-5 shadow-sm">
+          <p class="text-sm text-base-content/60">
+            Vencidas
+          </p>
+
+          <p class="mt-2 text-3xl font-semibold text-error">
+            {{ total_supervision_vencidas }}
+          </p>
+        </div>
+
+
+        <div class="rounded-2xl border border-secondary/30 bg-base-100 p-5 shadow-sm">
+          <p class="text-sm text-base-content/60">
+            Esta semana
+          </p>
+
+          <p class="mt-2 text-3xl font-semibold">
+            {{ total_supervision_pendientes_semana }}
+          </p>
+        </div>
+
+
+        <div class="rounded-2xl border border-info/30 bg-base-100 p-5 shadow-sm">
+          <p class="text-sm text-base-content/60">
+            Próximas
+          </p>
+
+          <p class="mt-2 text-3xl font-semibold">
+            {{ total_supervision_proximas }}
+          </p>
+        </div>
+
+
+        <div class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+          <p class="text-sm text-base-content/60">
+            Pendientes
+          </p>
+
+          <p class="mt-2 text-3xl font-semibold">
+            {{ total_supervision_pendientes }}
+          </p>
+        </div>
+
+
+        <div class="rounded-2xl border border-success/30 bg-base-100 p-5 shadow-sm">
+          <p class="text-sm text-base-content/60">
+            Terminadas
+          </p>
+
+          <p class="mt-2 text-3xl font-semibold text-success">
+            {{ total_supervision_terminadas }}
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="space-y-4">
+
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+
+          <div>
+            <h3 class="text-xl font-semibold">
+              Pendientes del equipo
+            </h3>
+
+            <p class="text-sm text-base-content/60">
+              Vista consolidada de las ejecuciones pendientes bajo tu estructura.
+            </p>
+          </div>
+
+          <span class="badge badge-outline badge-lg">
+            {{ total_supervision_pendientes }} pendientes
+          </span>
+
+        </div>
+
+
+        <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
+
+          {% if supervision_pendientes %}
+
+            <div class="overflow-x-auto">
+
+              <table class="table table-zebra">
+
+                <thead class="bg-base-200/60 text-sm text-base-content/70">
+                  <tr>
+                    <th>Responsable</th>
+                    <th>Actividad</th>
+                    <th class="text-center">Plan</th>
+                    <th class="text-center">Ciclo</th>
+                    <th class="text-center">Ámbito</th>
+                    <th class="text-center">Fecha</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Evidencia</th>
+                  </tr>
+                </thead>
+
+                <tbody class="text-sm">
+
+                  {% for execution in supervision_pendientes %}
+
+                    <tr class="align-top">
+
+                      <td>
+
+                        <div class="font-semibold">
+                          {% if execution.responsable.get_full_name %}
+                            {{ execution.responsable.get_full_name }}
+                          {% else %}
+                            {{ execution.responsable.username }}
+                          {% endif %}
+                        </div>
+
+                        {% if execution.responsable.profile.unidad_organizacional %}
+                          <div class="mt-1 text-xs text-base-content/50">
+                            {{ execution.responsable.profile.unidad_organizacional.clave }}
+                          </div>
+                        {% endif %}
+
+                      </td>
+
+
+                      <td class="max-w-md">
+
+                        <div class="prose prose-sm max-w-none text-base-content/80">
+                          {{ execution.accion.accion|safe }}
+                        </div>
+
+                      </td>
+
+
+                      <td class="text-center">
+
+                        <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                           class="link link-primary font-medium">
+                          {% if execution.plan.folio %}
+                            {{ execution.plan.folio }}
+                          {% else %}
+                            {{ execution.plan.nombre }}
+                          {% endif %}
+                        </a>
+
+                      </td>
+
+
+                      <td class="text-center">
+                        {{ execution.ciclo.etiqueta }}
+                      </td>
+
+
+                      <td class="text-center">
+                        {{ execution.get_ambito_display }}
+                      </td>
+
+
+                      <td class="text-center">
+                        {{ execution.fecha_fin|date:"d/m/Y" }}
+                      </td>
+
+
+                      <td class="text-center">
+
+                        {% if execution.estado_agenda == "vencida" %}
+
+                          <span class="badge badge-error">
+                            Vencida
+                          </span>
+
+                        {% elif execution.estado_agenda == "vence_hoy" %}
+
+                          <span class="badge badge-warning">
+                            Vence hoy
+                          </span>
+
+                        {% elif execution.estado_agenda == "inicia_hoy" %}
+
+                          <span class="badge badge-info badge-outline">
+                            Inicia hoy
+                          </span>
+
+                        {% elif execution.estado_agenda == "programada" %}
+
+                          <span class="badge badge-neutral badge-outline">
+                            Programada
+                          </span>
+
+                        {% else %}
+
+                          <span class="badge badge-primary badge-outline">
+                            Pendiente
+                          </span>
+
+                        {% endif %}
+
+                      </td>
+
+
+                      <td class="text-center">
+
+                        {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                          <span class="badge badge-ghost">
+                            No requerida
+                          </span>
+
+                        {% elif execution.tiene_evidencia %}
+
+                          <button type="button"
+                                  class="btn btn-ghost btn-sm"
+                                  hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                                  hx-target="#pas-modal-content"
+                                  hx-swap="innerHTML"
+                                  title="Ver evidencia registrada">
+                            <span class="text-success text-lg">
+                              ✓
+                            </span>
+                          </button>
+
+                        {% else %}
+
+                          <span class="text-base-content/40">
+                            —
+                          </span>
+
+                        {% endif %}
+
+                      </td>
+
+                    </tr>
+
+                  {% endfor %}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          {% else %}
+
+            <div class="p-10 text-center text-base-content/60">
+              No hay actividades pendientes en las unidades supervisadas.
+            </div>
+
+          {% endif %}
 
         </div>
 
@@ -837,10 +1034,8 @@
     document.body.addEventListener(
       'click',
       function (event) {
-        const closeButton = (
-          event.target.closest(
-            '[data-close-modal]'
-          )
+        const closeButton = event.target.closest(
+          '[data-close-modal]'
         );
 
         if (closeButton) {
