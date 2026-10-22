@@ -9,56 +9,100 @@
 
       {% for execution_item in item.execution_summary %}
 
-        <button
-          type="button"
-          class="btn btn-ghost btn-xs gap-1"
-          hx-get="{% url 'pas:execution-evidence' execution_item.execution.pk %}"
-          hx-target="#pas-modal-content"
-          hx-swap="innerHTML"
-          title="{{ execution_item.ambito_display }}"
-        >
+        {% if item.activity.formato_evidencia == "ninguno" %}
 
-          <span class="font-semibold">
-            {% if execution_item.ambito == "D01" %}
-              01
-            {% elif execution_item.ambito == "D02" %}
-              02
-            {% elif execution_item.ambito == "D03" %}
-              03
-            {% elif execution_item.ambito == "JL" %}
-              JL
-            {% else %}
-              {{ execution_item.ambito }}
-            {% endif %}
+          <span
+            class="btn btn-ghost btn-xs gap-1 cursor-default"
+            title="{{ execution_item.ambito_display }} · Evidencia no requerida"
+          >
+
+            <span class="font-semibold">
+              {% if execution_item.ambito == "D01" %}
+                01
+              {% elif execution_item.ambito == "D02" %}
+                02
+              {% elif execution_item.ambito == "D03" %}
+                03
+              {% elif execution_item.ambito == "JL" %}
+                JL
+              {% else %}
+                {{ execution_item.ambito }}
+              {% endif %}
+            </span>
+
+            <span
+              class="text-base-content/50"
+              title="Evidencia no requerida"
+            >
+              N/A
+            </span>
+
           </span>
 
-          {% if execution_item.tiene_evidencia %}
-            <span
-              class="text-success"
-              title="Evidencia registrada"
-            >
-              ✓
-            </span>
-          {% else %}
-            <span
-              class="text-base-content/40"
-              title="Sin evidencia registrada"
-            >
-              —
-            </span>
-          {% endif %}
+        {% else %}
 
-        </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs gap-1"
+            hx-get="{% url 'pas:execution-evidence' execution_item.execution.pk %}"
+            hx-target="#pas-modal-content"
+            hx-swap="innerHTML"
+            title="{{ execution_item.ambito_display }}"
+          >
+
+            <span class="font-semibold">
+              {% if execution_item.ambito == "D01" %}
+                01
+              {% elif execution_item.ambito == "D02" %}
+                02
+              {% elif execution_item.ambito == "D03" %}
+                03
+              {% elif execution_item.ambito == "JL" %}
+                JL
+              {% else %}
+                {{ execution_item.ambito }}
+              {% endif %}
+            </span>
+
+            {% if execution_item.tiene_evidencia %}
+              <span
+                class="text-success"
+                title="Evidencia registrada"
+              >
+                ✓
+              </span>
+            {% else %}
+              <span
+                class="text-base-content/40"
+                title="Sin evidencia registrada"
+              >
+                —
+              </span>
+            {% endif %}
+
+          </button>
+
+        {% endif %}
 
       {% endfor %}
 
     </div>
 
     <div class="text-xs text-center text-base-content/60">
-      {{ item.execution_with_evidence }}
-      /
-      {{ item.execution_total }}
-      con evidencia
+
+      {% if item.activity.formato_evidencia == "ninguno" %}
+
+        Evidencia no requerida
+
+      {% else %}
+
+        {{ item.execution_with_evidence }}
+        /
+        {{ item.execution_total }}
+        con evidencia
+
+      {% endif %}
+
     </div>
 
   </div>

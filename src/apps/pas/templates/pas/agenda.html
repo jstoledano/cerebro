@@ -286,7 +286,16 @@
 
                   <td class="text-center">
 
-                    {% if execution.tiene_evidencia %}
+                    {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                      <span
+                        class="badge badge-ghost"
+                        title="Esta actividad no requiere evidencia documental"
+                      >
+                        No requerida
+                      </span>
+
+                    {% elif execution.tiene_evidencia %}
 
                       <button type="button"
                               class="btn btn-ghost btn-sm"
