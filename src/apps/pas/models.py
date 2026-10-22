@@ -43,9 +43,16 @@ class TrackingFields(models.Model):
 
 CNC = 1
 PCM = 2
+PROYECTO = 3
+PROGRAMA = 4
+META = 5
+
 DOCUMENTO = (
     (CNC, "Cédula de No Conformidad"),
     (PCM, "Plan de Cambios y Mejoras al SGC"),
+    (PROYECTO, "Proyecto"),
+    (PROGRAMA, "Programa"),
+    (META, "Meta"),
 )
 
 PROCESO = (
@@ -162,119 +169,228 @@ FORMATO_EVIDENCIA = (
 
 
 class Plan(TrackingFields):
-    objects = PlanQuerySet.as_manager()
-
     class Meta:
-        verbose_name = _("Plan de Acción")
-        verbose_name_plural = _("Planes de Acción")
+        verbose_name = _("Plan")
+        verbose_name_plural = _("Planes")
 
     # #################################### #
-    # I. Campos de identificación comunes CNC y PCM
-    nombre = models.CharField(max_length=255, help_text="Nombre del Plan de Acción")
-    documento = models.IntegerField(
-        "Tipo de plan", choices=DOCUMENTO, help_text="Selecciona el tipo de plan"
-    )
-    folio = models.CharField(max_length=20)
-    fecha_llenado = models.DateField(
-        "Fecha de Llenado", default=django.utils.timezone.now
+    # I. Identificación general
+
+    nombre = models.CharField(
+        max_length=255,
+        help_text=(
+            "Nombre del plan, proyecto, "
+            "programa o meta."
+        ),
     )
 
-    # I.1 Identificación de la CNC
+    documento = models.IntegerField(
+        "Tipo",
+        choices=DOCUMENTO,
+        help_text=(
+            "Selecciona el tipo de registro."
+        ),
+    )
+
+    folio = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text=(
+            "Folio o identificador institucional, "
+            "cuando exista."
+        ),
+    )
+
+    fecha_llenado = models.DateField(
+        "Fecha de registro",
+        default=django.utils.timezone.now,
+    )
+
+    descripcion = HTMLField(
+        "Descripción",
+        default="",
+        blank=True,
+        help_text=(
+            "Descripción general del plan, "
+            "proyecto, programa o meta."
+        ),
+    )
+
+    documento_fuente = models.FileField(
+        "Documento fuente",
+        upload_to="pas/documentos",
+        blank=True,
+        null=True,
+        help_text=(
+            "Documento que da origen o sustento "
+            "al registro, cuando exista."
+        ),
+    )
+
+    fecha_inicio = models.DateField(
+        "Fecha de inicio",
+        blank=True,
+        null=True,
+        help_text=(
+            "Fecha de inicio, cuando sea aplicable."
+        ),
+    )
+
+    fecha_termino = models.DateField(
+        "Fecha de término",
+        blank=True,
+        null=True,
+        help_text=(
+            "Fecha de término, cuando sea aplicable."
+        ),
+    )
+
+    # #################################### #
+    # II. Datos específicos de CNC
+    #
+    # Estos campos se conservan durante la
+    # transición. Posteriormente podremos
+    # retirar los que ya no sean necesarios.
+
     tipo = models.IntegerField(
-        choices=TIPO, help_text="Tipo de acción requerida", blank=True, null=True
+        choices=TIPO,
+        help_text="Tipo de acción requerida",
+        blank=True,
+        null=True,
     )
+
     desc_cnc = HTMLField(
-        "Descripción de la No Conformidad / Riesgo", default="", blank=True, null=True
+        "Descripción de la No Conformidad / Riesgo",
+        default="",
+        blank=True,
+        null=True,
     )
+
     correccion = HTMLField(
-        default="", blank=True, null=True, help_text="Corrección (si aplica)"
+        default="",
+        blank=True,
+        null=True,
+        help_text=(
+            "Corrección (si aplica)"
+        ),
     )
-    fuente = models.IntegerField(choices=FUENTE, blank=True, null=True)
+
+    fuente = models.IntegerField(
+        choices=FUENTE,
+        blank=True,
+        null=True,
+    )
+
     otra_fuente = models.TextField(
         "Otra (especifique)",
         blank=True,
         null=True,
-        help_text="Especifique la fuente si seleccionó Otros",
+        help_text=(
+            "Especifique la fuente si seleccionó Otros"
+        ),
     )
 
-    # I.2 Identificación del PCM
-    fecha_inicio = models.DateField(
-        "Fecha de Inicio",
-        blank=True,
-        null=True,
-        help_text="Fecha en la que se inició el Plan de Cambios y Mejoras",
-    )
-    fecha_termino = models.DateField(
-        "Fecha de Término",
-        blank=True,
-        null=True,
-        help_text="Fecha en la que se terminará el Plan de Cambios y Mejoras",
-    )
+    # #################################### #
+    # III. Datos heredados de PCM
+    #
+    # Se conservan temporalmente para no
+    # romper formularios, vistas ni datos
+    # existentes durante la transición.
+
     proposito = models.CharField(
         "Propósito",
         blank=True,
         null=True,
-        help_text="Propósito del cambio o mejora al SGC",
+        help_text=(
+            "Propósito del cambio o mejora al SGC"
+        ),
         max_length=255,
     )
+
     requisito = models.CharField(
         blank=True,
         null=True,
         max_length=255,
-        help_text="Requisito(s) de ISO 9001:2015 afectado(s) y/o beneficiados",
+        help_text=(
+            "Requisito(s) de ISO 9001:2015 "
+            "afectado(s) y/o beneficiados"
+        ),
     )
+
     proceso = models.IntegerField(
         choices=PROCESO,
         blank=True,
         null=True,
-        help_text="Proceso(s) del SGC afectado(s) y/o beneficiados",
+        help_text=(
+            "Proceso(s) del SGC afectado(s) "
+            "y/o beneficiados"
+        ),
     )
+
     desc_pcm = HTMLField(
         "Descripción",
         default="",
         blank=True,
         null=True,
-        help_text="Descripción del cambio o mejora al SGC",
+        help_text=(
+            "Descripción del cambio o mejora al SGC"
+        ),
     )
+
     consecuencias = HTMLField(
         "Consecuencias",
         default="",
         blank=True,
         null=True,
-        help_text="Consecuencias potenciales de que el cambio o mejora no se realice",
+        help_text=(
+            "Consecuencias potenciales de que "
+            "el cambio o mejora no se realice"
+        ),
     )
 
     # #################################### #
-    # II. Análisis de la CNC o PCM
+    # IV. Análisis de causa raíz
+    #
+    # Conceptualmente corresponde a CNC.
+    # La visibilidad la resolveremos en el
+    # formulario en el siguiente paso.
+
     analisis = HTMLField(
-        default="", blank=True, null=True, help_text="Análisis de la causa raíz"
+        default="",
+        blank=True,
+        null=True,
+        help_text=(
+            "Análisis de la causa raíz"
+        ),
     )
-    evidencia_analisis = models.FileField(upload_to="pas", blank=True, null=True)
+
+    evidencia_analisis = models.FileField(
+        upload_to="pas",
+        blank=True,
+        null=True,
+    )
 
     # #################################### #
-    # VIII. Cierre
-    eliminacion = models.BooleanField(default=False)
-    txt_eliminacion = HTMLField(blank=True, null=True)
-    recurrencia = models.BooleanField(default=False)
-    txt_recurrencia = HTMLField(blank=True, null=True)
+    # V. Cierre
 
-    visibilidad = models.CharField(
-        max_length=20,
-        choices=VISIBILIDAD,
-        default=VISIBILIDAD_PUBLICA,
-        help_text="Define quién puede consultar el plan.",
+    eliminacion = models.BooleanField(
+        default=False,
     )
 
-    def __str__(self):
-        return "%s - %s" % (self.folio, self.nombre)
+    txt_eliminacion = HTMLField(
+        blank=True,
+        null=True,
+    )
 
-    @property
-    def siglas(self):
-        if self.documento == CNC:
-            return "CNC"
-        elif self.documento == PCM:
-            return "PCM"
-        return "N/A"
+    recurrencia = models.BooleanField(
+        default=False,
+    )
+
+    txt_recurrencia = HTMLField(
+        blank=True,
+        null=True,
+    )
 
     @property
     def esta_cerrado(self):
@@ -286,7 +402,34 @@ class Plan(TrackingFields):
 
     @property
     def permite_modificaciones(self):
-        return not (self.esta_cerrado or self.tiene_recurrencia)
+        return not (
+            self.esta_cerrado
+            or self.tiene_recurrencia
+        )
+
+    @property
+    def siglas(self):
+        siglas = {
+            CNC: "CNC",
+            PCM: "PCM",
+            PROYECTO: "Proyecto",
+            PROGRAMA: "Programa",
+            META: "Meta",
+        }
+
+        return siglas.get(
+            self.documento,
+            "N/A",
+        )
+
+    def __str__(self):
+        if self.folio:
+            return (
+                f"{self.folio} - "
+                f"{self.nombre}"
+            )
+
+        return self.nombre
 
 
 PRIORIDAD_NORMAL = "normal"
