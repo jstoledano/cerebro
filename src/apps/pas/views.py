@@ -45,6 +45,8 @@ from .models import (
     PERIODICIDAD_MENSUAL,
     PERIODICIDAD_BIMESTRAL,
     PERIODICIDAD_TRIMESTRAL,
+    PRIORIDAD_URGENTE,
+    PRIORIDAD_CRITICA,
 )
 
 
@@ -297,99 +299,202 @@ class AgendaView(TemplateView):
                 "evidencia_registrada",
             )
             .order_by(
-                "ciclo__fecha_inicio",
                 "ciclo__fecha_fin",
+                "ciclo__fecha_inicio",
                 "ciclo__accion_id",
             )
         )
 
-        # --------------------------------------------------
-        # Agenda personal
-        # --------------------------------------------------
+        def clasificar_atencion(
+            ejecuciones,
+        ):
+            """
+            Clasifica cada ejecución pendiente en un único
+            nivel de atención.
 
-        ejecuciones = list(
+            Jerarquía:
+
+            1. Urgente
+               - vencida
+               - vence hoy
+
+            2. Requiere atención
+               - vence después de hoy y hasta el domingo
+               - prioridad urgente/crítica actualmente
+                 en ejecución
+
+            3. Vigilar
+               - inicia hoy
+               - inicia después de hoy y hasta el domingo
+
+            Las ejecuciones posteriores al horizonte semanal
+            no aparecen en la agenda de atención. Permanecen
+            disponibles en el calendario.
+            """
+
+            urgente = []
+            atencion = []
+            vigilar = []
+            terminadas = []
+
+            vencidas = []
+            vencen_hoy = []
+            vencen_semana = []
+            prioridad_alta = []
+            inician_hoy = []
+            inician_semana = []
+
+            for ejecucion in ejecuciones:
+                if ejecucion.completada:
+                    terminadas.append(
+                        ejecucion
+                    )
+                    continue
+
+                fecha_inicio = (
+                    ejecucion.fecha_inicio
+                )
+
+                fecha_fin = (
+                    ejecucion.fecha_fin
+                )
+
+                # ------------------------------------------
+                # 1. URGENTE
+                # ------------------------------------------
+
+                if fecha_fin < hoy:
+                    urgente.append(
+                        ejecucion
+                    )
+
+                    vencidas.append(
+                        ejecucion
+                    )
+
+                    continue
+
+                if fecha_fin == hoy:
+                    urgente.append(
+                        ejecucion
+                    )
+
+                    vencen_hoy.append(
+                        ejecucion
+                    )
+
+                    continue
+
+                # ------------------------------------------
+                # 2. REQUIERE ATENCIÓN
+                # ------------------------------------------
+
+                if (
+                    hoy < fecha_fin
+                    <= fin_semana
+                ):
+                    atencion.append(
+                        ejecucion
+                    )
+
+                    vencen_semana.append(
+                        ejecucion
+                    )
+
+                    continue
+
+                esta_en_ejecucion = (
+                    fecha_inicio
+                    <= hoy
+                    < fecha_fin
+                )
+
+                es_prioridad_alta = (
+                    ejecucion.accion.prioridad
+                    in {
+                        PRIORIDAD_URGENTE,
+                        PRIORIDAD_CRITICA,
+                    }
+                )
+
+                if (
+                    esta_en_ejecucion
+                    and es_prioridad_alta
+                ):
+                    atencion.append(
+                        ejecucion
+                    )
+
+                    prioridad_alta.append(
+                        ejecucion
+                    )
+
+                    continue
+
+                # ------------------------------------------
+                # 3. VIGILAR
+                # ------------------------------------------
+
+                if fecha_inicio == hoy:
+                    vigilar.append(
+                        ejecucion
+                    )
+
+                    inician_hoy.append(
+                        ejecucion
+                    )
+
+                    continue
+
+                if (
+                    hoy < fecha_inicio
+                    <= fin_semana
+                ):
+                    vigilar.append(
+                        ejecucion
+                    )
+
+                    inician_semana.append(
+                        ejecucion
+                    )
+
+                    continue
+
+            return {
+                "urgente": urgente,
+                "atencion": atencion,
+                "vigilar": vigilar,
+                "terminadas": terminadas,
+
+                "vencidas": vencidas,
+                "vencen_hoy": vencen_hoy,
+                "vencen_semana": vencen_semana,
+                "prioridad_alta": prioridad_alta,
+                "inician_hoy": inician_hoy,
+                "inician_semana": inician_semana,
+            }
+
+        # ==================================================
+        # AGENDA PERSONAL
+        # ==================================================
+
+        ejecuciones_personales = list(
             queryset_ejecuciones.filter(
                 responsable=self.request.user
             )
         )
 
-        inician_hoy = []
-        vencen_hoy = []
-        vencidas = []
-        pendientes_semana = []
-        proximas = []
-        pendientes = []
-        terminadas = []
+        personal = clasificar_atencion(
+            ejecuciones_personales
+        )
 
-        for ejecucion in ejecuciones:
-            if ejecucion.completada:
-                terminadas.append(
-                    ejecucion
-                )
-                continue
-
-            pendientes.append(
-                ejecucion
-            )
-
-            if (
-                ejecucion.fecha_inicio
-                == hoy
-            ):
-                inician_hoy.append(
-                    ejecucion
-                )
-
-            if (
-                ejecucion.fecha_fin
-                == hoy
-            ):
-                vencen_hoy.append(
-                    ejecucion
-                )
-
-            if (
-                ejecucion.fecha_fin
-                < hoy
-            ):
-                vencidas.append(
-                    ejecucion
-                )
-                continue
-
-            if (
-                inicio_semana
-                <= ejecucion.fecha_fin
-                <= fin_semana
-            ):
-                pendientes_semana.append(
-                    ejecucion
-                )
-                continue
-
-            if (
-                ejecucion.fecha_fin
-                > fin_semana
-            ):
-                proximas.append(
-                    ejecucion
-                )
-
-        # --------------------------------------------------
-        # Agenda de supervisión
-        # --------------------------------------------------
+        # ==================================================
+        # SUPERVISIÓN
+        # ==================================================
 
         supervision_activa = False
         unidad_supervision = None
         usuarios_supervisados = []
-
-        supervision_inician_hoy = []
-        supervision_vencen_hoy = []
-        supervision_pendientes = []
-        supervision_pendientes_semana = []
-        supervision_proximas = []
-        supervision_vencidas = []
-        supervision_terminadas = []
 
         perfil = getattr(
             self.request.user,
@@ -416,6 +521,10 @@ class AgendaView(TemplateView):
                 usuarios_supervisados
             )
 
+        supervision = clasificar_atencion(
+            []
+        )
+
         if supervision_activa:
             ejecuciones_supervision = list(
                 queryset_ejecuciones.filter(
@@ -425,90 +534,291 @@ class AgendaView(TemplateView):
                 )
             )
 
-            for ejecucion in (
+            supervision = clasificar_atencion(
                 ejecuciones_supervision
-            ):
-                if ejecucion.completada:
-                    supervision_terminadas.append(
-                        ejecucion
-                    )
-                    continue
+            )
 
-                supervision_pendientes.append(
-                    ejecucion
-                )
+        # ==================================================
+        # COMPATIBILIDAD TEMPORAL CON EL TEMPLATE ACTUAL
+        # ==================================================
+        #
+        # Estas variables se mantienen mientras cambiamos
+        # agenda.html en el siguiente paso.
+        #
+        # Importante: "pendientes" ya NO significa todo lo
+        # incompleto. Sólo contiene elementos dentro del
+        # radar de atención.
+        # ==================================================
 
-                if ejecucion.fecha_inicio == hoy:
-                    supervision_inician_hoy.append(ejecucion)
+        pendientes_personales = (
+            personal["urgente"]
+            + personal["atencion"]
+            + personal["vigilar"]
+        )
 
-                if ejecucion.fecha_fin == hoy:
-                    supervision_vencen_hoy.append(ejecucion)
-
-                if (
-                    ejecucion.fecha_fin
-                    < hoy
-                ):
-                    supervision_vencidas.append(
-                        ejecucion
-                    )
-                    continue
-
-                if (
-                    inicio_semana
-                    <= ejecucion.fecha_fin
-                    <= fin_semana
-                ):
-                    supervision_pendientes_semana.append(
-                        ejecucion
-                    )
-                    continue
-
-                if (
-                    ejecucion.fecha_fin
-                    > fin_semana
-                ):
-                    supervision_proximas.append(
-                        ejecucion
-                    )
+        pendientes_supervision = (
+            supervision["urgente"]
+            + supervision["atencion"]
+            + supervision["vigilar"]
+        )
 
         context.update(
             {
                 "hoy": hoy,
-                "inicio_semana": (inicio_semana),
-                "fin_semana": (fin_semana),
-                # Agenda personal
-                "inician_hoy": (inician_hoy),
-                "vencen_hoy": (vencen_hoy),
-                "vencidas": (vencidas),
-                "pendientes_semana": (pendientes_semana),
-                "proximas": (proximas),
-                "pendientes": (pendientes),
-                "terminadas": (terminadas),
-                "total_inician_hoy": len(inician_hoy),
-                "total_vencen_hoy": len(vencen_hoy),
-                "total_vencidas": len(vencidas),
-                "total_pendientes_semana": len(pendientes_semana),
-                "total_proximas": len(proximas),
-                "total_pendientes": len(pendientes),
-                "total_terminadas": len(terminadas),
-                # Supervisión jerárquica
-                "supervision_activa": (supervision_activa),
-                "unidad_supervision": (unidad_supervision),
-                "usuarios_supervisados": (usuarios_supervisados),
-                "supervision_pendientes": (supervision_pendientes),
-                "supervision_pendientes_semana": (supervision_pendientes_semana),
-                "supervision_proximas": (supervision_proximas),
-                "supervision_vencidas": (supervision_vencidas),
-                "supervision_terminadas": (supervision_terminadas),
-                "total_supervision_pendientes": len(supervision_pendientes),
-                "total_supervision_pendientes_semana": len(
-                    supervision_pendientes_semana
+                "inicio_semana": (
+                    inicio_semana
                 ),
-                "total_supervision_proximas": len(supervision_proximas),
-                "total_supervision_vencidas": len(supervision_vencidas),
-                "total_supervision_terminadas": len(supervision_terminadas),
-                "total_supervision_inician_hoy": len(supervision_inician_hoy),
-                "total_supervision_vencen_hoy": len(supervision_vencen_hoy),
+                "fin_semana": (
+                    fin_semana
+                ),
+
+                # ==========================================
+                # Agenda personal nueva
+                # ==========================================
+
+                "urgentes": (
+                    personal["urgente"]
+                ),
+
+                "requieren_atencion": (
+                    personal["atencion"]
+                ),
+
+                "vigilar": (
+                    personal["vigilar"]
+                ),
+
+                "vencidas": (
+                    personal["vencidas"]
+                ),
+
+                "vencen_hoy": (
+                    personal["vencen_hoy"]
+                ),
+
+                "vencen_semana": (
+                    personal["vencen_semana"]
+                ),
+
+                "prioridad_alta": (
+                    personal["prioridad_alta"]
+                ),
+
+                "inician_hoy": (
+                    personal["inician_hoy"]
+                ),
+
+                "inician_semana": (
+                    personal["inician_semana"]
+                ),
+
+                "terminadas": (
+                    personal["terminadas"]
+                ),
+
+                "total_urgentes": len(
+                    personal["urgente"]
+                ),
+
+                "total_requieren_atencion": len(
+                    personal["atencion"]
+                ),
+
+                "total_vigilar": len(
+                    personal["vigilar"]
+                ),
+
+                "total_vencidas": len(
+                    personal["vencidas"]
+                ),
+
+                "total_vencen_hoy": len(
+                    personal["vencen_hoy"]
+                ),
+
+                "total_vencen_semana": len(
+                    personal["vencen_semana"]
+                ),
+
+                "total_prioridad_alta": len(
+                    personal["prioridad_alta"]
+                ),
+
+                "total_inician_hoy": len(
+                    personal["inician_hoy"]
+                ),
+
+                "total_inician_semana": len(
+                    personal["inician_semana"]
+                ),
+
+                # ==========================================
+                # Compatibilidad personal
+                # ==========================================
+
+                "pendientes": (
+                    pendientes_personales
+                ),
+
+                "pendientes_semana": (
+                    personal["urgente"]
+                    + personal["atencion"]
+                ),
+
+                "proximas": (
+                    personal["vigilar"]
+                ),
+
+                "total_pendientes": len(
+                    pendientes_personales
+                ),
+
+                "total_pendientes_semana": (
+                    len(
+                        personal["urgente"]
+                    )
+                    + len(
+                        personal["atencion"]
+                    )
+                ),
+
+                "total_proximas": len(
+                    personal["vigilar"]
+                ),
+
+                "total_terminadas": len(
+                    personal["terminadas"]
+                ),
+
+                # ==========================================
+                # Supervisión jerárquica
+                # ==========================================
+
+                "supervision_activa": (
+                    supervision_activa
+                ),
+
+                "unidad_supervision": (
+                    unidad_supervision
+                ),
+
+                "usuarios_supervisados": (
+                    usuarios_supervisados
+                ),
+
+                "supervision_urgentes": (
+                    supervision["urgente"]
+                ),
+
+                "supervision_requieren_atencion": (
+                    supervision["atencion"]
+                ),
+
+                "supervision_vigilar": (
+                    supervision["vigilar"]
+                ),
+
+                "supervision_vencidas": (
+                    supervision["vencidas"]
+                ),
+
+                "supervision_vencen_hoy": (
+                    supervision["vencen_hoy"]
+                ),
+
+                "supervision_vencen_semana": (
+                    supervision["vencen_semana"]
+                ),
+
+                "supervision_prioridad_alta": (
+                    supervision["prioridad_alta"]
+                ),
+
+                "supervision_inician_hoy": (
+                    supervision["inician_hoy"]
+                ),
+
+                "supervision_inician_semana": (
+                    supervision["inician_semana"]
+                ),
+
+                "supervision_terminadas": (
+                    supervision["terminadas"]
+                ),
+
+                "total_supervision_urgentes": len(
+                    supervision["urgente"]
+                ),
+
+                "total_supervision_requieren_atencion": len(
+                    supervision["atencion"]
+                ),
+
+                "total_supervision_vigilar": len(
+                    supervision["vigilar"]
+                ),
+
+                "total_supervision_vencidas": len(
+                    supervision["vencidas"]
+                ),
+
+                "total_supervision_vencen_hoy": len(
+                    supervision["vencen_hoy"]
+                ),
+
+                "total_supervision_vencen_semana": len(
+                    supervision["vencen_semana"]
+                ),
+
+                "total_supervision_prioridad_alta": len(
+                    supervision["prioridad_alta"]
+                ),
+
+                "total_supervision_inician_hoy": len(
+                    supervision["inician_hoy"]
+                ),
+
+                "total_supervision_inician_semana": len(
+                    supervision["inician_semana"]
+                ),
+
+                # ==========================================
+                # Compatibilidad supervisión
+                # ==========================================
+
+                "supervision_pendientes": (
+                    pendientes_supervision
+                ),
+
+                "supervision_pendientes_semana": (
+                    supervision["urgente"]
+                    + supervision["atencion"]
+                ),
+
+                "supervision_proximas": (
+                    supervision["vigilar"]
+                ),
+
+                "total_supervision_pendientes": len(
+                    pendientes_supervision
+                ),
+
+                "total_supervision_pendientes_semana": (
+                    len(
+                        supervision["urgente"]
+                    )
+                    + len(
+                        supervision["atencion"]
+                    )
+                ),
+
+                "total_supervision_proximas": len(
+                    supervision["vigilar"]
+                ),
+
+                "total_supervision_terminadas": len(
+                    supervision["terminadas"]
+                ),
             }
         )
 

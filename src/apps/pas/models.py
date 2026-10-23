@@ -129,6 +129,7 @@ PERIODICIDAD_QUINCENAL = "quincenal"
 PERIODICIDAD_MENSUAL = "mensual"
 PERIODICIDAD_BIMESTRAL = "bimestral"
 PERIODICIDAD_TRIMESTRAL = "trimestral"
+PERIODICIDAD_ANUAL = "anual"
 PERIODICIDAD_MANUAL = "manual"
 
 PERIODICIDAD = (
@@ -138,6 +139,7 @@ PERIODICIDAD = (
     (PERIODICIDAD_MENSUAL, "Mensual"),
     (PERIODICIDAD_BIMESTRAL, "Bimestral"),
     (PERIODICIDAD_TRIMESTRAL, "Trimestral"),
+    (PERIODICIDAD_ANUAL, "Anual"),
     (
         PERIODICIDAD_MANUAL,
         "Fechas definidas manualmente",
@@ -748,6 +750,67 @@ class Accion(TrackingFields):
                     3,
                 )
 
+            if self.periodicidad == PERIODICIDAD_ANUAL:
+                return sumar_meses(
+                    fecha,
+                    12,
+                )
+
+            return None
+
+        fechas = []
+
+        fecha = fecha_inicio
+
+        while fecha < fecha_desde:
+            fecha = siguiente_fecha(fecha)
+
+            if fecha is None:
+                return []
+
+            if fecha_fin and fecha > fecha_fin:
+                return []
+
+        while fecha < fecha_hasta:
+            if fecha_fin and fecha > fecha_fin:
+                break
+
+            fechas.append(fecha)
+
+            fecha = siguiente_fecha(fecha)
+
+            if fecha is None:
+                break
+
+        return fechas
+
+        def siguiente_fecha(
+            fecha,
+        ):
+            if self.periodicidad == PERIODICIDAD_SEMANAL:
+                return fecha + datetime.timedelta(days=7)
+
+            if self.periodicidad == PERIODICIDAD_QUINCENAL:
+                return fecha + datetime.timedelta(days=14)
+
+            if self.periodicidad == PERIODICIDAD_MENSUAL:
+                return sumar_meses(
+                    fecha,
+                    1,
+                )
+
+            if self.periodicidad == PERIODICIDAD_BIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    2,
+                )
+
+            if self.periodicidad == PERIODICIDAD_TRIMESTRAL:
+                return sumar_meses(
+                    fecha,
+                    3,
+                )
+
             return None
 
         fechas = []
@@ -879,6 +942,12 @@ class Accion(TrackingFields):
                     3,
                 )
 
+            if self.periodicidad == PERIODICIDAD_ANUAL:
+                return sumar_meses(
+                    fecha,
+                    12,
+                )
+
             raise ValueError("Periodicidad no reconocida.")
 
         def construir_etiqueta(
@@ -899,6 +968,9 @@ class Accion(TrackingFields):
 
             if self.periodicidad == PERIODICIDAD_TRIMESTRAL:
                 return f"Trimestre {numero}"
+
+            if self.periodicidad == PERIODICIDAD_ANUAL:
+                return str(fecha.year)
 
             return f"Ciclo {numero}"
 
