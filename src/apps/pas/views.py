@@ -45,6 +45,7 @@ from .models import (
     PERIODICIDAD_MENSUAL,
     PERIODICIDAD_BIMESTRAL,
     PERIODICIDAD_TRIMESTRAL,
+    PERIODICIDAD_ANUAL,
     PRIORIDAD_URGENTE,
     PRIORIDAD_CRITICA,
 )
@@ -257,6 +258,10 @@ class AgendaView(TemplateView):
             )
         )
 
+        # ==================================================
+        # Generación de ejecuciones recurrentes abiertas
+        # ==================================================
+
         actividades_recurrentes_abiertas = (
             Accion.objects
             .filter(
@@ -280,9 +285,46 @@ class AgendaView(TemplateView):
         ):
             actividad.generar_ejecuciones()
 
-        queryset_ejecuciones = (
+        # ==================================================
+        # Personas incluidas en la agenda
+        # ==================================================
+
+        perfil = getattr(
+            self.request.user,
+            "profile",
+            None,
+        )
+
+        if perfil:
+            usuarios_agenda = list(
+                perfil.obtener_usuarios_agenda()
+            )
+        else:
+            usuarios_agenda = [
+                self.request.user
+            ]
+
+        usuarios_agenda_ids = {
+            usuario.pk
+            for usuario in usuarios_agenda
+        }
+
+        es_supervisor_agenda = (
+            perfil.es_supervisor_agenda
+            if perfil
+            else False
+        )
+
+        # ==================================================
+        # Ejecuciones visibles en la agenda consolidada
+        # ==================================================
+
+        ejecuciones = list(
             Ejecucion.objects
             .filter(
+                responsable__in=(
+                    usuarios_agenda
+                ),
                 ciclo__accion__plan__in=(
                     visible_plans
                 ),
@@ -301,266 +343,154 @@ class AgendaView(TemplateView):
             .order_by(
                 "ciclo__fecha_fin",
                 "ciclo__fecha_inicio",
+                "responsable__first_name",
+                "responsable__last_name",
                 "ciclo__accion_id",
             )
         )
 
-        def clasificar_atencion(
-            ejecuciones,
-        ):
-            """
-            Clasifica cada ejecución pendiente en un único
-            nivel de atención.
-
-            Jerarquía:
-
-            1. Urgente
-               - vencida
-               - vence hoy
-
-            2. Requiere atención
-               - vence después de hoy y hasta el domingo
-               - prioridad urgente/crítica actualmente
-                 en ejecución
-
-            3. Vigilar
-               - inicia hoy
-               - inicia después de hoy y hasta el domingo
-
-            Las ejecuciones posteriores al horizonte semanal
-            no aparecen en la agenda de atención. Permanecen
-            disponibles en el calendario.
-            """
-
-            urgente = []
-            atencion = []
-            vigilar = []
-            terminadas = []
-
-            vencidas = []
-            vencen_hoy = []
-            vencen_semana = []
-            prioridad_alta = []
-            inician_hoy = []
-            inician_semana = []
-
-            for ejecucion in ejecuciones:
-                if ejecucion.completada:
-                    terminadas.append(
-                        ejecucion
-                    )
-                    continue
-
-                fecha_inicio = (
-                    ejecucion.fecha_inicio
-                )
-
-                fecha_fin = (
-                    ejecucion.fecha_fin
-                )
-
-                # ------------------------------------------
-                # 1. URGENTE
-                # ------------------------------------------
-
-                if fecha_fin < hoy:
-                    urgente.append(
-                        ejecucion
-                    )
-
-                    vencidas.append(
-                        ejecucion
-                    )
-
-                    continue
-
-                if fecha_fin == hoy:
-                    urgente.append(
-                        ejecucion
-                    )
-
-                    vencen_hoy.append(
-                        ejecucion
-                    )
-
-                    continue
-
-                # ------------------------------------------
-                # 2. REQUIERE ATENCIÓN
-                # ------------------------------------------
-
-                if (
-                    hoy < fecha_fin
-                    <= fin_semana
-                ):
-                    atencion.append(
-                        ejecucion
-                    )
-
-                    vencen_semana.append(
-                        ejecucion
-                    )
-
-                    continue
-
-                esta_en_ejecucion = (
-                    fecha_inicio
-                    <= hoy
-                    < fecha_fin
-                )
-
-                es_prioridad_alta = (
-                    ejecucion.accion.prioridad
-                    in {
-                        PRIORIDAD_URGENTE,
-                        PRIORIDAD_CRITICA,
-                    }
-                )
-
-                if (
-                    esta_en_ejecucion
-                    and es_prioridad_alta
-                ):
-                    atencion.append(
-                        ejecucion
-                    )
-
-                    prioridad_alta.append(
-                        ejecucion
-                    )
-
-                    continue
-
-                # ------------------------------------------
-                # 3. VIGILAR
-                # ------------------------------------------
-
-                if fecha_inicio == hoy:
-                    vigilar.append(
-                        ejecucion
-                    )
-
-                    inician_hoy.append(
-                        ejecucion
-                    )
-
-                    continue
-
-                if (
-                    hoy < fecha_inicio
-                    <= fin_semana
-                ):
-                    vigilar.append(
-                        ejecucion
-                    )
-
-                    inician_semana.append(
-                        ejecucion
-                    )
-
-                    continue
-
-            return {
-                "urgente": urgente,
-                "atencion": atencion,
-                "vigilar": vigilar,
-                "terminadas": terminadas,
-
-                "vencidas": vencidas,
-                "vencen_hoy": vencen_hoy,
-                "vencen_semana": vencen_semana,
-                "prioridad_alta": prioridad_alta,
-                "inician_hoy": inician_hoy,
-                "inician_semana": inician_semana,
-            }
-
         # ==================================================
-        # AGENDA PERSONAL
+        # Clasificación por nivel de atención
         # ==================================================
 
-        ejecuciones_personales = list(
-            queryset_ejecuciones.filter(
-                responsable=self.request.user
-            )
-        )
+        urgente = []
+        atencion = []
+        vigilar = []
+        terminadas = []
 
-        personal = clasificar_atencion(
-            ejecuciones_personales
-        )
+        vencidas = []
+        vencen_hoy = []
+        vencen_semana = []
+        prioridad_alta = []
+        inician_hoy = []
+        inician_semana = []
 
-        # ==================================================
-        # SUPERVISIÓN
-        # ==================================================
+        for ejecucion in ejecuciones:
 
-        supervision_activa = False
-        unidad_supervision = None
-        usuarios_supervisados = []
-
-        perfil = getattr(
-            self.request.user,
-            "profile",
-            None,
-        )
-
-        if (
-            perfil
-            and perfil.unidad_organizacional
-        ):
-            unidad_supervision = (
-                perfil.unidad_organizacional
+            # Marca útil para el template.
+            ejecucion.es_mia = (
+                ejecucion.responsable_id
+                == self.request.user.id
             )
 
-            usuarios_supervisados = list(
-                unidad_supervision
-                .obtener_usuarios(
-                    incluir_self=False,
+            if ejecucion.completada:
+                terminadas.append(
+                    ejecucion
                 )
+                continue
+
+            fecha_inicio = (
+                ejecucion.fecha_inicio
             )
 
-            supervision_activa = bool(
-                usuarios_supervisados
+            fecha_fin = (
+                ejecucion.fecha_fin
             )
 
-        supervision = clasificar_atencion(
-            []
-        )
+            # ----------------------------------------------
+            # 1. URGENTE
+            # ----------------------------------------------
 
-        if supervision_activa:
-            ejecuciones_supervision = list(
-                queryset_ejecuciones.filter(
-                    responsable__in=(
-                        usuarios_supervisados
-                    )
+            if fecha_fin < hoy:
+                urgente.append(
+                    ejecucion
                 )
+
+                vencidas.append(
+                    ejecucion
+                )
+
+                continue
+
+            if fecha_fin == hoy:
+                urgente.append(
+                    ejecucion
+                )
+
+                vencen_hoy.append(
+                    ejecucion
+                )
+
+                continue
+
+            # ----------------------------------------------
+            # 2. REQUIERE ATENCIÓN
+            # ----------------------------------------------
+
+            if (
+                hoy < fecha_fin
+                <= fin_semana
+            ):
+                atencion.append(
+                    ejecucion
+                )
+
+                vencen_semana.append(
+                    ejecucion
+                )
+
+                continue
+
+            esta_en_ejecucion = (
+                fecha_inicio
+                <= hoy
+                < fecha_fin
             )
 
-            supervision = clasificar_atencion(
-                ejecuciones_supervision
+            es_prioridad_alta = (
+                ejecucion.accion.prioridad
+                in {
+                    PRIORIDAD_URGENTE,
+                    PRIORIDAD_CRITICA,
+                }
             )
 
-        # ==================================================
-        # COMPATIBILIDAD TEMPORAL CON EL TEMPLATE ACTUAL
-        # ==================================================
-        #
-        # Estas variables se mantienen mientras cambiamos
-        # agenda.html en el siguiente paso.
-        #
-        # Importante: "pendientes" ya NO significa todo lo
-        # incompleto. Sólo contiene elementos dentro del
-        # radar de atención.
-        # ==================================================
+            if (
+                esta_en_ejecucion
+                and es_prioridad_alta
+            ):
+                atencion.append(
+                    ejecucion
+                )
 
-        pendientes_personales = (
-            personal["urgente"]
-            + personal["atencion"]
-            + personal["vigilar"]
-        )
+                prioridad_alta.append(
+                    ejecucion
+                )
 
-        pendientes_supervision = (
-            supervision["urgente"]
-            + supervision["atencion"]
-            + supervision["vigilar"]
-        )
+                continue
+
+            # ----------------------------------------------
+            # 3. VIGILAR
+            # ----------------------------------------------
+
+            if fecha_inicio == hoy:
+                vigilar.append(
+                    ejecucion
+                )
+
+                inician_hoy.append(
+                    ejecucion
+                )
+
+                continue
+
+            if (
+                hoy < fecha_inicio
+                <= fin_semana
+            ):
+                vigilar.append(
+                    ejecucion
+                )
+
+                inician_semana.append(
+                    ejecucion
+                )
+
+                continue
+
+        # ==================================================
+        # Contexto
+        # ==================================================
 
         context.update(
             {
@@ -572,252 +502,116 @@ class AgendaView(TemplateView):
                     fin_semana
                 ),
 
-                # ==========================================
-                # Agenda personal nueva
-                # ==========================================
+                # ------------------------------------------
+                # Alcance de agenda
+                # ------------------------------------------
+
+                "usuarios_agenda": (
+                    usuarios_agenda
+                ),
+
+                "usuarios_agenda_ids": (
+                    usuarios_agenda_ids
+                ),
+
+                "es_supervisor_agenda": (
+                    es_supervisor_agenda
+                ),
+
+                "total_usuarios_agenda": len(
+                    usuarios_agenda
+                ),
+
+                # ------------------------------------------
+                # Radar
+                # ------------------------------------------
 
                 "urgentes": (
-                    personal["urgente"]
+                    urgente
                 ),
 
                 "requieren_atencion": (
-                    personal["atencion"]
+                    atencion
                 ),
 
                 "vigilar": (
-                    personal["vigilar"]
-                ),
-
-                "vencidas": (
-                    personal["vencidas"]
-                ),
-
-                "vencen_hoy": (
-                    personal["vencen_hoy"]
-                ),
-
-                "vencen_semana": (
-                    personal["vencen_semana"]
-                ),
-
-                "prioridad_alta": (
-                    personal["prioridad_alta"]
-                ),
-
-                "inician_hoy": (
-                    personal["inician_hoy"]
-                ),
-
-                "inician_semana": (
-                    personal["inician_semana"]
+                    vigilar
                 ),
 
                 "terminadas": (
-                    personal["terminadas"]
+                    terminadas
                 ),
 
+                # ------------------------------------------
+                # Subcategorías
+                # ------------------------------------------
+
+                "vencidas": (
+                    vencidas
+                ),
+
+                "vencen_hoy": (
+                    vencen_hoy
+                ),
+
+                "vencen_semana": (
+                    vencen_semana
+                ),
+
+                "prioridad_alta": (
+                    prioridad_alta
+                ),
+
+                "inician_hoy": (
+                    inician_hoy
+                ),
+
+                "inician_semana": (
+                    inician_semana
+                ),
+
+                # ------------------------------------------
+                # Totales
+                # ------------------------------------------
+
                 "total_urgentes": len(
-                    personal["urgente"]
+                    urgente
                 ),
 
                 "total_requieren_atencion": len(
-                    personal["atencion"]
+                    atencion
                 ),
 
                 "total_vigilar": len(
-                    personal["vigilar"]
-                ),
-
-                "total_vencidas": len(
-                    personal["vencidas"]
-                ),
-
-                "total_vencen_hoy": len(
-                    personal["vencen_hoy"]
-                ),
-
-                "total_vencen_semana": len(
-                    personal["vencen_semana"]
-                ),
-
-                "total_prioridad_alta": len(
-                    personal["prioridad_alta"]
-                ),
-
-                "total_inician_hoy": len(
-                    personal["inician_hoy"]
-                ),
-
-                "total_inician_semana": len(
-                    personal["inician_semana"]
-                ),
-
-                # ==========================================
-                # Compatibilidad personal
-                # ==========================================
-
-                "pendientes": (
-                    pendientes_personales
-                ),
-
-                "pendientes_semana": (
-                    personal["urgente"]
-                    + personal["atencion"]
-                ),
-
-                "proximas": (
-                    personal["vigilar"]
-                ),
-
-                "total_pendientes": len(
-                    pendientes_personales
-                ),
-
-                "total_pendientes_semana": (
-                    len(
-                        personal["urgente"]
-                    )
-                    + len(
-                        personal["atencion"]
-                    )
-                ),
-
-                "total_proximas": len(
-                    personal["vigilar"]
+                    vigilar
                 ),
 
                 "total_terminadas": len(
-                    personal["terminadas"]
+                    terminadas
                 ),
 
-                # ==========================================
-                # Supervisión jerárquica
-                # ==========================================
-
-                "supervision_activa": (
-                    supervision_activa
+                "total_vencidas": len(
+                    vencidas
                 ),
 
-                "unidad_supervision": (
-                    unidad_supervision
+                "total_vencen_hoy": len(
+                    vencen_hoy
                 ),
 
-                "usuarios_supervisados": (
-                    usuarios_supervisados
+                "total_vencen_semana": len(
+                    vencen_semana
                 ),
 
-                "supervision_urgentes": (
-                    supervision["urgente"]
+                "total_prioridad_alta": len(
+                    prioridad_alta
                 ),
 
-                "supervision_requieren_atencion": (
-                    supervision["atencion"]
+                "total_inician_hoy": len(
+                    inician_hoy
                 ),
 
-                "supervision_vigilar": (
-                    supervision["vigilar"]
-                ),
-
-                "supervision_vencidas": (
-                    supervision["vencidas"]
-                ),
-
-                "supervision_vencen_hoy": (
-                    supervision["vencen_hoy"]
-                ),
-
-                "supervision_vencen_semana": (
-                    supervision["vencen_semana"]
-                ),
-
-                "supervision_prioridad_alta": (
-                    supervision["prioridad_alta"]
-                ),
-
-                "supervision_inician_hoy": (
-                    supervision["inician_hoy"]
-                ),
-
-                "supervision_inician_semana": (
-                    supervision["inician_semana"]
-                ),
-
-                "supervision_terminadas": (
-                    supervision["terminadas"]
-                ),
-
-                "total_supervision_urgentes": len(
-                    supervision["urgente"]
-                ),
-
-                "total_supervision_requieren_atencion": len(
-                    supervision["atencion"]
-                ),
-
-                "total_supervision_vigilar": len(
-                    supervision["vigilar"]
-                ),
-
-                "total_supervision_vencidas": len(
-                    supervision["vencidas"]
-                ),
-
-                "total_supervision_vencen_hoy": len(
-                    supervision["vencen_hoy"]
-                ),
-
-                "total_supervision_vencen_semana": len(
-                    supervision["vencen_semana"]
-                ),
-
-                "total_supervision_prioridad_alta": len(
-                    supervision["prioridad_alta"]
-                ),
-
-                "total_supervision_inician_hoy": len(
-                    supervision["inician_hoy"]
-                ),
-
-                "total_supervision_inician_semana": len(
-                    supervision["inician_semana"]
-                ),
-
-                # ==========================================
-                # Compatibilidad supervisión
-                # ==========================================
-
-                "supervision_pendientes": (
-                    pendientes_supervision
-                ),
-
-                "supervision_pendientes_semana": (
-                    supervision["urgente"]
-                    + supervision["atencion"]
-                ),
-
-                "supervision_proximas": (
-                    supervision["vigilar"]
-                ),
-
-                "total_supervision_pendientes": len(
-                    pendientes_supervision
-                ),
-
-                "total_supervision_pendientes_semana": (
-                    len(
-                        supervision["urgente"]
-                    )
-                    + len(
-                        supervision["atencion"]
-                    )
-                ),
-
-                "total_supervision_proximas": len(
-                    supervision["vigilar"]
-                ),
-
-                "total_supervision_terminadas": len(
-                    supervision["terminadas"]
+                "total_inician_semana": len(
+                    inician_semana
                 ),
             }
         )
@@ -825,10 +619,6 @@ class AgendaView(TemplateView):
         return context
 
 
-@method_decorator(
-    login_required,
-    name="dispatch",
-)
 class CalendarEventsView(View):
 
     def get(
@@ -844,25 +634,6 @@ class CalendarEventsView(View):
         end_value = request.GET.get(
             "end"
         )
-
-        modo = request.GET.get(
-            "mode",
-            "personal",
-        )
-
-        if modo not in {
-            "personal",
-            "supervision",
-        }:
-            return JsonResponse(
-                {
-                    "error": (
-                        "El modo de calendario "
-                        "no es válido."
-                    )
-                },
-                status=400,
-            )
 
         try:
             fecha_inicio = (
@@ -898,48 +669,74 @@ class CalendarEventsView(View):
             )
         )
 
-        responsables = [
-            request.user
-        ]
+        # ==================================================
+        # Personas incluidas en la agenda
+        # ==================================================
 
-        if modo == "supervision":
-            perfil = getattr(
-                request.user,
-                "profile",
-                None,
-            )
+        perfil = getattr(
+            request.user,
+            "profile",
+            None,
+        )
 
-            if (
-                not perfil
-                or not perfil.unidad_organizacional
-            ):
-                return JsonResponse(
-                    [],
-                    safe=False,
-                )
-
+        if perfil:
             responsables = list(
-                perfil.unidad_organizacional
-                .obtener_usuarios(
-                    incluir_self=False,
-                )
+                perfil.obtener_usuarios_agenda()
             )
 
-            if not responsables:
-                return JsonResponse(
-                    [],
-                    safe=False,
-                )
+            es_supervisor_agenda = (
+                perfil.es_supervisor_agenda
+            )
+
+        else:
+            responsables = [
+                request.user
+            ]
+
+            es_supervisor_agenda = False
 
         responsables_ids = {
             usuario.pk
             for usuario in responsables
         }
 
+        # ==================================================
+        # Nombre corto para calendario
+        # ==================================================
+
+        def nombre_calendario(
+            usuario,
+        ):
+            if not usuario:
+                return ""
+
+            perfil_usuario = getattr(
+                usuario,
+                "profile",
+                None,
+            )
+
+            if perfil_usuario:
+                return (
+                    perfil_usuario
+                    .nombre_calendario
+                )
+
+            return (
+                usuario.get_full_name()
+                or usuario.username
+            )[:10]
+
+        # ==================================================
+        # Ejecuciones materializadas
+        # ==================================================
+
         ejecuciones = (
             Ejecucion.objects
             .filter(
-                responsable__in=responsables,
+                responsable__in=(
+                    responsables
+                ),
                 ciclo__accion__plan__in=(
                     visible_plans
                 ),
@@ -1017,15 +814,31 @@ class CalendarEventsView(View):
                     "Pendiente"
                 )
 
-            responsable = ejecucion.responsable.profile.nombre_calendario
-
-            titulo = actividad
-
-            if modo == "supervision":
-                titulo = (
-                    f"{responsable} — "
-                    f"{actividad}"
+            responsable_nombre = (
+                nombre_calendario(
+                    ejecucion.responsable
                 )
+            )
+
+            es_mia = (
+                ejecucion.responsable_id
+                == request.user.id
+            )
+
+            # En una agenda jerárquica siempre identificamos
+            # quién ejecuta la tarea.
+            if es_supervisor_agenda:
+                if es_mia:
+                    titulo = (
+                        f"YO — {actividad}"
+                    )
+                else:
+                    titulo = (
+                        f"{responsable_nombre} — "
+                        f"{actividad}"
+                    )
+            else:
+                titulo = actividad
 
             unidad = ""
 
@@ -1054,58 +867,79 @@ class CalendarEventsView(View):
                     "id": str(
                         ejecucion.pk
                     ),
+
                     "title": titulo,
+
                     "start": (
                         ejecucion.fecha_fin
                         .isoformat()
                     ),
+
                     "allDay": True,
+
                     "extendedProps": {
                         "planId": (
                             ejecucion.plan.pk
                         ),
+
                         "plan": (
                             ejecucion.plan.nombre
                         ),
+
                         "planUrl": reverse(
                             "pas:detalle",
                             args=[
                                 ejecucion.plan.pk
                             ],
                         ),
+
                         "folio": (
                             ejecucion.plan.folio
                             or ""
                         ),
+
                         "ciclo": (
                             ejecucion.ciclo.etiqueta
                         ),
+
                         "ambito": (
                             ejecucion
                             .get_ambito_display()
                         ),
+
                         "responsable": (
-                            responsable
+                            responsable_nombre
                         ),
+
                         "unidad": unidad,
+
                         "estado": (
                             ejecucion.estado_agenda
                         ),
+
                         "estadoDisplay": (
                             ejecucion
                             .estado_agenda_display
                         ),
+
                         "evidencia": (
                             evidencia_estado
                         ),
+
                         "completada": (
                             ejecucion.completada
                         ),
-                        "modo": modo,
+
+                        "esMia": es_mia,
+
                         "proyectada": False,
                     },
                 }
             )
+
+        # ==================================================
+        # Proyecciones de recurrencias
+        # ==================================================
 
         if (
             fecha_inicio
@@ -1121,11 +955,14 @@ class CalendarEventsView(View):
                         PERIODICIDAD_MENSUAL,
                         PERIODICIDAD_BIMESTRAL,
                         PERIODICIDAD_TRIMESTRAL,
+                        PERIODICIDAD_ANUAL,
                     ],
                 )
                 .select_related(
                     "plan",
                     "responsable",
+                    "responsable__profile",
+                    "responsable__profile__unidad_organizacional",
                 )
             )
 
@@ -1140,7 +977,9 @@ class CalendarEventsView(View):
 
                 ambitos = (
                     actividad.ambitos
-                    or ["JL"]
+                    or [
+                        "JL"
+                    ]
                 )
 
                 descripcion = strip_tags(
@@ -1170,18 +1009,31 @@ class CalendarEventsView(View):
                         continue
 
                     responsable_nombre = (
-                        responsable.get_full_name()
-                        or responsable.username
+                        nombre_calendario(
+                            responsable
+                        )
+                    )
+
+                    es_mia = (
+                        responsable.pk
+                        == request.user.id
                     )
 
                     unidad = ""
 
+                    perfil_responsable = getattr(
+                        responsable,
+                        "profile",
+                        None,
+                    )
+
                     if (
-                        responsable.profile
+                        perfil_responsable
+                        and perfil_responsable
                         .unidad_organizacional
                     ):
                         unidad = (
-                            responsable.profile
+                            perfil_responsable
                             .unidad_organizacional
                             .clave
                         )
@@ -1199,27 +1051,39 @@ class CalendarEventsView(View):
                         ):
                             continue
 
-                        estado = (
-                            "programada"
-                            if fecha > hoy
-                            else "pendiente"
-                        )
+                        if fecha > hoy:
+                            estado = (
+                                "programada"
+                            )
 
-                        estado_display = (
-                            "Programada"
-                            if fecha > hoy
-                            else "Pendiente"
-                        )
+                            estado_display = (
+                                "Programada"
+                            )
 
-                        titulo = descripcion
+                        else:
+                            estado = (
+                                "pendiente"
+                            )
 
-                        if (
-                            modo
-                            == "supervision"
-                        ):
+                            estado_display = (
+                                "Pendiente"
+                            )
+
+                        if es_supervisor_agenda:
+                            if es_mia:
+                                titulo = (
+                                    f"YO — "
+                                    f"{descripcion}"
+                                )
+                            else:
+                                titulo = (
+                                    f"{responsable_nombre}"
+                                    f" — "
+                                    f"{descripcion}"
+                                )
+                        else:
                             titulo = (
-                                f"{responsable_nombre} — "
-                                f"{descripcion}"
+                                descripcion
                             )
 
                         if (
@@ -1277,7 +1141,9 @@ class CalendarEventsView(View):
                                     ),
 
                                     "ambito": (
-                                    dict(AMBITO).get(
+                                        dict(
+                                            AMBITO
+                                        ).get(
                                             ambito,
                                             ambito,
                                         )
@@ -1301,7 +1167,7 @@ class CalendarEventsView(View):
 
                                     "completada": False,
 
-                                    "modo": modo,
+                                    "esMia": es_mia,
 
                                     "proyectada": True,
                                 },
@@ -1384,32 +1250,193 @@ class PlanSummaryView(DetailView):
     template_name = "pas/partials/_plan_summary.html"
 
     def get_queryset(self):
-        return Plan.objects.visible_to(self.request.user)
+        return Plan.objects.visible_to(
+            self.request.user
+        )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs
+        )
+
         plan = self.object
+
+        activities = list(
+            plan.accion_set
+            .select_related(
+                "responsable"
+            )
+            .order_by(
+                "id"
+            )
+        )
+
+        tiene_avance = bool(
+            plan.fecha_termino
+        )
+
+        total_ejecuciones = 0
+        ejecuciones_terminadas = 0
+        ejecuciones_pendientes = 0
+        progress = None
+
+        if tiene_avance:
+
+            # ----------------------------------------------
+            # Materializar todo el universo finito
+            # ----------------------------------------------
+
+            for activity in activities:
+
+                if (
+                    activity.periodicidad
+                    == PERIODICIDAD_MANUAL
+                ):
+                    # Las actividades manuales ya deben tener
+                    # sus ciclos definidos explícitamente.
+                    continue
+
+                activity.generar_ejecuciones()
+
+            # ----------------------------------------------
+            # Ejecuciones que pertenecen al horizonte
+            # temporal del plan
+            # ----------------------------------------------
+
+            executions = (
+                Ejecucion.objects
+                .filter(
+                    ciclo__accion__plan=plan,
+                    ciclo__fecha_fin__lte=(
+                        plan.fecha_termino
+                    ),
+                )
+            )
+
+            if plan.fecha_inicio:
+                executions = (
+                    executions.filter(
+                        ciclo__fecha_inicio__gte=(
+                            plan.fecha_inicio
+                        )
+                    )
+                )
+
+            total_ejecuciones = (
+                executions.count()
+            )
+
+            ejecuciones_terminadas = (
+                executions.filter(
+                    completada=True
+                ).count()
+            )
+
+            ejecuciones_pendientes = (
+                total_ejecuciones
+                - ejecuciones_terminadas
+            )
+
+            if total_ejecuciones:
+                progress = round(
+                    (
+                        ejecuciones_terminadas
+                        / total_ejecuciones
+                    )
+                    * 100
+                )
+            else:
+                progress = 0
+
+        # --------------------------------------------------
+        # Cierre administrativo del plan
+        # --------------------------------------------------
+        #
+        # Conservamos por ahora la lógica existente para
+        # determinar si todas las actividades están cerradas.
+        # Esto es distinto al porcentaje de ejecuciones.
+        # --------------------------------------------------
+
         followups_prefetch = Prefetch(
             "seguimiento_set",
-            queryset=Seguimiento.objects.order_by(
-                "-fecha",
-                "-created",
+            queryset=(
+                Seguimiento.objects
+                .order_by(
+                    "-fecha",
+                    "-created",
+                )
             ),
         )
-        activities = list(plan.accion_set.prefetch_related(followups_prefetch))
-        total = len(activities)
-        closed = sum(1 for activity in activities if activity.get_estado == "Cerrada")
-        progress = round((closed / total) * 100) if total else 0
+
+        activities_with_followups = list(
+            plan.accion_set
+            .prefetch_related(
+                followups_prefetch
+            )
+        )
+
+        total_activities = len(
+            activities_with_followups
+        )
+
+        closed_activities = sum(
+            1
+            for activity
+            in activities_with_followups
+            if activity.get_estado == "Cerrada"
+        )
+
+        open_activities = (
+            total_activities
+            - closed_activities
+        )
+
+        all_closed = (
+            total_activities > 0
+            and closed_activities
+            == total_activities
+        )
+
         context.update(
             {
                 "plan": plan,
-                "total_activities": total,
-                "closed_activities": closed,
-                "open_activities": total - closed,
-                "progress": progress,
-                "all_closed": total > 0 and closed == total,
+
+                # Definiciones de actividad
+                "total_activities": (
+                    total_activities
+                ),
+                "closed_activities": (
+                    closed_activities
+                ),
+                "open_activities": (
+                    open_activities
+                ),
+                "all_closed": (
+                    all_closed
+                ),
+
+                # Avance real
+                "tiene_avance": (
+                    tiene_avance
+                ),
+                "total_ejecuciones": (
+                    total_ejecuciones
+                ),
+                "ejecuciones_terminadas": (
+                    ejecuciones_terminadas
+                ),
+                "ejecuciones_pendientes": (
+                    ejecuciones_pendientes
+                ),
+                "progress": (
+                    progress
+                ),
             }
         )
+
         return context
 
 
@@ -1422,7 +1449,10 @@ class PlanActivitiesView(DetailView):
             self.request.user
         )
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
         context = super().get_context_data(
             **kwargs
         )
@@ -1432,46 +1462,54 @@ class PlanActivitiesView(DetailView):
 
         followups_prefetch = Prefetch(
             "seguimiento_set",
-            queryset=Seguimiento.objects
-            .select_related(
-                "responsable"
-            )
-            .order_by(
-                "-fecha",
-                "-created",
+            queryset=(
+                Seguimiento.objects
+                .select_related(
+                    "responsable"
+                )
+                .order_by(
+                    "-fecha",
+                    "-created",
+                )
             ),
         )
 
         executions_prefetch = Prefetch(
             "ejecuciones",
-            queryset=Ejecucion.objects
-            .select_related(
-                "responsable",
-            )
-            .prefetch_related(
-                "evidencia_registrada",
-            )
-            .order_by(
-                "ambito",
+            queryset=(
+                Ejecucion.objects
+                .select_related(
+                    "responsable",
+                    "responsable__profile",
+                )
+                .prefetch_related(
+                    "evidencia_registrada",
+                )
+                .order_by(
+                    "ambito",
+                )
             ),
         )
 
         cycles_prefetch = Prefetch(
             "ciclos",
-            queryset=CicloActividad.objects
-            .prefetch_related(
-                executions_prefetch,
-            )
-            .order_by(
-                "fecha_inicio",
-                "numero",
+            queryset=(
+                CicloActividad.objects
+                .prefetch_related(
+                    executions_prefetch,
+                )
+                .order_by(
+                    "fecha_inicio",
+                    "numero",
+                )
             ),
         )
 
         activities_queryset = (
             plan.accion_set
             .select_related(
-                "responsable"
+                "responsable",
+                "responsable__profile",
             )
             .prefetch_related(
                 followups_prefetch,
@@ -1483,14 +1521,22 @@ class PlanActivitiesView(DetailView):
             )
         )
 
-        def state_priority(estado):
-            if estado == "Abierta Fuera de Tiempo":
+        def state_priority(
+            estado,
+        ):
+            if (
+                estado
+                == "Abierta Fuera de Tiempo"
+            ):
                 return 0
 
             if estado == "Cerrada":
                 return 3
 
-            if estado == "Abierta en Tiempo":
+            if (
+                estado
+                == "Abierta en Tiempo"
+            ):
                 return 2
 
             return 1
@@ -1499,7 +1545,10 @@ class PlanActivitiesView(DetailView):
             estado,
             closed_in_time,
         ):
-            if estado == "Abierta Fuera de Tiempo":
+            if (
+                estado
+                == "Abierta Fuera de Tiempo"
+            ):
                 return {
                     "classes": (
                         "badge-error "
@@ -1511,7 +1560,10 @@ class PlanActivitiesView(DetailView):
                     ),
                 }
 
-            if estado == "Abierta en Tiempo":
+            if (
+                estado
+                == "Abierta en Tiempo"
+            ):
                 return {
                     "classes": (
                         "badge-outline "
@@ -1556,51 +1608,142 @@ class PlanActivitiesView(DetailView):
                     "badge-outline"
                 ),
                 "text": (
-                    estado or "Sin estado"
+                    estado
+                    or "Sin estado"
                 ),
                 "title": (
-                    estado or "Sin estado"
+                    estado
+                    or "Sin estado"
                 ),
             }
 
-        def get_reference_cycle(cycles):
-            if not cycles:
-                return None
+        def ciclo_pendiente(
+            cycles,
+        ):
+            """
+            Devuelve el primer ciclo que todavía
+            tenga al menos una ejecución pendiente.
 
-            current = next(
-                (
-                    cycle
-                    for cycle in cycles
-                    if (
-                        cycle.fecha_inicio
-                        <= hoy
-                        <= cycle.fecha_fin
+            Puede ser vencido, actual o futuro.
+            """
+            for cycle in cycles:
+                executions = list(
+                    cycle.ejecuciones.all()
+                )
+
+                if not executions:
+                    continue
+
+                if any(
+                    not execution.completada
+                    for execution
+                    in executions
+                ):
+                    return cycle
+
+            return None
+
+        def ciclo_referencia(
+            cycles,
+        ):
+            """
+            Ciclo usado para el resumen de evidencias.
+
+            Primero usa la próxima obligación pendiente.
+            Si todo está terminado, conserva el último
+            ciclo como referencia histórica.
+            """
+            pending = ciclo_pendiente(
+                cycles
+            )
+
+            if pending:
+                return pending
+
+            if cycles:
+                return cycles[-1]
+
+            return None
+
+        def descripcion_corta(
+            activity,
+        ):
+            texto = strip_tags(
+                activity.accion or ""
+            )
+
+            texto = " ".join(
+                texto.split()
+            )
+
+            limite = 125
+
+            if len(texto) <= limite:
+                return texto
+
+            return (
+                texto[:limite]
+                .rstrip()
+                + "…"
+            )
+
+        def nombre_compacto(
+            usuario,
+        ):
+            if not usuario:
+                return "—"
+
+            try:
+                profile = usuario.profile
+
+                if (
+                    profile
+                    and profile.nombre_calendario
+                ):
+                    return (
+                        profile.nombre_calendario
                     )
-                ),
-                None,
+
+            except Exception:
+                pass
+
+            nombre = (
+                usuario.get_full_name()
+                or usuario.username
             )
 
-            if current:
-                return current
+            return nombre[:10]
 
-            future = next(
-                (
-                    cycle
-                    for cycle in cycles
-                    if cycle.fecha_inicio > hoy
-                ),
-                None,
-            )
+        def responsables_ciclo(
+            cycle,
+        ):
+            if not cycle:
+                return []
 
-            if future:
-                return future
+            nombres = []
 
-            return cycles[-1]
+            for execution in (
+                cycle.ejecuciones.all()
+            ):
+                nombre = nombre_compacto(
+                    execution.responsable
+                )
+
+                if (
+                    nombre != "—"
+                    and nombre not in nombres
+                ):
+                    nombres.append(
+                        nombre
+                    )
+
+            return nombres
 
         activities = []
 
         for activity in activities_queryset:
             estado = activity.get_estado
+
             followups = list(
                 activity.seguimiento_set.all()
             )
@@ -1609,8 +1752,16 @@ class PlanActivitiesView(DetailView):
                 activity.ciclos.all()
             )
 
+            pending_cycle = (
+                ciclo_pendiente(
+                    cycles
+                )
+            )
+
             reference_cycle = (
-                get_reference_cycle(cycles)
+                ciclo_referencia(
+                    cycles
+                )
             )
 
             execution_summary = []
@@ -1622,7 +1773,9 @@ class PlanActivitiesView(DetailView):
                 ):
                     execution_summary.append(
                         {
-                            "execution": execution,
+                            "execution": (
+                                execution
+                            ),
                             "ambito": (
                                 execution.ambito
                             ),
@@ -1644,8 +1797,12 @@ class PlanActivitiesView(DetailView):
             closure_followup = next(
                 (
                     followup
-                    for followup in followups
-                    if followup.estado == CERRADA
+                    for followup
+                    in followups
+                    if (
+                        followup.estado
+                        == CERRADA
+                    )
                 ),
                 None,
             )
@@ -1661,41 +1818,95 @@ class PlanActivitiesView(DetailView):
                 else:
                     closed_in_time = True
 
+            nombres_responsables = (
+                responsables_ciclo(
+                    pending_cycle
+                    or reference_cycle
+                )
+            )
+
+            if nombres_responsables:
+                responsable_compacto = (
+                    ", ".join(
+                        nombres_responsables
+                    )
+                )
+
+            elif activity.responsable_id:
+                responsable_compacto = (
+                    nombre_compacto(
+                        activity.responsable
+                    )
+                )
+
+            elif activity.puesto_responsable:
+                responsable_compacto = (
+                    activity
+                    .get_puesto_responsable_display()
+                )
+
+            else:
+                responsable_compacto = "—"
+
             activities.append(
                 {
                     "activity": activity,
+
+                    "descripcion_corta": (
+                        descripcion_corta(
+                            activity
+                        )
+                    ),
+
                     "estado": estado,
+
                     "estado_priority": (
                         state_priority(
                             estado
                         )
                     ),
+
                     "followup_count": len(
                         followups
                     ),
+
                     "latest_followup": (
                         followups[0]
                         if followups
                         else None
                     ),
+
                     "closed_in_time": (
                         closed_in_time
                     ),
+
                     "badge": (
                         build_estado_badge(
                             estado,
                             closed_in_time,
                         )
                     ),
+
                     "reference_cycle": (
                         reference_cycle
                     ),
+
+                    "proxima_accion": (
+                        pending_cycle
+                    ),
+
+                    "responsable_compacto": (
+                        responsable_compacto
+                    ),
+
                     "execution_summary": (
                         execution_summary
                     ),
+
                     "execution_total": len(
                         execution_summary
                     ),
+
                     "execution_with_evidence": sum(
                         1
                         for item
@@ -1711,8 +1922,13 @@ class PlanActivitiesView(DetailView):
             key=lambda item: (
                 item["estado_priority"],
                 (
-                    item["activity"].fecha_fin
-                    or date.max
+                    item[
+                        "proxima_accion"
+                    ].fecha_fin
+                    if item[
+                        "proxima_accion"
+                    ]
+                    else date.max
                 ),
                 item["activity"].pk,
             )
@@ -1725,6 +1941,7 @@ class PlanActivitiesView(DetailView):
                 "can_modify": (
                     plan.permite_modificaciones
                 ),
+                "hoy": hoy,
             }
         )
 

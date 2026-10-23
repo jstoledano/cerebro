@@ -1,5 +1,9 @@
 <div class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
 
+  {# ====================================================== #}
+  {# ENCABEZADO                                             #}
+  {# ====================================================== #}
+
   <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
 
     <div class="space-y-4">
@@ -16,9 +20,11 @@
         </span>
 
         {% if plan.folio %}
+
           <span class="badge badge-lg badge-outline h-10 items-center">
             Folio {{ plan.folio }}
           </span>
+
         {% endif %}
 
         <span>
@@ -52,8 +58,8 @@
 
         {% if plan.descripcion %}
 
-          <div class="prose prose-sm max-w-3xl text-base-content/70">
-            {{ plan.descripcion|safe }}
+          <div class="max-w-4xl text-sm leading-relaxed text-base-content/70">
+            {{ plan.descripcion|striptags|linebreaksbr }}
           </div>
 
         {% else %}
@@ -77,7 +83,7 @@
 
         {% elif plan.recurrencia %}
 
-          <span class="badge badge-warning badge-outline text-warning-content">
+          <span class="badge badge-warning badge-outline">
             Recurrencia registrada
           </span>
 
@@ -94,107 +100,50 @@
     </div>
 
 
-    <div class="flex flex-col items-end gap-3 md:w-64">
+    <div class="flex shrink-0 flex-wrap justify-end gap-2">
 
-      <div class="w-full rounded-2xl border border-base-300 bg-base-200/50 p-4 shadow-sm">
+      {% if user.is_authenticated %}
 
-        <p class="text-sm text-base-content/70">
-          Avance general
-        </p>
+        <button type="button"
+                class="btn btn-outline btn-sm"
+                hx-get="{% url 'pas:plan-edit' plan.pk %}"
+                hx-target="#pas-modal-content"
+                hx-swap="innerHTML">
+          Editar plan
+        </button>
 
-        <div class="mt-2 flex items-baseline gap-2">
-
-          <span class="text-3xl font-semibold text-base-content">
-            {{ progress }}%
-          </span>
-
-          <span class="text-xs text-base-content/60">
-            {{ closed_activities }} cerradas de {{ total_activities }}
-          </span>
-
-        </div>
-
-        <progress class="progress progress-primary mt-3"
-                  value="{{ progress }}"
-                  max="100">
-        </progress>
-
-        <div class="mt-3 grid grid-cols-2 gap-1 text-xs text-base-content/60">
-
-          <span>Abiertas</span>
-
-          <span class="text-right text-base-content/80">
-            {{ open_activities }}
-          </span>
-
-          <span>Cerradas</span>
-
-          <span class="text-right text-base-content/80">
-            {{ closed_activities }}
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <div class="flex flex-wrap justify-end gap-2">
-
-        {% if user.is_authenticated %}
+        {% if all_closed %}
 
           <button type="button"
-                  class="btn btn-outline btn-sm"
-                  hx-get="{% url 'pas:plan-edit' plan.pk %}"
+                  class="btn btn-primary btn-sm"
+                  hx-get="{% url 'pas:plan-closure' plan.pk %}"
                   hx-target="#pas-modal-content"
                   hx-swap="innerHTML">
-            Editar plan
+            Evaluar cierre / recurrencia
           </button>
-
-          {% if all_closed %}
-
-            <button type="button"
-                    class="btn btn-primary btn-sm"
-                    hx-get="{% url 'pas:plan-closure' plan.pk %}"
-                    hx-target="#pas-modal-content"
-                    hx-swap="innerHTML">
-              Evaluar cierre / recurrencia
-            </button>
-
-          {% endif %}
 
         {% endif %}
 
-      </div>
+      {% endif %}
 
     </div>
 
   </div>
 
 
-  {% if all_closed and not plan.eliminacion and not plan.recurrencia %}
+  {# ====================================================== #}
+  {# INFORMACIÓN GENERAL + AVANCE                           #}
+  {# ====================================================== #}
 
-    <div class="alert alert-success mt-6">
-
-      <div>
-
-        <span class="font-semibold">
-          ¡Todas las actividades están completadas!
-        </span>
-
-        <span class="text-sm">
-          Evalúa si el plan debe cerrarse o generar una recurrencia.
-        </span>
-
-      </div>
-
-    </div>
-
-  {% endif %}
+  <div class="mt-8 grid gap-6 {% if tiene_avance %}lg:grid-cols-3{% endif %}">
 
 
-  <div class="mt-8 grid gap-6 {% if plan.documento == 1 %}md:grid-cols-2{% endif %}">
+    {# ==================================================== #}
+    {# INFORMACIÓN GENERAL                                  #}
+    {# ==================================================== #}
 
-    <div class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+    <div class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm
+                {% if tiene_avance %}lg:col-span-2{% endif %}">
 
       <div class="mb-5 flex items-center justify-between gap-3">
 
@@ -209,7 +158,9 @@
       </div>
 
 
-      <dl class="grid grid-cols-1 gap-4 text-sm text-base-content/80">
+      <dl class="grid gap-4 text-sm text-base-content/80
+                 {% if tiene_avance %}md:grid-cols-2{% endif %}">
+
 
         <div class="flex flex-wrap items-center justify-between gap-2">
 
@@ -221,7 +172,11 @@
 
             {% if plan.user %}
 
-              {{ plan.user.get_full_name|default:plan.user.username }}
+              {% if plan.user.profile.nombre_calendario %}
+                {{ plan.user.profile.nombre_calendario }}
+              {% else %}
+                {{ plan.user.get_full_name|default:plan.user.username }}
+              {% endif %}
 
             {% else %}
 
@@ -254,11 +209,13 @@
           </dt>
 
           <dd>
+
             {% if plan.fecha_inicio %}
               {{ plan.fecha_inicio|date:'d/m/Y' }}
             {% else %}
               —
             {% endif %}
+
           </dd>
 
         </div>
@@ -271,11 +228,13 @@
           </dt>
 
           <dd>
+
             {% if plan.fecha_termino %}
               {{ plan.fecha_termino|date:'d/m/Y' }}
             {% else %}
               Sin fecha de término
             {% endif %}
+
           </dd>
 
         </div>
@@ -317,7 +276,7 @@
 
         {% if plan.documento_fuente %}
 
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1 md:col-span-2">
 
             <dt class="font-semibold">
               Documento fuente
@@ -334,9 +293,9 @@
 
         {% if plan.documento == 1 %}
 
-          <div class="border-t border-base-300 pt-4">
+          <div class="border-t border-base-300 pt-4 md:col-span-2">
 
-            <div class="grid gap-4">
+            <div class="grid gap-4 md:grid-cols-2">
 
               <div class="flex flex-wrap items-center justify-between gap-2">
 
@@ -345,11 +304,13 @@
                 </dt>
 
                 <dd>
+
                   {% if plan.tipo %}
                     {{ plan.get_tipo_display }}
                   {% else %}
                     —
                   {% endif %}
+
                 </dd>
 
               </div>
@@ -362,11 +323,13 @@
                 </dt>
 
                 <dd>
+
                   {% if plan.fuente %}
                     {{ plan.get_fuente_display }}
                   {% else %}
                     —
                   {% endif %}
+
                 </dd>
 
                 {% if plan.otra_fuente %}
@@ -382,13 +345,13 @@
 
               {% if plan.correccion %}
 
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1 md:col-span-2">
 
                   <dt class="font-semibold">
                     Corrección
                   </dt>
 
-                  <dd class="prose prose-sm max-w-none text-base-content/70">
+                  <dd class="text-sm leading-relaxed text-base-content/70">
                     {{ plan.correccion|safe }}
                   </dd>
 
@@ -407,58 +370,193 @@
     </div>
 
 
-    {% if plan.documento == 1 %}
+    {# ==================================================== #}
+    {# AVANCE                                               #}
+    {# ==================================================== #}
+
+    {% if tiene_avance %}
 
       <div class="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
 
-        <div class="mb-5 flex items-center justify-between gap-3">
+        <div class="mb-5">
 
           <h3 class="text-lg font-semibold text-base-content">
-            Análisis de la causa raíz
+            Avance
           </h3>
 
-          <span class="badge badge-outline">
-            CNC
-          </span>
+          <p class="mt-1 text-xs text-base-content/60">
+            Ejecuciones completadas respecto del total programado.
+          </p>
 
         </div>
 
 
-        {% if plan.analisis %}
+        <div class="flex flex-col items-center justify-center gap-5 py-3">
 
-          <div class="prose prose-sm max-w-none text-base-content/80">
-            {{ plan.analisis|safe }}
-          </div>
+          <div class="radial-progress text-primary"
+               style="--value:{{ progress }}; --size:10rem; --thickness:0.75rem;"
+               role="progressbar"
+               aria-valuenow="{{ progress }}"
+               aria-valuemin="0"
+               aria-valuemax="100">
 
-        {% else %}
-
-          <p class="text-sm text-base-content/50">
-            Sin análisis registrado.
-          </p>
-
-        {% endif %}
-
-
-        {% if plan.evidencia_analisis %}
-
-          <div class="mt-5 border-t border-base-300 pt-4">
-
-            <p class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
-              Archivo del análisis
-            </p>
-
-            <p class="mt-1 text-sm text-base-content/70">
-              {{ plan.evidencia_analisis.name }}
-            </p>
+            <span class="text-3xl font-bold text-base-content">
+              {{ progress }}%
+            </span>
 
           </div>
 
-        {% endif %}
+
+          <div class="text-center">
+
+            <p class="text-sm font-semibold text-base-content">
+              {{ ejecuciones_terminadas }}
+              de
+              {{ total_ejecuciones }}
+              ejecuciones
+            </p>
+
+            <p class="mt-1 text-xs text-base-content/60">
+              completadas
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="mt-4 border-t border-base-300 pt-4">
+
+          <dl class="grid gap-3 text-sm">
+
+            <div class="flex items-center justify-between">
+
+              <dt class="text-base-content/65">
+                Programadas
+              </dt>
+
+              <dd class="font-semibold">
+                {{ total_ejecuciones }}
+              </dd>
+
+            </div>
+
+
+            <div class="flex items-center justify-between">
+
+              <dt class="text-base-content/65">
+                Terminadas
+              </dt>
+
+              <dd class="font-semibold text-success">
+                {{ ejecuciones_terminadas }}
+              </dd>
+
+            </div>
+
+
+            <div class="flex items-center justify-between">
+
+              <dt class="text-base-content/65">
+                Pendientes
+              </dt>
+
+              <dd class="font-semibold">
+                {{ ejecuciones_pendientes }}
+              </dd>
+
+            </div>
+
+          </dl>
+
+        </div>
 
       </div>
 
     {% endif %}
 
   </div>
+
+
+  {# ====================================================== #}
+  {# CNC                                                    #}
+  {# ====================================================== #}
+
+  {% if plan.documento == 1 %}
+
+    <div class="mt-6 rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+      <div class="mb-5 flex items-center justify-between gap-3">
+
+        <h3 class="text-lg font-semibold text-base-content">
+          Análisis de la causa raíz
+        </h3>
+
+        <span class="badge badge-outline">
+          CNC
+        </span>
+
+      </div>
+
+
+      {% if plan.analisis %}
+
+        <div class="prose prose-sm max-w-none text-base-content/80">
+          {{ plan.analisis|safe }}
+        </div>
+
+      {% else %}
+
+        <p class="text-sm text-base-content/50">
+          Sin análisis registrado.
+        </p>
+
+      {% endif %}
+
+
+      {% if plan.evidencia_analisis %}
+
+        <div class="mt-5 border-t border-base-300 pt-4">
+
+          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/50">
+            Archivo del análisis
+          </p>
+
+          <p class="mt-1 text-sm text-base-content/70">
+            {{ plan.evidencia_analisis.name }}
+          </p>
+
+        </div>
+
+      {% endif %}
+
+    </div>
+
+  {% endif %}
+
+
+  {# ====================================================== #}
+  {# CIERRE                                                 #}
+  {# ====================================================== #}
+
+  {% if all_closed and not plan.eliminacion and not plan.recurrencia %}
+
+    <div class="alert alert-success mt-6">
+
+      <div>
+
+        <span class="font-semibold">
+          Todas las actividades están completadas.
+        </span>
+
+        <span class="text-sm">
+          Evalúa si el plan debe cerrarse o generar una recurrencia.
+        </span>
+
+      </div>
+
+    </div>
+
+  {% endif %}
 
 </div>

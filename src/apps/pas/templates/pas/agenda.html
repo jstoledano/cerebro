@@ -56,8 +56,19 @@
           </h1>
 
           <p class="mt-1 max-w-2xl text-sm text-base-content/65">
-            Prioriza lo que requiere atención ahora y consulta
-            la programación completa en el calendario.
+
+            {% if es_supervisor_agenda %}
+
+              Consulta de un vistazo tus actividades y las
+              del personal bajo tu responsabilidad.
+
+            {% else %}
+
+              Prioriza las actividades que requieren
+              tu atención.
+
+            {% endif %}
+
           </p>
 
         </div>
@@ -67,9 +78,24 @@
 
       <div class="flex flex-wrap items-center gap-3">
 
+        {% if es_supervisor_agenda %}
+
+          <span class="badge badge-outline">
+            {{ total_usuarios_agenda }}
+            {% if total_usuarios_agenda == 1 %}
+              persona
+            {% else %}
+              personas
+            {% endif %}
+          </span>
+
+        {% endif %}
+
+
         <span class="text-sm text-base-content/60">
           {{ hoy|date:"d/m/Y" }}
         </span>
+
 
         <a href="{% url 'pas:plans' %}"
            class="btn btn-outline btn-sm">
@@ -84,10 +110,10 @@
 
 
   {# ====================================================== #}
-  {# CALENDARIO + INDICADORES                               #}
+  {# CALENDARIO + RADAR                                     #}
   {# ====================================================== #}
 
-  <section class="space-y-5">
+  <section>
 
     <div class="grid gap-6 xl:grid-cols-9">
 
@@ -100,40 +126,28 @@
 
         <div class="h-full rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
 
-          <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-            <div>
+          <div class="mb-5">
 
-              <h2 class="text-xl font-semibold">
-                Calendario de tareas
-              </h2>
+            <h2 class="text-xl font-semibold">
+              Calendario de tareas
+            </h2>
 
-              <p class="text-sm text-base-content/60">
-                Consulta la programación completa por fecha.
-              </p>
+            <p class="text-sm text-base-content/60">
 
-            </div>
+              {% if es_supervisor_agenda %}
 
+                Programación propia y del personal
+                bajo tu responsabilidad.
 
-            {% if supervision_activa %}
+              {% else %}
 
-              <div class="join">
+                Consulta la programación completa
+                de tus actividades.
 
-                <button type="button"
-                        class="btn btn-sm join-item btn-primary"
-                        data-calendar-mode="personal">
-                  Mi calendario
-                </button>
+              {% endif %}
 
-                <button type="button"
-                        class="btn btn-sm join-item btn-outline"
-                        data-calendar-mode="supervision">
-                  Supervisión
-                </button>
-
-              </div>
-
-            {% endif %}
+            </p>
 
           </div>
 
@@ -148,7 +162,7 @@
 
 
       {# ================================================== #}
-      {# RADAR NUMÉRICO                                     #}
+      {# INDICADORES                                        #}
       {# ================================================== #}
 
       <div class="grid gap-4 sm:grid-cols-3 xl:col-span-2 xl:grid-cols-1">
@@ -165,13 +179,7 @@
               </p>
 
               <p class="mt-2 text-4xl font-bold">
-
-                <span id="radar-total-urgente"
-                      data-personal="{{ total_urgentes }}"
-                      data-supervision="{{ total_supervision_urgentes }}">
-                  {{ total_urgentes }}
-                </span>
-
+                {{ total_urgentes }}
               </p>
 
               <p class="mt-1 text-xs text-base-content/55">
@@ -214,13 +222,7 @@
               </p>
 
               <p class="mt-2 text-4xl font-bold">
-
-                <span id="radar-total-atencion"
-                      data-personal="{{ total_requieren_atencion }}"
-                      data-supervision="{{ total_supervision_requieren_atencion }}">
-                  {{ total_requieren_atencion }}
-                </span>
-
+                {{ total_requieren_atencion }}
               </p>
 
               <p class="mt-1 text-xs text-base-content/55">
@@ -267,13 +269,7 @@
               </p>
 
               <p class="mt-2 text-4xl font-bold">
-
-                <span id="radar-total-vigilar"
-                      data-personal="{{ total_vigilar }}"
-                      data-supervision="{{ total_supervision_vigilar }}">
-                  {{ total_vigilar }}
-                </span>
-
+                {{ total_vigilar }}
               </p>
 
               <p class="mt-1 text-xs text-base-content/55">
@@ -316,929 +312,533 @@
 
 
   {# ====================================================== #}
-  {# RADAR PERSONAL                                         #}
+  {# URGENTE                                                #}
   {# ====================================================== #}
 
-  <div id="radar-personal"
-       data-radar-mode="personal"
-       class="space-y-8">
+  <section class="space-y-4">
 
-
-    {# ==================================================== #}
-    {# URGENTE                                              #}
-    {# ==================================================== #}
-
-    <section class="space-y-4">
-
-      <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-
-        <div>
-
-          <div class="flex items-center gap-3">
-
-            <span class="badge badge-error">
-              Urgente
-            </span>
-
-            <h2 class="text-2xl font-bold">
-              Requiere atención inmediata
-            </h2>
-
-          </div>
-
-          <p class="mt-2 text-sm text-base-content/60">
-            Actividades vencidas o que vencen hoy.
-          </p>
-
-        </div>
-
-
-        <span class="text-sm text-base-content/50">
-          {{ total_vencidas }} vencidas ·
-          {{ total_vencen_hoy }} vencen hoy
-        </span>
-
-      </div>
-
-
-      <div class="rounded-3xl border border-error/30 bg-base-100 shadow-sm">
-
-        {% if urgentes %}
-
-          <div class="divide-y divide-base-200">
-
-            {% for execution in urgentes %}
-
-              <div class="p-5">
-
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                  <div class="min-w-0 flex-1">
-
-                    <div class="mb-2 flex flex-wrap items-center gap-2">
-
-                      {% if execution.fecha_fin < hoy %}
-
-                        <span class="badge badge-error">
-                          Vencida
-                        </span>
-
-                      {% else %}
-
-                        <span class="badge badge-warning">
-                          Vence hoy
-                        </span>
-
-                      {% endif %}
-
-
-                      {% if execution.accion.prioridad == "critica" %}
-
-                        <span class="badge badge-error badge-outline">
-                          Crítica
-                        </span>
-
-                      {% elif execution.accion.prioridad == "urgente" %}
-
-                        <span class="badge badge-warning badge-outline">
-                          Urgente
-                        </span>
-
-                      {% endif %}
-
-                    </div>
-
-
-                    <div class="prose prose-sm max-w-none font-medium text-base-content">
-                      {{ execution.accion.accion|safe }}
-                    </div>
-
-
-                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                      <span>
-                        {{ execution.plan.nombre }}
-                      </span>
-
-                      <span>
-                        {{ execution.get_ambito_display }}
-                      </span>
-
-                      <span>
-                        Vence {{ execution.fecha_fin|date:"d/m/Y" }}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-
-                  <div class="flex shrink-0 flex-wrap items-center gap-2">
-
-
-                    {% if execution.accion.formato_evidencia == "ninguno" %}
-
-                      <span class="badge badge-ghost">
-                        Sin evidencia
-                      </span>
-
-                    {% elif execution.tiene_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-ghost btn-sm"
-                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML">
-                        Evidencia ✓
-                      </button>
-
-                    {% elif execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-outline btn-sm"
-                              hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML">
-                        Registrar evidencia
-                      </button>
-
-                    {% endif %}
-
-
-                    {% if execution.plan.permite_modificaciones %}
-
-                      <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                            hx-swap="none"
-                            class="inline">
-
-                        {% csrf_token %}
-
-                        <input type="hidden"
-                               name="action"
-                               value="complete">
-
-                        <button type="submit"
-                                class="btn btn-success btn-outline btn-sm">
-                          Terminar
-                        </button>
-
-                      </form>
-
-                    {% endif %}
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            {% endfor %}
-
-          </div>
-
-        {% else %}
-
-          <div class="p-8 text-center text-sm text-base-content/55">
-            No tienes actividades urgentes.
-          </div>
-
-        {% endif %}
-
-      </div>
-
-    </section>
-
-
-    {# ==================================================== #}
-    {# REQUIERE ATENCIÓN                                    #}
-    {# ==================================================== #}
-
-    <section class="space-y-4">
+    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
 
       <div>
 
         <div class="flex items-center gap-3">
 
-          <span class="badge badge-warning">
-            Atención
+          <span class="badge badge-error">
+            Urgente
           </span>
 
           <h2 class="text-2xl font-bold">
-            Requiere atención
+            Requiere atención inmediata
           </h2>
 
         </div>
 
         <p class="mt-2 text-sm text-base-content/60">
-          Actividades que vencen esta semana o de prioridad
-          alta que ya están en ejecución.
+          Actividades vencidas o que vencen hoy.
         </p>
 
       </div>
 
 
-      <div class="rounded-3xl border border-warning/30 bg-base-100 shadow-sm">
-
-        {% if requieren_atencion %}
-
-          <div class="divide-y divide-base-200">
-
-            {% for execution in requieren_atencion %}
-
-              <div class="p-5">
-
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                  <div class="min-w-0 flex-1">
-
-                    <div class="mb-2 flex flex-wrap items-center gap-2">
-
-                      {% if execution.accion.prioridad == "critica" %}
-
-                        <span class="badge badge-error">
-                          Crítica
-                        </span>
-
-                      {% elif execution.accion.prioridad == "urgente" %}
-
-                        <span class="badge badge-warning">
-                          Urgente
-                        </span>
-
-                      {% else %}
-
-                        <span class="badge badge-warning badge-outline">
-                          Vence esta semana
-                        </span>
-
-                      {% endif %}
-
-                    </div>
-
-
-                    <div class="prose prose-sm max-w-none font-medium text-base-content">
-                      {{ execution.accion.accion|safe }}
-                    </div>
-
-
-                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                      <span>
-                        {{ execution.plan.nombre }}
-                      </span>
-
-                      <span>
-                        {{ execution.get_ambito_display }}
-                      </span>
-
-                      <span>
-                        {{ execution.fecha_inicio|date:"d/m/Y" }}
-                        →
-                        {{ execution.fecha_fin|date:"d/m/Y" }}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-
-                  <div class="flex shrink-0 flex-wrap items-center gap-2">
-
-                    {% if execution.accion.formato_evidencia == "ninguno" %}
-
-                      <span class="badge badge-ghost">
-                        Sin evidencia
-                      </span>
-
-                    {% elif execution.tiene_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-ghost btn-sm"
-                              hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML">
-                        Evidencia ✓
-                      </button>
-
-                    {% elif execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
-
-                      <button type="button"
-                              class="btn btn-outline btn-sm"
-                              hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-                              hx-target="#pas-modal-content"
-                              hx-swap="innerHTML">
-                        Registrar evidencia
-                      </button>
-
-                    {% endif %}
-
-
-                    {% if execution.plan.permite_modificaciones %}
-
-                      <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
-                            hx-swap="none"
-                            class="inline">
-
-                        {% csrf_token %}
-
-                        <input type="hidden"
-                               name="action"
-                               value="complete">
-
-                        <button type="submit"
-                                class="btn btn-success btn-outline btn-sm">
-                          Terminar
-                        </button>
-
-                      </form>
-
-                    {% endif %}
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            {% endfor %}
-
-          </div>
-
-        {% else %}
-
-          <div class="p-8 text-center text-sm text-base-content/55">
-            No hay actividades que requieran atención adicional esta semana.
-          </div>
-
-        {% endif %}
-
-      </div>
-
-    </section>
-
-
-    {# ==================================================== #}
-    {# VIGILAR                                              #}
-    {# ==================================================== #}
-
-    <section class="space-y-4">
-
-      <div>
-
-        <div class="flex items-center gap-3">
-
-          <span class="badge badge-info badge-outline">
-            Vigilar
-          </span>
-
-          <h2 class="text-2xl font-bold">
-            Mantener en el radar
-          </h2>
-
-        </div>
-
-        <p class="mt-2 text-sm text-base-content/60">
-          Actividades que comienzan hoy o durante esta semana.
-        </p>
-
-      </div>
-
-
-      <div class="rounded-3xl border border-info/30 bg-base-100 shadow-sm">
-
-        {% if vigilar %}
-
-          <div class="divide-y divide-base-200">
-
-            {% for execution in vigilar %}
-
-              <div class="p-5">
-
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                  <div class="min-w-0 flex-1">
-
-                    <div class="mb-2">
-
-                      {% if execution.fecha_inicio == hoy %}
-
-                        <span class="badge badge-info">
-                          Inicia hoy
-                        </span>
-
-                      {% else %}
-
-                        <span class="badge badge-info badge-outline">
-                          Inicia esta semana
-                        </span>
-
-                      {% endif %}
-
-                    </div>
-
-
-                    <div class="prose prose-sm max-w-none font-medium text-base-content">
-                      {{ execution.accion.accion|safe }}
-                    </div>
-
-
-                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                      <span>
-                        {{ execution.plan.nombre }}
-                      </span>
-
-                      <span>
-                        {{ execution.get_ambito_display }}
-                      </span>
-
-                      <span>
-                        Inicia {{ execution.fecha_inicio|date:"d/m/Y" }}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-
-                  <a href="{% url 'pas:detalle' execution.plan.pk %}"
-                     class="btn btn-ghost btn-sm">
-                    Ver plan
-                  </a>
-
-                </div>
-
-              </div>
-
-            {% endfor %}
-
-          </div>
-
-        {% else %}
-
-          <div class="p-8 text-center text-sm text-base-content/55">
-            No hay nuevas actividades que vigilar esta semana.
-          </div>
-
-        {% endif %}
-
-      </div>
-
-    </section>
-
-  </div>
-
-
-  {# ====================================================== #}
-  {# RADAR DE SUPERVISIÓN                                   #}
-  {# ====================================================== #}
-
-  {% if supervision_activa %}
-
-    <div id="radar-supervision"
-         data-radar-mode="supervision"
-         class="hidden space-y-8">
-
-
-      <div class="rounded-3xl border border-primary/25 bg-primary/5 p-5">
-
-        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-
-          <div>
-
-            <span class="badge badge-primary">
-              Supervisión
-            </span>
-
-            <p class="mt-2 text-sm text-base-content/65">
-              Atención requerida en las unidades subordinadas a
-              <strong>{{ unidad_supervision.clave }}</strong>
-              — {{ unidad_supervision.nombre }}.
-            </p>
-
-          </div>
-
-
-          <span class="text-sm text-base-content/55">
-            {{ usuarios_supervisados|length }}
-            {% if usuarios_supervisados|length == 1 %}
-              persona supervisada
-            {% else %}
-              personas supervisadas
-            {% endif %}
-          </span>
-
-        </div>
-
-      </div>
-
-
-      {# ================================================== #}
-      {# SUPERVISIÓN URGENTE                                #}
-      {# ================================================== #}
-
-      <section class="space-y-4">
-
-        <div>
-
-          <div class="flex items-center gap-3">
-
-            <span class="badge badge-error">
-              Urgente
-            </span>
-
-            <h2 class="text-2xl font-bold">
-              Requiere atención inmediata
-            </h2>
-
-          </div>
-
-          <p class="mt-2 text-sm text-base-content/60">
-            Tareas del equipo vencidas o que vencen hoy.
-          </p>
-
-        </div>
-
-
-        <div class="rounded-3xl border border-error/30 bg-base-100 shadow-sm">
-
-          {% if supervision_urgentes %}
-
-            <div class="divide-y divide-base-200">
-
-              {% for execution in supervision_urgentes %}
-
-                <div class="p-5">
-
-                  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                    <div class="min-w-0 flex-1">
-
-                      <div class="mb-2 flex flex-wrap items-center gap-2">
-
-                        {% if execution.fecha_fin < hoy %}
-
-                          <span class="badge badge-error">
-                            Vencida
-                          </span>
-
-                        {% else %}
-
-                          <span class="badge badge-warning">
-                            Vence hoy
-                          </span>
-
-                        {% endif %}
-
-
-                        <span class="badge badge-ghost font-semibold">
-                          {{ execution.responsable.profile.nombre_calendario }}
-                        </span>
-
-
-                        {% if execution.accion.prioridad == "critica" %}
-
-                          <span class="badge badge-error badge-outline">
-                            Crítica
-                          </span>
-
-                        {% elif execution.accion.prioridad == "urgente" %}
-
-                          <span class="badge badge-warning badge-outline">
-                            Urgente
-                          </span>
-
-                        {% endif %}
-
-                      </div>
-
-
-                      <div class="prose prose-sm max-w-none font-medium text-base-content">
-                        {{ execution.accion.accion|safe }}
-                      </div>
-
-
-                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                        <span>
-                          {{ execution.plan.nombre }}
-                        </span>
-
-                        <span>
-                          {{ execution.get_ambito_display }}
-                        </span>
-
-                        <span>
-                          Vence {{ execution.fecha_fin|date:"d/m/Y" }}
-                        </span>
-
-                      </div>
-
-                    </div>
-
-
-                    <div class="flex shrink-0 items-center gap-2">
-
-                      {% if execution.accion.formato_evidencia == "ninguno" %}
-
-                        <span class="badge badge-ghost">
-                          Sin evidencia
-                        </span>
-
-                      {% elif execution.tiene_evidencia %}
-
-                        <button type="button"
-                                class="btn btn-ghost btn-sm"
-                                hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                                hx-target="#pas-modal-content"
-                                hx-swap="innerHTML">
-                          Evidencia ✓
-                        </button>
-
-                      {% else %}
-
-                        <span class="text-xs text-base-content/45">
-                          Evidencia pendiente
-                        </span>
-
-                      {% endif %}
-
-
-                      <a href="{% url 'pas:detalle' execution.plan.pk %}"
-                         class="btn btn-ghost btn-sm">
-                        Ver plan
-                      </a>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              {% endfor %}
-
-            </div>
-
-          {% else %}
-
-            <div class="p-8 text-center text-sm text-base-content/55">
-              No hay actividades urgentes en el equipo.
-            </div>
-
-          {% endif %}
-
-        </div>
-
-      </section>
-
-
-      {# ================================================== #}
-      {# SUPERVISIÓN ATENCIÓN                               #}
-      {# ================================================== #}
-
-      <section class="space-y-4">
-
-        <div>
-
-          <div class="flex items-center gap-3">
-
-            <span class="badge badge-warning">
-              Atención
-            </span>
-
-            <h2 class="text-2xl font-bold">
-              Requiere atención
-            </h2>
-
-          </div>
-
-          <p class="mt-2 text-sm text-base-content/60">
-            Tareas del equipo que vencen esta semana o de prioridad
-            alta actualmente en ejecución.
-          </p>
-
-        </div>
-
-
-        <div class="rounded-3xl border border-warning/30 bg-base-100 shadow-sm">
-
-          {% if supervision_requieren_atencion %}
-
-            <div class="divide-y divide-base-200">
-
-              {% for execution in supervision_requieren_atencion %}
-
-                <div class="p-5">
-
-                  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                    <div class="min-w-0 flex-1">
-
-                      <div class="mb-2 flex flex-wrap items-center gap-2">
-
-                        <span class="badge badge-ghost font-semibold">
-                          {{ execution.responsable.profile.nombre_calendario }}
-                        </span>
-
-
-                        {% if execution.accion.prioridad == "critica" %}
-
-                          <span class="badge badge-error">
-                            Crítica
-                          </span>
-
-                        {% elif execution.accion.prioridad == "urgente" %}
-
-                          <span class="badge badge-warning">
-                            Urgente
-                          </span>
-
-                        {% else %}
-
-                          <span class="badge badge-warning badge-outline">
-                            Vence esta semana
-                          </span>
-
-                        {% endif %}
-
-                      </div>
-
-
-                      <div class="prose prose-sm max-w-none font-medium text-base-content">
-                        {{ execution.accion.accion|safe }}
-                      </div>
-
-
-                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                        <span>
-                          {{ execution.plan.nombre }}
-                        </span>
-
-                        <span>
-                          {{ execution.get_ambito_display }}
-                        </span>
-
-                        <span>
-                          {{ execution.fecha_inicio|date:"d/m/Y" }}
-                          →
-                          {{ execution.fecha_fin|date:"d/m/Y" }}
-                        </span>
-
-                      </div>
-
-                    </div>
-
-
-                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
-                       class="btn btn-ghost btn-sm">
-                      Ver plan
-                    </a>
-
-                  </div>
-
-                </div>
-
-              {% endfor %}
-
-            </div>
-
-          {% else %}
-
-            <div class="p-8 text-center text-sm text-base-content/55">
-              No hay actividades del equipo que requieran atención adicional.
-            </div>
-
-          {% endif %}
-
-        </div>
-
-      </section>
-
-
-      {# ================================================== #}
-      {# SUPERVISIÓN VIGILAR                                #}
-      {# ================================================== #}
-
-      <section class="space-y-4">
-
-        <div>
-
-          <div class="flex items-center gap-3">
-
-            <span class="badge badge-info badge-outline">
-              Vigilar
-            </span>
-
-            <h2 class="text-2xl font-bold">
-              Mantener en el radar
-            </h2>
-
-          </div>
-
-          <p class="mt-2 text-sm text-base-content/60">
-            Tareas del equipo que comienzan hoy o durante esta semana.
-          </p>
-
-        </div>
-
-
-        <div class="rounded-3xl border border-info/30 bg-base-100 shadow-sm">
-
-          {% if supervision_vigilar %}
-
-            <div class="divide-y divide-base-200">
-
-              {% for execution in supervision_vigilar %}
-
-                <div class="p-5">
-
-                  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-
-                    <div class="min-w-0 flex-1">
-
-                      <div class="mb-2 flex flex-wrap items-center gap-2">
-
-                        <span class="badge badge-ghost font-semibold">
-                          {{ execution.responsable.profile.nombre_calendario }}
-                        </span>
-
-
-                        {% if execution.fecha_inicio == hoy %}
-
-                          <span class="badge badge-info">
-                            Inicia hoy
-                          </span>
-
-                        {% else %}
-
-                          <span class="badge badge-info badge-outline">
-                            Inicia esta semana
-                          </span>
-
-                        {% endif %}
-
-                      </div>
-
-
-                      <div class="prose prose-sm max-w-none font-medium text-base-content">
-                        {{ execution.accion.accion|safe }}
-                      </div>
-
-
-                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
-
-                        <span>
-                          {{ execution.plan.nombre }}
-                        </span>
-
-                        <span>
-                          {{ execution.get_ambito_display }}
-                        </span>
-
-                        <span>
-                          Inicia {{ execution.fecha_inicio|date:"d/m/Y" }}
-                        </span>
-
-                      </div>
-
-                    </div>
-
-
-                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
-                       class="btn btn-ghost btn-sm">
-                      Ver plan
-                    </a>
-
-                  </div>
-
-                </div>
-
-              {% endfor %}
-
-            </div>
-
-          {% else %}
-
-            <div class="p-8 text-center text-sm text-base-content/55">
-              No hay nuevas actividades del equipo que vigilar esta semana.
-            </div>
-
-          {% endif %}
-
-        </div>
-
-      </section>
+      <span class="text-sm text-base-content/50">
+        {{ total_vencidas }} vencidas ·
+        {{ total_vencen_hoy }} vencen hoy
+      </span>
 
     </div>
 
-  {% endif %}
+
+    <div class="rounded-3xl border border-error/30 bg-base-100 shadow-sm">
+
+      {% if urgentes %}
+
+        <div class="divide-y divide-base-200">
+
+          {% for execution in urgentes %}
+
+            <div class="p-5 {% if execution.es_mia %}bg-primary/5{% endif %}">
+
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+
+                <div class="min-w-0 flex-1">
+
+                  <div class="mb-2 flex flex-wrap items-center gap-2">
+
+                    {% if execution.es_mia %}
+
+                      <span class="badge badge-primary">
+                        YO
+                      </span>
+
+                    {% elif es_supervisor_agenda %}
+
+                      <span class="badge badge-ghost font-semibold">
+                        {{ execution.responsable.profile.nombre_calendario }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.fecha_fin < hoy %}
+
+                      <span class="badge badge-error">
+                        Vencida
+                      </span>
+
+                    {% else %}
+
+                      <span class="badge badge-warning">
+                        Vence hoy
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.accion.prioridad == "critica" %}
+
+                      <span class="badge badge-error badge-outline">
+                        Crítica
+                      </span>
+
+                    {% elif execution.accion.prioridad == "urgente" %}
+
+                      <span class="badge badge-warning badge-outline">
+                        Urgente
+                      </span>
+
+                    {% endif %}
+
+                  </div>
+
+
+                  <div class="prose prose-sm max-w-none font-medium text-base-content">
+                    {{ execution.accion.accion|safe }}
+                  </div>
+
+
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
+
+                    <span>
+                      {{ execution.plan.nombre }}
+                    </span>
+
+                    <span>
+                      {{ execution.get_ambito_display }}
+                    </span>
+
+                    <span>
+                      Vence {{ execution.fecha_fin|date:"d/m/Y" }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+
+                  {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                    <span class="badge badge-ghost">
+                      Sin evidencia
+                    </span>
+
+                  {% elif execution.tiene_evidencia %}
+
+                    <button type="button"
+                            class="btn btn-ghost btn-sm"
+                            hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+                      Evidencia ✓
+                    </button>
+
+                  {% elif execution.es_mia and execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
+
+                    <button type="button"
+                            class="btn btn-outline btn-sm"
+                            hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+                      Registrar evidencia
+                    </button>
+
+                  {% else %}
+
+                    <span class="text-xs text-base-content/45">
+                      Evidencia pendiente
+                    </span>
+
+                  {% endif %}
+
+
+                  {% if execution.es_mia and execution.plan.permite_modificaciones %}
+
+                    <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                          hx-swap="none"
+                          class="inline">
+
+                      {% csrf_token %}
+
+                      <input type="hidden"
+                             name="action"
+                             value="complete">
+
+                      <button type="submit"
+                              class="btn btn-success btn-outline btn-sm">
+                        Terminar
+                      </button>
+
+                    </form>
+
+                  {% else %}
+
+                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                       class="btn btn-ghost btn-sm">
+                      Ver plan
+                    </a>
+
+                  {% endif %}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          {% endfor %}
+
+        </div>
+
+      {% else %}
+
+        <div class="p-8 text-center text-sm text-base-content/55">
+          No hay actividades urgentes.
+        </div>
+
+      {% endif %}
+
+    </div>
+
+  </section>
+
+
+  {# ====================================================== #}
+  {# REQUIERE ATENCIÓN                                      #}
+  {# ====================================================== #}
+
+  <section class="space-y-4">
+
+    <div>
+
+      <div class="flex items-center gap-3">
+
+        <span class="badge badge-warning">
+          Atención
+        </span>
+
+        <h2 class="text-2xl font-bold">
+          Requiere atención
+        </h2>
+
+      </div>
+
+      <p class="mt-2 text-sm text-base-content/60">
+        Actividades que vencen esta semana o de prioridad
+        alta que ya están en ejecución.
+      </p>
+
+    </div>
+
+
+    <div class="rounded-3xl border border-warning/30 bg-base-100 shadow-sm">
+
+      {% if requieren_atencion %}
+
+        <div class="divide-y divide-base-200">
+
+          {% for execution in requieren_atencion %}
+
+            <div class="p-5 {% if execution.es_mia %}bg-primary/5{% endif %}">
+
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+
+                <div class="min-w-0 flex-1">
+
+                  <div class="mb-2 flex flex-wrap items-center gap-2">
+
+                    {% if execution.es_mia %}
+
+                      <span class="badge badge-primary">
+                        YO
+                      </span>
+
+                    {% elif es_supervisor_agenda %}
+
+                      <span class="badge badge-ghost font-semibold">
+                        {{ execution.responsable.profile.nombre_calendario }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.accion.prioridad == "critica" %}
+
+                      <span class="badge badge-error">
+                        Crítica
+                      </span>
+
+                    {% elif execution.accion.prioridad == "urgente" %}
+
+                      <span class="badge badge-warning">
+                        Urgente
+                      </span>
+
+                    {% else %}
+
+                      <span class="badge badge-warning badge-outline">
+                        Vence esta semana
+                      </span>
+
+                    {% endif %}
+
+                  </div>
+
+
+                  <div class="prose prose-sm max-w-none font-medium text-base-content">
+                    {{ execution.accion.accion|safe }}
+                  </div>
+
+
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
+
+                    <span>
+                      {{ execution.plan.nombre }}
+                    </span>
+
+                    <span>
+                      {{ execution.get_ambito_display }}
+                    </span>
+
+                    <span>
+                      {{ execution.fecha_inicio|date:"d/m/Y" }}
+                      →
+                      {{ execution.fecha_fin|date:"d/m/Y" }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+
+                  {% if execution.accion.formato_evidencia == "ninguno" %}
+
+                    <span class="badge badge-ghost">
+                      Sin evidencia
+                    </span>
+
+                  {% elif execution.tiene_evidencia %}
+
+                    <button type="button"
+                            class="btn btn-ghost btn-sm"
+                            hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+                      Evidencia ✓
+                    </button>
+
+                  {% elif execution.es_mia and execution.plan.permite_modificaciones and perms.pas.add_evidencia %}
+
+                    <button type="button"
+                            class="btn btn-outline btn-sm"
+                            hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+                      Registrar evidencia
+                    </button>
+
+                  {% endif %}
+
+
+                  {% if execution.es_mia and execution.plan.permite_modificaciones %}
+
+                    <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                          hx-swap="none"
+                          class="inline">
+
+                      {% csrf_token %}
+
+                      <input type="hidden"
+                             name="action"
+                             value="complete">
+
+                      <button type="submit"
+                              class="btn btn-success btn-outline btn-sm">
+                        Terminar
+                      </button>
+
+                    </form>
+
+                  {% else %}
+
+                    <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                       class="btn btn-ghost btn-sm">
+                      Ver plan
+                    </a>
+
+                  {% endif %}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          {% endfor %}
+
+        </div>
+
+      {% else %}
+
+        <div class="p-8 text-center text-sm text-base-content/55">
+          No hay actividades que requieran atención esta semana.
+        </div>
+
+      {% endif %}
+
+    </div>
+
+  </section>
+
+
+  {# ====================================================== #}
+  {# VIGILAR                                                #}
+  {# ====================================================== #}
+
+  <section class="space-y-4">
+
+    <div>
+
+      <div class="flex items-center gap-3">
+
+        <span class="badge badge-info badge-outline">
+          Vigilar
+        </span>
+
+        <h2 class="text-2xl font-bold">
+          Mantener en el radar
+        </h2>
+
+      </div>
+
+      <p class="mt-2 text-sm text-base-content/60">
+        Actividades que comienzan hoy o durante esta semana.
+      </p>
+
+    </div>
+
+
+    <div class="rounded-3xl border border-info/30 bg-base-100 shadow-sm">
+
+      {% if vigilar %}
+
+        <div class="divide-y divide-base-200">
+
+          {% for execution in vigilar %}
+
+            <div class="p-5 {% if execution.es_mia %}bg-primary/5{% endif %}">
+
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+
+                <div class="min-w-0 flex-1">
+
+                  <div class="mb-2 flex flex-wrap items-center gap-2">
+
+                    {% if execution.es_mia %}
+
+                      <span class="badge badge-primary">
+                        YO
+                      </span>
+
+                    {% elif es_supervisor_agenda %}
+
+                      <span class="badge badge-ghost font-semibold">
+                        {{ execution.responsable.profile.nombre_calendario }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.fecha_inicio == hoy %}
+
+                      <span class="badge badge-info">
+                        Inicia hoy
+                      </span>
+
+                    {% else %}
+
+                      <span class="badge badge-info badge-outline">
+                        Inicia esta semana
+                      </span>
+
+                    {% endif %}
+
+                  </div>
+
+
+                  <div class="prose prose-sm max-w-none font-medium text-base-content">
+                    {{ execution.accion.accion|safe }}
+                  </div>
+
+
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/55">
+
+                    <span>
+                      {{ execution.plan.nombre }}
+                    </span>
+
+                    <span>
+                      {{ execution.get_ambito_display }}
+                    </span>
+
+                    <span>
+                      Inicia {{ execution.fecha_inicio|date:"d/m/Y" }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <a href="{% url 'pas:detalle' execution.plan.pk %}"
+                   class="btn btn-ghost btn-sm">
+                  Ver plan
+                </a>
+
+              </div>
+
+            </div>
+
+          {% endfor %}
+
+        </div>
+
+      {% else %}
+
+        <div class="p-8 text-center text-sm text-base-content/55">
+          No hay nuevas actividades que vigilar esta semana.
+        </div>
+
+      {% endif %}
+
+    </div>
+
+  </section>
 
 </section>
 
@@ -1307,90 +907,6 @@
       }
 
 
-      function updateRadarCounters(
-        mode
-      ) {
-
-        const counters = [
-          'radar-total-urgente',
-          'radar-total-atencion',
-          'radar-total-vigilar'
-        ];
-
-
-        counters.forEach(
-          function (id) {
-
-            const element = (
-              document.getElementById(id)
-            );
-
-            if (!element) {
-              return;
-            }
-
-
-            const value = (
-              mode === 'supervision'
-                ? element.dataset.supervision
-                : element.dataset.personal
-            );
-
-
-            element.textContent = (
-              value || '0'
-            );
-
-          }
-        );
-
-      }
-
-
-      function updateRadarMode(
-        mode
-      ) {
-
-        const personal = (
-          document.getElementById(
-            'radar-personal'
-          )
-        );
-
-        const supervision = (
-          document.getElementById(
-            'radar-supervision'
-          )
-        );
-
-
-        if (personal) {
-
-          personal.classList.toggle(
-            'hidden',
-            mode !== 'personal'
-          );
-
-        }
-
-
-        if (supervision) {
-
-          supervision.classList.toggle(
-            'hidden',
-            mode !== 'supervision'
-          );
-
-        }
-
-
-        updateRadarCounters(
-          mode
-        );
-
-      }
-
-
       function applyEventStyle(
         info
       ) {
@@ -1399,6 +915,12 @@
           info.event
           .extendedProps
           .estado
+        );
+
+        const esMia = (
+          info.event
+          .extendedProps
+          .esMia
         );
 
 
@@ -1426,10 +948,6 @@
             'var(--fallback-wa, oklch(var(--wa)))'
           );
 
-          info.el.style.color = (
-            'var(--fallback-wac, oklch(var(--wac)))'
-          );
-
         }
 
         else if (estado === 'inicia_hoy') {
@@ -1442,10 +960,6 @@
             'var(--fallback-in, oklch(var(--in)))'
           );
 
-          info.el.style.color = (
-            'var(--fallback-inc, oklch(var(--inc)))'
-          );
-
         }
 
         else if (estado === 'terminada') {
@@ -1454,6 +968,15 @@
 
           info.el.style.textDecoration = (
             'line-through'
+          );
+
+        }
+
+
+        if (esMia) {
+
+          info.el.style.fontWeight = (
+            '700'
           );
 
         }
@@ -1591,9 +1114,9 @@
         );
 
         eyebrow.textContent = (
-          props.modo === 'supervision'
-            ? 'Tarea supervisada'
-            : 'Tarea programada'
+          props.esMia
+            ? 'Mi tarea'
+            : 'Tarea del equipo'
         );
 
 
@@ -1813,11 +1336,6 @@
       }
 
 
-      calendarElement.dataset.mode = (
-        'personal'
-      );
-
-
       const calendar = (
         new FullCalendar.Calendar(
           calendarElement,
@@ -1863,35 +1381,10 @@
 
 
             events: {
-
               url: (
                 "{% url 'pas:calendar-events' %}"
               ),
-
               method: 'GET',
-
-
-              extraParams: function () {
-
-                return {
-                  mode: (
-                    calendarElement.dataset.mode
-                    || 'personal'
-                  )
-                };
-
-              },
-
-
-              failure: function () {
-
-                console.error(
-                  'No fue posible cargar '
-                  + 'las tareas del calendario.'
-                );
-
-              }
-
             },
 
 
@@ -1914,74 +1407,6 @@
 
           }
         )
-      );
-
-
-      const calendarModeButtons = (
-        document.querySelectorAll(
-          '[data-calendar-mode]'
-        )
-      );
-
-
-      calendarModeButtons.forEach(
-        function (button) {
-
-          button.addEventListener(
-            'click',
-            function () {
-
-              const mode = (
-                button.dataset.calendarMode
-              );
-
-
-              calendarElement.dataset.mode = (
-                mode
-              );
-
-
-              calendarModeButtons.forEach(
-                function (otherButton) {
-
-                  const isActive = (
-                    otherButton
-                    .dataset
-                    .calendarMode
-                    === mode
-                  );
-
-
-                  otherButton.classList.toggle(
-                    'btn-primary',
-                    isActive
-                  );
-
-                  otherButton.classList.toggle(
-                    'btn-outline',
-                    !isActive
-                  );
-
-                }
-              );
-
-
-              updateRadarMode(
-                mode
-              );
-
-
-              calendar.refetchEvents();
-
-            }
-          );
-
-        }
-      );
-
-
-      updateRadarMode(
-        'personal'
       );
 
 

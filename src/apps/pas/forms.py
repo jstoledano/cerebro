@@ -73,6 +73,7 @@ class PlanForm(forms.ModelForm):
 
     class Meta:
         model = Plan
+
         fields = [
             "documento",
             "nombre",
@@ -93,20 +94,31 @@ class PlanForm(forms.ModelForm):
         ]
 
         widgets = {
+            "descripcion": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                }
+            ),
+
             "fecha_llenado": DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
-                }
+                },
             ),
+
             "fecha_inicio": DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
-                }
+                },
             ),
+
             "fecha_termino": DateInput(
+                format="%Y-%m-%d",
                 attrs={
                     "type": "date",
-                }
+                },
             ),
         }
 
@@ -120,24 +132,59 @@ class PlanForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
 
-        apply_tailwind_widgets(self)
+        self.fields[
+            "fecha_llenado"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        self.fields[
+            "fecha_inicio"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        self.fields[
+            "fecha_termino"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        apply_tailwind_widgets(
+            self
+        )
 
     def clean(self):
-        cleaned_data = super().clean()
-
-        documento = cleaned_data.get(
-            "documento"
+        cleaned_data = (
+            super().clean()
         )
 
-        fecha_inicio = cleaned_data.get(
-            "fecha_inicio"
+        documento = (
+            cleaned_data.get(
+                "documento"
+            )
         )
 
-        fecha_termino = cleaned_data.get(
-            "fecha_termino"
+        fecha_inicio = (
+            cleaned_data.get(
+                "fecha_inicio"
+            )
+        )
+
+        fecha_termino = (
+            cleaned_data.get(
+                "fecha_termino"
+            )
         )
 
         if (
@@ -154,12 +201,16 @@ class PlanForm(forms.ModelForm):
             )
 
         if documento == CNC:
-            fuente = cleaned_data.get(
-                "fuente"
+            fuente = (
+                cleaned_data.get(
+                    "fuente"
+                )
             )
 
-            otra_fuente = cleaned_data.get(
-                "otra_fuente"
+            otra_fuente = (
+                cleaned_data.get(
+                    "otra_fuente"
+                )
             )
 
             if (
@@ -176,7 +227,10 @@ class PlanForm(forms.ModelForm):
 
         return cleaned_data
 
-    def save(self, commit=True):
+    def save(
+        self,
+        commit=True,
+    ):
         plan = super().save(
             commit=False
         )
@@ -204,10 +258,11 @@ class AccionForm(forms.ModelForm):
             "email",
         ),
         required=False,
-        label="Responsable directo",
+        label="Responsable operativo",
         help_text=(
-            "Úsalo cuando la actividad corresponda "
-            "a una persona concreta."
+            "Persona responsable operativa de ejecutar "
+            "la actividad cuando la asignación no se "
+            "determina por puesto y ámbito."
         ),
     )
 
@@ -243,6 +298,11 @@ class AccionForm(forms.ModelForm):
         }
 
         widgets = {
+            "accion": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                }
+            ),
             "fecha_inicio": DateInput(
                 format="%Y-%m-%d",
                 attrs={
@@ -267,11 +327,7 @@ class AccionForm(forms.ModelForm):
             **kwargs,
         )
 
-        self.fields[
-            "responsable"
-        ].empty_label = (
-            "Sin responsable directo"
-        )
+        self.fields["responsable"].empty_label = "Sin responsable operativo"
 
         self.fields[
             "fecha_inicio"
@@ -376,7 +432,7 @@ class AccionForm(forms.ModelForm):
             self.add_error(
                 "responsable",
                 (
-                    "Selecciona un responsable directo "
+                    "Selecciona un responsable operativo "
                     "o un puesto responsable."
                 ),
             )

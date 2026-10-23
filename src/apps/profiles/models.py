@@ -291,6 +291,42 @@ class Profile(models.Model):
     )
 
     @property
+    def es_supervisor_agenda(self):
+        if not self.unidad_organizacional_id:
+            return False
+
+        return self.unidad_organizacional.subordinadas.filter(
+            activa=True,
+        ).exists()
+
+    def obtener_usuarios_agenda(self):
+        """
+        Devuelve las personas cuyas tareas debe mostrar
+        la agenda del usuario.
+
+        Un responsable sin unidades subordinadas ve
+        únicamente sus propias tareas.
+
+        Un responsable cuya unidad tiene subordinadas
+        ve sus propias tareas y las de toda la estructura
+        organizacional descendiente.
+        """
+
+        if not self.es_supervisor_agenda:
+            return User.objects.filter(
+                pk=self.user_id,
+                is_active=True,
+            ).select_related(
+                "profile",
+                "profile__unidad_organizacional",
+            )
+
+        return self.unidad_organizacional.obtener_usuarios(
+            incluir_self=True,
+            activos=True,
+        )
+
+    @property
     def nombre_calendario(self):
         if self.siglas:
             return self.siglas
