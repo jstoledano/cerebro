@@ -49,6 +49,9 @@ from .models import (
     PRIORIDAD_URGENTE,
     PRIORIDAD_CRITICA,
 )
+from apps.profiles.models import (
+    UnidadOrganizacional,
+)
 
 
 def hx_trigger_header(*events):
@@ -56,6 +59,116 @@ def hx_trigger_header(*events):
         return ""
     payload = {event: "" for event in events}
     return json.dumps(payload)
+
+
+def obtener_claves_normativas_agenda(
+    perfil,
+):
+    """
+    Devuelve las claves organizacionales cuya
+    responsabilidad normativa debe ser visible
+    en la agenda del perfil.
+
+    Regla:
+
+    - Un usuario ve su propia unidad y sus
+      descendientes.
+    - Si pertenece a una unidad cabecera de Junta
+      Local de dos dígitos terminada en 0, también
+      supervisa funcionalmente los capítulos
+      equivalentes de las juntas distritales.
+
+    Ejemplo para la unidad 50:
+
+        50
+        5010
+        5020
+        5030
+        5040
+        5050
+        5099
+
+        51
+        5110
+        5199
+
+        52
+        5210
+        5299
+
+        53
+        5310
+        5399
+    """
+
+    if (
+        not perfil
+        or not perfil.unidad_organizacional_id
+    ):
+        return set()
+
+    unidad = (
+        perfil.unidad_organizacional
+    )
+
+    unidades = {
+        item.clave
+        for item
+        in unidad.obtener_descendientes(
+            incluir_self=True
+        )
+    }
+
+    clave = unidad.clave
+
+    # ------------------------------------------------------
+    # Cabecera funcional de Junta Local.
+    #
+    # Ejemplo:
+    #
+    # 50 -> 50, 51, 52, 53 y sus descendientes.
+    # 20 -> 20, 21, 22, 23 y sus descendientes.
+    # ------------------------------------------------------
+
+    if (
+        unidad.site == 0
+        and len(clave) == 2
+        and clave.endswith("0")
+    ):
+        prefijo_funcional = (
+            clave[0]
+        )
+
+        unidades_equivalentes = (
+            UnidadOrganizacional.objects
+            .filter(
+                activa=True,
+                clave__in=[
+                    f"{prefijo_funcional}0",
+                    f"{prefijo_funcional}1",
+                    f"{prefijo_funcional}2",
+                    f"{prefijo_funcional}3",
+                ],
+            )
+            .order_by(
+                "clave"
+            )
+        )
+
+        for unidad_equivalente in (
+            unidades_equivalentes
+        ):
+            for item in (
+                unidad_equivalente
+                .obtener_descendientes(
+                    incluir_self=True
+                )
+            ):
+                unidades.add(
+                    item.clave
+                )
+
+    return unidades
 
 
 @method_decorator(
@@ -315,19 +428,17 @@ class AgendaView(TemplateView):
             else False
         )
 
+        claves_normativas = obtener_claves_normativas_agenda(perfil)
+
         # ==================================================
         # Ejecuciones visibles en la agenda consolidada
         # ==================================================
 
         ejecuciones = list(
-            Ejecucion.objects
-            .filter(
-                responsable__in=(
-                    usuarios_agenda
-                ),
-                ciclo__accion__plan__in=(
-                    visible_plans
-                ),
+            Ejecucion.objects.filter(
+                Q(responsable__in=(usuarios_agenda))
+                | Q(ciclo__accion__puesto_responsable__in=(claves_normativas)),
+                ciclo__accion__plan__in=(visible_plans),
             )
             .select_related(
                 "ciclo",
@@ -340,6 +451,7 @@ class AgendaView(TemplateView):
             .prefetch_related(
                 "evidencia_registrada",
             )
+            .distinct()
             .order_by(
                 "ciclo__fecha_fin",
                 "ciclo__fecha_inicio",
@@ -495,124 +607,45 @@ class AgendaView(TemplateView):
         context.update(
             {
                 "hoy": hoy,
-                "inicio_semana": (
-                    inicio_semana
-                ),
-                "fin_semana": (
-                    fin_semana
-                ),
-
+                "inicio_semana": (inicio_semana),
+                "fin_semana": (fin_semana),
                 # ------------------------------------------
                 # Alcance de agenda
                 # ------------------------------------------
-
-                "usuarios_agenda": (
-                    usuarios_agenda
-                ),
-
-                "usuarios_agenda_ids": (
-                    usuarios_agenda_ids
-                ),
-
-                "es_supervisor_agenda": (
-                    es_supervisor_agenda
-                ),
-
-                "total_usuarios_agenda": len(
-                    usuarios_agenda
-                ),
-
+                "usuarios_agenda": (usuarios_agenda),
+                "usuarios_agenda_ids": (usuarios_agenda_ids),
+                "es_supervisor_agenda": (es_supervisor_agenda),
+                "total_usuarios_agenda": len(usuarios_agenda),
+                "claves_normativas": (claves_normativas),
                 # ------------------------------------------
                 # Radar
                 # ------------------------------------------
-
-                "urgentes": (
-                    urgente
-                ),
-
-                "requieren_atencion": (
-                    atencion
-                ),
-
-                "vigilar": (
-                    vigilar
-                ),
-
-                "terminadas": (
-                    terminadas
-                ),
-
+                "urgentes": (urgente),
+                "requieren_atencion": (atencion),
+                "vigilar": (vigilar),
+                "terminadas": (terminadas),
                 # ------------------------------------------
                 # Subcategorías
                 # ------------------------------------------
-
-                "vencidas": (
-                    vencidas
-                ),
-
-                "vencen_hoy": (
-                    vencen_hoy
-                ),
-
-                "vencen_semana": (
-                    vencen_semana
-                ),
-
-                "prioridad_alta": (
-                    prioridad_alta
-                ),
-
-                "inician_hoy": (
-                    inician_hoy
-                ),
-
-                "inician_semana": (
-                    inician_semana
-                ),
-
+                "vencidas": (vencidas),
+                "vencen_hoy": (vencen_hoy),
+                "vencen_semana": (vencen_semana),
+                "prioridad_alta": (prioridad_alta),
+                "inician_hoy": (inician_hoy),
+                "inician_semana": (inician_semana),
                 # ------------------------------------------
                 # Totales
                 # ------------------------------------------
-
-                "total_urgentes": len(
-                    urgente
-                ),
-
-                "total_requieren_atencion": len(
-                    atencion
-                ),
-
-                "total_vigilar": len(
-                    vigilar
-                ),
-
-                "total_terminadas": len(
-                    terminadas
-                ),
-
-                "total_vencidas": len(
-                    vencidas
-                ),
-
-                "total_vencen_hoy": len(
-                    vencen_hoy
-                ),
-
-                "total_vencen_semana": len(
-                    vencen_semana
-                ),
-
-                "total_prioridad_alta": len(
-                    prioridad_alta
-                ),
-
-                "total_inician_hoy": len(
-                    inician_hoy
-                ),
-
-                "total_inician_semana": len(
-                    inician_semana
-                ),
+                "total_urgentes": len(urgente),
+                "total_requieren_atencion": len(atencion),
+                "total_vigilar": len(vigilar),
+                "total_terminadas": len(terminadas),
+                "total_vencidas": len(vencidas),
+                "total_vencen_hoy": len(vencen_hoy),
+                "total_vencen_semana": len(vencen_semana),
+                "total_prioridad_alta": len(prioridad_alta),
+                "total_inician_hoy": len(inician_hoy),
+                "total_inician_semana": len(inician_semana),
             }
         )
 
@@ -680,20 +713,18 @@ class CalendarEventsView(View):
         )
 
         if perfil:
-            responsables = list(
-                perfil.obtener_usuarios_agenda()
-            )
+            responsables = list(perfil.obtener_usuarios_agenda())
 
-            es_supervisor_agenda = (
-                perfil.es_supervisor_agenda
-            )
+            es_supervisor_agenda = perfil.es_supervisor_agenda
+
+            claves_normativas = obtener_claves_normativas_agenda(perfil)
 
         else:
-            responsables = [
-                request.user
-            ]
+            responsables = [request.user]
 
             es_supervisor_agenda = False
+
+            claves_normativas = set()
 
         responsables_ids = {
             usuario.pk
@@ -732,14 +763,10 @@ class CalendarEventsView(View):
         # ==================================================
 
         ejecuciones = (
-            Ejecucion.objects
-            .filter(
-                responsable__in=(
-                    responsables
-                ),
-                ciclo__accion__plan__in=(
-                    visible_plans
-                ),
+            Ejecucion.objects.filter(
+                Q(responsable__in=(responsables))
+                | Q(ciclo__accion__puesto_responsable__in=(claves_normativas)),
+                ciclo__accion__plan__in=(visible_plans),
             )
             .select_related(
                 "ciclo",
@@ -752,6 +779,7 @@ class CalendarEventsView(View):
             .prefetch_related(
                 "evidencia_registrada",
             )
+            .distinct()
             .order_by(
                 "ciclo__fecha_fin",
                 "responsable__first_name",
@@ -1001,11 +1029,15 @@ class CalendarEventsView(View):
                         )
                     )
 
-                    if (
-                        not responsable
-                        or responsable.pk
-                        not in responsables_ids
-                    ):
+                    es_operativamente_visible = (
+                        responsable and responsable.pk in responsables_ids
+                    )
+
+                    es_normativamente_visible = (
+                        actividad.puesto_responsable in claves_normativas
+                    )
+
+                    if not es_operativamente_visible and not es_normativamente_visible:
                         continue
 
                     responsable_nombre = (
@@ -1015,8 +1047,7 @@ class CalendarEventsView(View):
                     )
 
                     es_mia = (
-                        responsable.pk
-                        == request.user.id
+                        responsable is not None and responsable.pk == request.user.id
                     )
 
                     unidad = ""
@@ -2072,9 +2103,16 @@ class ActivityBaseView:
         )
         return context
 
-    def form_invalid(self, form):
+    def form_invalid(
+        self,
+        form,
+    ):
         if self.request.headers.get("HX-Request"):
-            return self.render_to_response(self.get_context_data(form=form), status=422)
+            return self.render_to_response(
+                self.get_context_data(form=form),
+                status=200,
+            )
+
         return super().form_invalid(form)
 
     def form_valid(self, form):

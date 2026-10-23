@@ -1,3 +1,6 @@
+import html
+
+from django.utils.html import strip_tags
 from django import forms
 from django.contrib.auth import get_user_model
 from django.forms import (
@@ -13,7 +16,9 @@ from django.forms import (
     CheckboxInput,
     ClearableFileInput,
 )
-
+from apps.profiles.models import (
+    UnidadOrganizacional,
+)
 from .models import (
     Plan,
     Accion,
@@ -251,6 +256,17 @@ class PlanForm(forms.ModelForm):
 
 
 class AccionForm(forms.ModelForm):
+    puesto_responsable = forms.ChoiceField(
+        required=False,
+        label="Responsable normativo",
+        choices=(),
+        help_text=(
+            "Unidad o puesto que tiene la responsabilidad "
+            "institucional de la actividad conforme al "
+            "documento fuente. Puede coexistir con un "
+            "responsable operativo."
+        ),
+    )
     responsable = ResponsableChoiceField(
         queryset=User.objects.order_by(
             "first_name",
@@ -287,7 +303,7 @@ class AccionForm(forms.ModelForm):
 
         labels = {
             "accion": "Descripción de la actividad",
-            "puesto_responsable": "Puesto responsable",
+            "puesto_responsable": "Responsable normativo",
             "recursos": "Recursos",
             "periodicidad": "Periodicidad",
             "formato_evidencia": "Formato de evidencia",
@@ -326,95 +342,91 @@ class AccionForm(forms.ModelForm):
             *args,
             **kwargs,
         )
+        if self.instance and self.instance.pk and self.instance.accion:
+            self.initial["accion"] = html.unescape(
+                strip_tags(self.instance.accion)
+            ).strip()
+
+        unidades_responsables = UnidadOrganizacional.objects.filter(
+            activa=True,
+            clave__in=[
+                "00",
+                "10",
+                "20",
+                "30",
+                "50",
+                "51",
+                "52",
+                "53",
+                "5010",
+                "5020",
+                "5030",
+                "5040",
+                "5050",
+            ],
+        ).order_by("clave")
+
+        self.fields["puesto_responsable"].choices = [
+            (
+                "",
+                "Sin responsable normativo",
+            ),
+            *[
+                (
+                    unidad.clave,
+                    f"{unidad.clave} — {unidad.nombre}",
+                )
+                for unidad in unidades_responsables
+            ],
+        ]
 
         self.fields["responsable"].empty_label = "Sin responsable operativo"
 
-        self.fields[
-            "fecha_inicio"
-        ].input_formats = [
+        self.fields["fecha_inicio"].input_formats = [
             "%Y-%m-%d",
         ]
 
-        self.fields[
-            "fecha_fin"
-        ].input_formats = [
+        self.fields["fecha_fin"].input_formats = [
             "%Y-%m-%d",
         ]
 
-        if (
-            self.instance
-            and self.instance.pk
-        ):
-            self.fields[
-                "ambitos"
-            ].initial = (
-                self.instance.ambitos
-                or []
-            )
+        if self.instance and self.instance.pk:
+            self.fields["ambitos"].initial = self.instance.ambitos or []
 
-        apply_tailwind_widgets(
-            self
-        )
+        apply_tailwind_widgets(self)
 
     def clean(self):
-        cleaned_data = (
-            super().clean()
-        )
+        cleaned_data = super().clean()
 
-        fecha_inicio = (
-            cleaned_data.get(
-                "fecha_inicio"
-            )
-        )
+        fecha_inicio = cleaned_data.get("fecha_inicio")
 
-        fecha_fin = (
-            cleaned_data.get(
-                "fecha_fin"
-            )
-        )
+        fecha_fin = cleaned_data.get("fecha_fin")
 
-        if (
-            fecha_inicio
-            and fecha_fin
-            and fecha_inicio > fecha_fin
-        ):
+        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
             self.add_error(
                 "fecha_fin",
-                (
-                    "La fecha de término no puede "
-                    "ser anterior a la fecha de inicio."
-                ),
+                ("La fecha de término no puede ser anterior a la fecha de inicio."),
             )
 
-        ambitos = (
-            cleaned_data.get(
-                "ambitos"
-            )
-            or []
-        )
+        ambitos = cleaned_data.get("ambitos") or []
 
-        cleaned_data[
-            "ambitos"
-        ] = list(
-            ambitos
-        )
+        cleaned_data["ambitos"] = list(ambitos)
 
-        puesto_responsable = (
-            cleaned_data.get(
-                "puesto_responsable"
-            )
-        )
+        puesto_responsable = cleaned_data.get("puesto_responsable")
 
-        responsable = (
-            cleaned_data.get(
-                "responsable"
-            )
-        )
+        responsable = cleaned_data.get("responsable")
 
-        if (
-            len(ambitos) > 1
-            and not puesto_responsable
-        ):
+        # ------------------------------------------------------
+        # La asignación debe seguir un solo mecanismo:
+        #
+        # 1. Responsable operativo concreto
+        #    o
+        # 2. Puesto/unidad responsable resuelto por ámbito.
+        #
+        # Nunca ambos.
+        # ------------------------------------------------------
+
+        if len(ambitos) > 1 and not puesto_responsable:
             self.add_error(
                 "puesto_responsable",
                 (
@@ -424,66 +436,35 @@ class AccionForm(forms.ModelForm):
                 ),
             )
 
-        if (
-            len(ambitos) <= 1
-            and not puesto_responsable
-            and not responsable
-        ):
+        if len(ambitos) <= 1 and not puesto_responsable and not responsable:
             self.add_error(
                 "responsable",
-                (
-                    "Selecciona un responsable operativo "
-                    "o un puesto responsable."
-                ),
+                ("Selecciona un responsable operativo o un responsable normativo."),
             )
 
         if not self.instance.pk:
             return cleaned_data
 
-        original = (
-            Accion.objects.get(
-                pk=self.instance.pk
-            )
-        )
+        original = Accion.objects.get(pk=self.instance.pk)
 
         estructura_modificada = any(
             [
-                original.periodicidad
-                != cleaned_data.get(
-                    "periodicidad"
-                ),
-                set(
-                    original.ambitos
-                    or []
-                )
-                != set(
-                    ambitos
-                ),
-                original.fecha_inicio
-                != fecha_inicio,
-                original.fecha_fin
-                != fecha_fin,
-                original.formato_evidencia
-                != cleaned_data.get(
-                    "formato_evidencia"
-                ),
-                original.puesto_responsable
-                != puesto_responsable,
+                original.periodicidad != cleaned_data.get("periodicidad"),
+                set(original.ambitos or []) != set(ambitos),
+                original.fecha_inicio != fecha_inicio,
+                original.fecha_fin != fecha_fin,
+                original.formato_evidencia != cleaned_data.get("formato_evidencia"),
+                original.puesto_responsable != puesto_responsable,
+                original.responsable_id != (responsable.pk if responsable else None),
             ]
         )
 
         if not estructura_modificada:
             return cleaned_data
 
-        tiene_evidencias = (
-            Evidencia.objects
-            .filter(
-                ejecucion__ciclo__accion=(
-                    original
-                )
-            )
-            .exists()
-        )
+        tiene_evidencias = Evidencia.objects.filter(
+            ejecucion__ciclo__accion=(original)
+        ).exists()
 
         if tiene_evidencias:
             raise forms.ValidationError(
@@ -496,7 +477,6 @@ class AccionForm(forms.ModelForm):
             )
 
         return cleaned_data
-
 
 class SeguimientoForm(forms.ModelForm):
     responsable = ResponsableChoiceField(

@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from tinymce.models import HTMLField
 
 from apps.profiles.models import (
-    PUESTOS,
+    UnidadOrganizacional,
     JL,
     JD01,
     JD02,
@@ -490,14 +490,13 @@ class Accion(TrackingFields):
     )
 
     puesto_responsable = models.CharField(
-        max_length=5,
-        choices=PUESTOS,
+        max_length=10,
         blank=True,
         default="",
         help_text=(
-            "Puesto responsable de ejecutar la actividad. "
-            "Cuando se seleccionan varios ámbitos, PAS buscará "
-            "a la persona que ocupa este puesto en cada ámbito."
+            "Clave de la unidad organizacional responsable. "
+            "Cuando se seleccionan varios ámbitos, PM² "
+            "resolverá la unidad equivalente en cada ámbito."
         ),
     )
 
@@ -652,16 +651,68 @@ class Accion(TrackingFields):
             AMBITO_D03: JD03,
         }
 
+        digitos_sede = {
+            AMBITO_JL: "0",
+            AMBITO_D01: "1",
+            AMBITO_D02: "2",
+            AMBITO_D03: "3",
+        }
+
         site = sitios.get(ambito)
 
-        if site is None:
+        digito_sede = digitos_sede.get(ambito)
+
+        if site is None or digito_sede is None:
+            return None
+
+        clave_base = str(self.puesto_responsable).strip()
+
+        if not clave_base:
+            return None
+
+        # ------------------------------------------------------
+        # La clave capturada representa la unidad de referencia
+        # de Junta Local.
+        #
+        # Ejemplos:
+        #
+        # 50   -> 50 / 51 / 52 / 53
+        # 5010 -> 5010 / 5110 / 5210 / 5310
+        # 00   -> 00 / 01 / 02 / 03
+        #
+        # Las unidades sin equivalente distrital simplemente
+        # no se resolverán fuera de su ámbito real.
+        # ------------------------------------------------------
+
+        if ambito == AMBITO_JL:
+            clave_objetivo = clave_base
+
+        elif len(clave_base) == 2:
+            clave_objetivo = clave_base[0] + digito_sede
+
+        elif len(clave_base) == 4:
+            clave_objetivo = clave_base[0] + digito_sede + clave_base[2:]
+
+        else:
+            return None
+
+        unidad = UnidadOrganizacional.objects.filter(
+            clave=clave_objetivo,
+            activa=True,
+            site=site,
+        ).first()
+
+        if not unidad:
             return None
 
         return (
             User.objects.filter(
                 is_active=True,
-                profile__site=site,
-                profile__position=(self.puesto_responsable),
+                profile__unidad_organizacional=unidad,
+            )
+            .select_related(
+                "profile",
+                "profile__unidad_organizacional",
             )
             .order_by(
                 "profile__order",
