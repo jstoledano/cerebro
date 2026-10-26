@@ -1186,182 +1186,129 @@ class PlanSummaryView(DetailView):
         self,
         **kwargs,
     ):
-        context = super().get_context_data(
-            **kwargs
-        )
+        context = super().get_context_data(**kwargs)
 
         plan = self.object
 
-        activities = list(
-            plan.accion_set
-            .select_related(
-                "responsable"
-            )
-            .order_by(
-                "id"
-            )
-        )
+        activities = list(plan.accion_set.select_related("responsable").order_by("id"))
 
-        tiene_avance = bool(
-            plan.fecha_termino
-        )
+        total_activities = len(activities)
+
+        # ======================================================
+        # El avance global sólo tiene sentido cuando el plan
+        # tiene un horizonte finito.
+        # ======================================================
+
+        tiene_avance = bool(plan.fecha_termino)
 
         total_ejecuciones = 0
         ejecuciones_terminadas = 0
         ejecuciones_pendientes = 0
+
         progress = None
 
-        if tiene_avance:
+        all_closed = False
 
-            # ----------------------------------------------
-            # Materializar todo el universo finito
-            # ----------------------------------------------
+        # ======================================================
+        # Plan finito
+        # ======================================================
+
+        if tiene_avance:
+            # --------------------------------------------------
+            # Materializamos todas las ejecuciones que deben
+            # existir dentro del horizonte temporal del plan.
+            # --------------------------------------------------
 
             for activity in activities:
-
-                if (
-                    activity.periodicidad
-                    == PERIODICIDAD_MANUAL
-                ):
-                    # Las actividades manuales ya deben tener
-                    # sus ciclos definidos explícitamente.
+                if activity.periodicidad == PERIODICIDAD_MANUAL:
+                    # Las actividades manuales dependen de
+                    # ciclos definidos explícitamente.
                     continue
 
                 activity.generar_ejecuciones()
 
-            # ----------------------------------------------
-            # Ejecuciones que pertenecen al horizonte
-            # temporal del plan
-            # ----------------------------------------------
+            # --------------------------------------------------
+            # Universo real de ejecuciones del plan.
+            # --------------------------------------------------
 
-            executions = (
-                Ejecucion.objects
-                .filter(
-                    ciclo__accion__plan=plan,
-                    ciclo__fecha_fin__lte=(
-                        plan.fecha_termino
-                    ),
-                )
+            executions = Ejecucion.objects.filter(
+                ciclo__accion__plan=plan,
+                ciclo__fecha_fin__lte=(plan.fecha_termino),
             )
 
             if plan.fecha_inicio:
-                executions = (
-                    executions.filter(
-                        ciclo__fecha_inicio__gte=(
-                            plan.fecha_inicio
-                        )
-                    )
+                executions = executions.filter(
+                    ciclo__fecha_inicio__gte=(plan.fecha_inicio)
                 )
 
-            total_ejecuciones = (
-                executions.count()
-            )
+            total_ejecuciones = executions.count()
 
-            ejecuciones_terminadas = (
-                executions.filter(
-                    completada=True
-                ).count()
-            )
+            ejecuciones_terminadas = executions.filter(completada=True).count()
 
-            ejecuciones_pendientes = (
-                total_ejecuciones
-                - ejecuciones_terminadas
-            )
+            ejecuciones_pendientes = total_ejecuciones - ejecuciones_terminadas
+
+            # --------------------------------------------------
+            # Avance
+            # --------------------------------------------------
 
             if total_ejecuciones:
-                progress = round(
-                    (
-                        ejecuciones_terminadas
-                        / total_ejecuciones
-                    )
-                    * 100
-                )
+                progress = round((ejecuciones_terminadas / total_ejecuciones) * 100)
+
             else:
                 progress = 0
 
-        # --------------------------------------------------
-        # Cierre administrativo del plan
-        # --------------------------------------------------
+            # --------------------------------------------------
+            # Cierre operativo del universo programado.
+            #
+            # Ya no depende de Seguimiento.
+            # --------------------------------------------------
+
+            all_closed = total_ejecuciones > 0 and ejecuciones_pendientes == 0
+
+        # ======================================================
+        # Estado de las definiciones de actividad
         #
-        # Conservamos por ahora la lógica existente para
-        # determinar si todas las actividades están cerradas.
-        # Esto es distinto al porcentaje de ejecuciones.
-        # --------------------------------------------------
+        # Esto es informativo. No gobierna el cierre del plan.
+        # ======================================================
 
-        followups_prefetch = Prefetch(
-            "seguimiento_set",
-            queryset=(
-                Seguimiento.objects
-                .order_by(
-                    "-fecha",
-                    "-created",
-                )
-            ),
-        )
+        closed_activities = 0
+        open_activities = 0
 
-        activities_with_followups = list(
-            plan.accion_set
-            .prefetch_related(
-                followups_prefetch
-            )
-        )
+        for activity in activities:
+            if activity.get_estado == "Cerrada":
+                closed_activities += 1
 
-        total_activities = len(
-            activities_with_followups
-        )
+            else:
+                open_activities += 1
 
-        closed_activities = sum(
-            1
-            for activity
-            in activities_with_followups
-            if activity.get_estado == "Cerrada"
-        )
-
-        open_activities = (
-            total_activities
-            - closed_activities
-        )
-
-        all_closed = (
-            total_activities > 0
-            and closed_activities
-            == total_activities
-        )
+        # ======================================================
+        # Contexto
+        # ======================================================
 
         context.update(
             {
                 "plan": plan,
-
+                # ----------------------------------------------
                 # Definiciones de actividad
-                "total_activities": (
-                    total_activities
-                ),
-                "closed_activities": (
-                    closed_activities
-                ),
-                "open_activities": (
-                    open_activities
-                ),
-                "all_closed": (
-                    all_closed
-                ),
-
-                # Avance real
-                "tiene_avance": (
-                    tiene_avance
-                ),
-                "total_ejecuciones": (
-                    total_ejecuciones
-                ),
-                "ejecuciones_terminadas": (
-                    ejecuciones_terminadas
-                ),
-                "ejecuciones_pendientes": (
-                    ejecuciones_pendientes
-                ),
-                "progress": (
-                    progress
-                ),
+                # ----------------------------------------------
+                "total_activities": (total_activities),
+                "closed_activities": (closed_activities),
+                "open_activities": (open_activities),
+                # ----------------------------------------------
+                # Avance por ejecuciones
+                # ----------------------------------------------
+                "tiene_avance": (tiene_avance),
+                "total_ejecuciones": (total_ejecuciones),
+                "ejecuciones_terminadas": (ejecuciones_terminadas),
+                "ejecuciones_pendientes": (ejecuciones_pendientes),
+                "progress": (progress),
+                # ----------------------------------------------
+                # Posibilidad de cierre administrativo
+                #
+                # Sólo puede ser True en un plan finito cuyo
+                # universo completo de ejecuciones terminó.
+                # ----------------------------------------------
+                "all_closed": (all_closed),
             }
         )
 
