@@ -1,52 +1,159 @@
-<div class="space-y-4">
-  <header class="space-y-1">
-    <h3 class="text-xl font-semibold text-base-content flex items-center gap-2">
-      Seguimiento · {{ activity.plan.folio }}
-      <span class="text-sm text-base-content/60">Actividad {{ activity.pk }}</span>
+<div class="space-y-5">
+
+  <header class="space-y-2">
+
+    <h3 class="flex flex-wrap items-center gap-2 text-xl font-semibold text-base-content">
+
+      <span>
+        Seguimiento
+      </span>
+
+      {% if activity.plan.folio %}
+        <span class="badge badge-outline">
+          {{ activity.plan.folio }}
+        </span>
+      {% endif %}
+
     </h3>
-    <p class="text-sm text-base-content/70">Historial ordenado por fecha (más reciente primero).</p>
+
+
+    <p class="text-sm text-base-content/70">
+      Historial de anotaciones de control de la actividad.
+    </p>
+
+
+    <div class="rounded-xl bg-base-200/60 p-3">
+
+      <p class="text-sm font-medium text-base-content">
+        {{ activity.accion|striptags|truncatechars:140 }}
+      </p>
+
+    </div>
+
+
+    <p class="text-xs text-base-content/55">
+      Estos registros documentan el seguimiento.
+      No determinan el cierre de la actividad ni sustituyen
+      la evidencia registrada en una ejecución.
+    </p>
+
   </header>
 
+
   {% if followups %}
-  <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-    {% for seguimiento in followups %}
-    <article class="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm space-y-2">
-      <div class="flex items-center justify-between text-xs text-base-content/60">
-        <span>{{ seguimiento.fecha|date:'d/m/Y' }}</span>
-        <span>{{ seguimiento.get_estado_display }}</span>
-      </div>
-      <div class="prose prose-sm max-w-none text-base-content/80">
-        {{ seguimiento.descripcion|safe }}
-      </div>
-      {% if seguimiento.responsable %}
-      <p class="text-xs text-base-content/60"><span class="font-semibold">Responsable:</span> {{
-        seguimiento.responsable_display }}</p>
-      {% endif %}
-      {% if seguimiento.evidencia %}
-      <a class="link link-primary text-xs" href="{{ seguimiento.evidencia.url }}" target="_blank">Ver evidencia</a>
-      {% endif %}
-    </article>
-    {% endfor %}
-  </div>
+
+    <div class="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+
+      {% for seguimiento in followups %}
+
+        <article class="space-y-3 rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
+
+          <div class="flex flex-wrap items-center justify-between gap-2">
+
+            <span class="text-xs font-semibold text-base-content/60">
+              {{ seguimiento.fecha|date:'d/m/Y' }}
+            </span>
+
+            <span class="badge badge-ghost badge-sm">
+              {{ seguimiento.get_estado_display }}
+            </span>
+
+          </div>
+
+
+          <div class="prose prose-sm max-w-none text-base-content/80">
+            {{ seguimiento.descripcion|safe }}
+          </div>
+
+
+          {% if seguimiento.responsable %}
+
+            <p class="text-xs text-base-content/60">
+
+              <span class="font-semibold">
+                Persona relacionada:
+              </span>
+
+              {{ seguimiento.responsable_display }}
+
+            </p>
+
+          {% endif %}
+
+
+          {% if seguimiento.evidencia %}
+
+            <div>
+
+              <a class="link link-primary text-xs"
+                 href="{{ seguimiento.evidencia.url }}"
+                 target="_blank"
+                 rel="noopener">
+
+                Ver archivo adjunto al seguimiento
+
+              </a>
+
+            </div>
+
+          {% endif %}
+
+        </article>
+
+      {% endfor %}
+
+    </div>
+
   {% else %}
-  <div class="alert alert-info">
-    <span>Aún no se registran seguimientos para esta actividad.</span>
-  </div>
+
+    <div class="alert alert-info">
+
+      <span>
+        Aún no se registran seguimientos para esta actividad.
+      </span>
+
+    </div>
+
   {% endif %}
 
+
   <div class="flex flex-wrap items-center justify-between gap-3">
+
     <div class="flex flex-wrap gap-2">
-        {% if activity.plan.permite_modificaciones and perms.pas.add_seguimiento %}
+
+      {% if activity.plan.permite_modificaciones and perms.pas.add_seguimiento %}
+
         <button type="button"
                 class="btn btn-primary btn-sm"
                 hx-get="{% url 'pas:followup-add' activity.pk %}"
                 hx-target="#pas-modal-content"
                 hx-swap="innerHTML">
+
           Agregar seguimiento
+
         </button>
-        {% endif %}
-      <a class="btn btn-outline btn-sm" href="{% url 'pas:detalle' activity.plan.pk %}">Ir al plan</a>
+
+      {% endif %}
+
+
+      <a class="btn btn-outline btn-sm"
+         href="{% url 'pas:detalle' activity.plan.pk %}">
+
+        Ir al plan
+
+      </a>
+
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" data-close-modal="pas-modal">Cerrar</button>
+
+
+    <button type="button"
+            class="btn btn-ghost btn-sm"
+            data-close-modal="pas-modal">
+
+      Cerrar
+
+    </button>
+
   </div>
+
 </div>

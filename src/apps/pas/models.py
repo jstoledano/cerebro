@@ -597,39 +597,132 @@ class Accion(TrackingFields):
 
     @property
     def get_estado(self):
-        latest = self._latest_seguimiento()
+        """
+        Estado general de la actividad a partir de sus
+        ejecuciones concretas.
 
-        if latest and latest.estado == CERRADA:
-            return "Cerrada"
+        El seguimiento no abre ni cierra una actividad.
+        Los seguimientos son únicamente anotaciones de control.
+        """
 
         hoy = django.utils.timezone.localdate()
 
-        if self.fecha_fin and self.fecha_fin < hoy:
+        ejecuciones = list(
+            Ejecucion.objects.filter(ciclo__accion=self)
+            .only(
+                "completada",
+                "ciclo_id",
+            )
+            .select_related("ciclo")
+        )
+
+        # ------------------------------------------------------
+        # Actividad sin ejecuciones materializadas
+        # ------------------------------------------------------
+
+        if not ejecuciones:
+            if self.fecha_fin and self.fecha_fin < hoy:
+                return "Abierta Fuera de Tiempo"
+
+            return "Abierta en Tiempo"
+
+        # ------------------------------------------------------
+        # Todas las ejecuciones concretas están terminadas
+        # ------------------------------------------------------
+
+        if all(ejecucion.completada for ejecucion in ejecuciones):
+            return "Cerrada"
+
+        # ------------------------------------------------------
+        # Existe al menos una ejecución pendiente vencida
+        # ------------------------------------------------------
+
+        if any(
+            (not ejecucion.completada and ejecucion.fecha_fin < hoy)
+            for ejecucion in ejecuciones
+        ):
             return "Abierta Fuera de Tiempo"
+
+        # ------------------------------------------------------
+        # Todavía existen ejecuciones pendientes,
+        # pero ninguna está vencida
+        # ------------------------------------------------------
 
         return "Abierta en Tiempo"
 
     @property
     def salud_plazo(self):
-        latest = self._latest_seguimiento()
+        """
+        Resume la situación temporal de la actividad
+        a partir de sus ejecuciones concretas.
+
+        Los seguimientos no determinan el cierre ni
+        la salud temporal de la actividad.
+        """
+
         hoy = django.utils.timezone.localdate()
 
-        if latest and latest.estado == CERRADA:
+        ejecuciones = list(
+            Ejecucion.objects.filter(ciclo__accion=self)
+            .select_related("ciclo")
+            .only(
+                "completada",
+                "fecha_completada",
+                "ciclo__fecha_inicio",
+                "ciclo__fecha_fin",
+            )
+        )
+
+        # ------------------------------------------------------
+        # Aún no existen ejecuciones materializadas.
+        # Conservamos una lectura útil con las fechas de
+        # definición de la actividad.
+        # ------------------------------------------------------
+
+        if not ejecuciones:
             if not self.fecha_fin:
-                return "Cerrada"
+                return "Sin fecha de término"
 
-            if latest.fecha <= self.fecha_fin:
-                return "Cerrada en tiempo"
+            if self.fecha_fin < hoy:
+                return "Vencida"
 
-            return "Cerrada fuera de tiempo"
+            if self.fecha_fin == hoy:
+                return "Vence hoy"
 
-        if not self.fecha_fin:
-            return "Sin fecha de término"
+            return "En tiempo"
 
-        if self.fecha_fin < hoy:
+        pendientes = [
+            ejecucion for ejecucion in ejecuciones if not ejecucion.completada
+        ]
+
+        # ------------------------------------------------------
+        # Todas las ejecuciones materializadas terminaron.
+        # ------------------------------------------------------
+
+        if not pendientes:
+            cerrada_fuera_de_tiempo = any(
+                ejecucion.fecha_completada
+                and ejecucion.fecha_completada > ejecucion.fecha_fin
+                for ejecucion in ejecuciones
+            )
+
+            if cerrada_fuera_de_tiempo:
+                return "Cerrada fuera de tiempo"
+
+            return "Cerrada en tiempo"
+
+        # ------------------------------------------------------
+        # Existe al menos una ejecución pendiente vencida.
+        # ------------------------------------------------------
+
+        if any(ejecucion.fecha_fin < hoy for ejecucion in pendientes):
             return "Vencida"
 
-        if self.fecha_fin == hoy:
+        # ------------------------------------------------------
+        # Existe una ejecución que vence hoy.
+        # ------------------------------------------------------
+
+        if any(ejecucion.fecha_fin == hoy for ejecucion in pendientes):
             return "Vence hoy"
 
         return "En tiempo"

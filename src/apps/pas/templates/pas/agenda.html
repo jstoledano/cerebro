@@ -59,8 +59,8 @@
 
             {% if es_supervisor_agenda %}
 
-              Consulta de un vistazo tus actividades y las
-              del personal bajo tu responsabilidad.
+              Consulta de un vistazo las actividades
+              bajo tu responsabilidad operativa y normativa.
 
             {% else %}
 
@@ -117,15 +117,9 @@
 
     <div class="grid gap-6 xl:grid-cols-9">
 
-
-      {# ================================================== #}
-      {# CALENDARIO                                         #}
-      {# ================================================== #}
-
       <div class="xl:col-span-7">
 
         <div class="h-full rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
-
 
           <div class="mb-5">
 
@@ -137,8 +131,8 @@
 
               {% if es_supervisor_agenda %}
 
-                Programación propia y del personal
-                bajo tu responsabilidad.
+                Programación bajo tu responsabilidad
+                operativa y normativa.
 
               {% else %}
 
@@ -161,12 +155,7 @@
       </div>
 
 
-      {# ================================================== #}
-      {# INDICADORES                                        #}
-      {# ================================================== #}
-
       <div class="grid gap-4 sm:grid-cols-3 xl:col-span-2 xl:grid-cols-1">
-
 
         <div class="rounded-2xl border border-error/30 bg-error/5 p-5 shadow-sm">
 
@@ -188,24 +177,6 @@
 
             </div>
 
-
-            <div class="grid h-11 w-11 place-items-center rounded-xl bg-error/10 text-error">
-
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   fill="none"
-                   viewBox="0 0 24 24"
-                   stroke-width="1.5"
-                   stroke="currentColor"
-                   class="size-6">
-
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0l7.354 12.748ZM12 15.75h.007v.008H12v-.008Z" />
-
-              </svg>
-
-            </div>
-
           </div>
 
         </div>
@@ -213,45 +184,19 @@
 
         <div class="rounded-2xl border border-warning/30 bg-warning/5 p-5 shadow-sm">
 
-          <div class="flex items-center justify-between gap-4">
+          <div>
 
-            <div>
+            <p class="text-sm font-semibold">
+              Atención
+            </p>
 
-              <p class="text-sm font-semibold">
-                Atención
-              </p>
+            <p class="mt-2 text-4xl font-bold">
+              {{ total_requieren_atencion }}
+            </p>
 
-              <p class="mt-2 text-4xl font-bold">
-                {{ total_requieren_atencion }}
-              </p>
-
-              <p class="mt-1 text-xs text-base-content/55">
-                Semana o prioridad alta
-              </p>
-
-            </div>
-
-
-            <div class="grid h-11 w-11 place-items-center rounded-xl bg-warning/15">
-
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   fill="none"
-                   viewBox="0 0 24 24"
-                   stroke-width="1.5"
-                   stroke="currentColor"
-                   class="size-6">
-
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 6v6l3 3" />
-
-                <circle cx="12"
-                        cy="12"
-                        r="9" />
-
-              </svg>
-
-            </div>
+            <p class="mt-1 text-xs text-base-content/55">
+              Semana o prioridad alta
+            </p>
 
           </div>
 
@@ -260,45 +205,19 @@
 
         <div class="rounded-2xl border border-info/30 bg-info/5 p-5 shadow-sm">
 
-          <div class="flex items-center justify-between gap-4">
+          <div>
 
-            <div>
+            <p class="text-sm font-semibold text-info">
+              Vigilar
+            </p>
 
-              <p class="text-sm font-semibold text-info">
-                Vigilar
-              </p>
+            <p class="mt-2 text-4xl font-bold">
+              {{ total_vigilar }}
+            </p>
 
-              <p class="mt-2 text-4xl font-bold">
-                {{ total_vigilar }}
-              </p>
-
-              <p class="mt-1 text-xs text-base-content/55">
-                Inician esta semana
-              </p>
-
-            </div>
-
-
-            <div class="grid h-11 w-11 place-items-center rounded-xl bg-info/10 text-info">
-
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   fill="none"
-                   viewBox="0 0 24 24"
-                   stroke-width="1.5"
-                   stroke="currentColor"
-                   class="size-6">
-
-                <path stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M2.25 12s3.75-6 9.75-6 9.75 6 9.75 6-3.75 6-9.75 6S2.25 12 2.25 12Z" />
-
-                <circle cx="12"
-                        cy="12"
-                        r="2.25" />
-
-              </svg>
-
-            </div>
+            <p class="mt-1 text-xs text-base-content/55">
+              Inician esta semana
+            </p>
 
           </div>
 
@@ -360,10 +279,9 @@
 
               <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-
                 <div class="min-w-0 flex-1">
 
-                  <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <div class="mb-3 flex flex-wrap items-center gap-2">
 
                     {% if execution.es_mia %}
 
@@ -371,10 +289,26 @@
                         YO
                       </span>
 
-                    {% elif es_supervisor_agenda %}
+                    {% endif %}
 
-                      <span class="badge badge-ghost font-semibold">
-                        {{ execution.responsable.profile.nombre_calendario }}
+
+                    {% if execution.responsable_normativo_display != "—" %}
+
+                      <span class="badge badge-outline"
+                            title="Responsable normativo">
+                        Normativo:
+                        {{ execution.responsable_normativo_display }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.responsable_operativo_display != "—" %}
+
+                      <span class="badge badge-ghost"
+                            title="Responsable operativo">
+                        Operativo:
+                        {{ execution.responsable_operativo_display }}
                       </span>
 
                     {% endif %}
@@ -564,10 +498,9 @@
 
               <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-
                 <div class="min-w-0 flex-1">
 
-                  <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <div class="mb-3 flex flex-wrap items-center gap-2">
 
                     {% if execution.es_mia %}
 
@@ -575,10 +508,26 @@
                         YO
                       </span>
 
-                    {% elif es_supervisor_agenda %}
+                    {% endif %}
 
-                      <span class="badge badge-ghost font-semibold">
-                        {{ execution.responsable.profile.nombre_calendario }}
+
+                    {% if execution.responsable_normativo_display != "—" %}
+
+                      <span class="badge badge-outline"
+                            title="Responsable normativo">
+                        Normativo:
+                        {{ execution.responsable_normativo_display }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.responsable_operativo_display != "—" %}
+
+                      <span class="badge badge-ghost"
+                            title="Responsable operativo">
+                        Operativo:
+                        {{ execution.responsable_operativo_display }}
                       </span>
 
                     {% endif %}
@@ -754,10 +703,9 @@
 
               <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-
                 <div class="min-w-0 flex-1">
 
-                  <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <div class="mb-3 flex flex-wrap items-center gap-2">
 
                     {% if execution.es_mia %}
 
@@ -765,10 +713,26 @@
                         YO
                       </span>
 
-                    {% elif es_supervisor_agenda %}
+                    {% endif %}
 
-                      <span class="badge badge-ghost font-semibold">
-                        {{ execution.responsable.profile.nombre_calendario }}
+
+                    {% if execution.responsable_normativo_display != "—" %}
+
+                      <span class="badge badge-outline"
+                            title="Responsable normativo">
+                        Normativo:
+                        {{ execution.responsable_normativo_display }}
+                      </span>
+
+                    {% endif %}
+
+
+                    {% if execution.responsable_operativo_display != "—" %}
+
+                      <span class="badge badge-ghost"
+                            title="Responsable operativo">
+                        Operativo:
+                        {{ execution.responsable_operativo_display }}
                       </span>
 
                     {% endif %}
@@ -1116,7 +1080,7 @@
         eyebrow.textContent = (
           props.esMia
             ? 'Mi tarea'
-            : 'Tarea del equipo'
+            : 'Actividad bajo seguimiento'
         );
 
 
@@ -1199,22 +1163,29 @@
         );
 
 
-        addDetailRow(
-          details,
-          'Responsable',
-          props.responsable
-        );
+addDetailRow(
+  details,
+  'Responsable normativo',
+  props.responsableNormativo
+);
 
 
-        if (props.unidad) {
+addDetailRow(
+  details,
+  'Responsable operativo',
+  props.responsableOperativo
+);
 
-          addDetailRow(
-            details,
-            'Unidad',
-            props.unidad
-          );
 
-        }
+if (props.unidadOperativa) {
+
+  addDetailRow(
+    details,
+    'Unidad operativa',
+    props.unidadOperativa
+  );
+
+}
 
 
         addDetailRow(

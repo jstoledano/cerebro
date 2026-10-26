@@ -33,12 +33,10 @@
   {% if not can_modify %}
 
     <div class="alert alert-warning">
-
       <span>
         El plan se encuentra cerrado o con recurrencia registrada.
         Las actividades están en modo de solo lectura.
       </span>
-
     </div>
 
   {% endif %}
@@ -66,8 +64,8 @@
               Próxima acción
             </th>
 
-            <th class="w-32 text-center">
-              Responsable
+            <th class="w-44 text-center">
+              Responsables
             </th>
 
             <th class="w-32 text-center">
@@ -167,7 +165,6 @@
 
               <tr class="align-top">
 
-
                 <td class="text-center font-semibold text-base-content/70">
                   {{ forloop.counter }}
                 </td>
@@ -210,11 +207,13 @@
                     {% if activity.recursos %}
 
                       <p class="text-xs text-base-content/60">
+
                         <span class="font-semibold">
                           Recursos:
                         </span>
 
                         {{ activity.recursos }}
+
                       </p>
 
                     {% endif %}
@@ -312,12 +311,72 @@
                 </td>
 
 
-                <td class="text-center align-middle">
+                {# ========================================== #}
+                {# RESPONSABILIDADES                          #}
+                {# ========================================== #}
 
-                  <span class="badge badge-ghost font-semibold"
-                        title="{{ activity.responsable_display|default:'' }}">
-                    {{ item.responsable_compacto }}
-                  </span>
+                <td class="align-middle">
+
+                  <div class="flex flex-col gap-3 text-xs">
+
+                    <div class="space-y-1">
+
+                      <p class="font-semibold text-base-content/55">
+                        Normativo
+                      </p>
+
+                      {% if activity.puesto_responsable %}
+
+                        <span class="badge badge-outline badge-sm"
+                              title="Responsable institucional conforme al documento fuente">
+                          {{ item.responsable_normativo }}
+                        </span>
+
+                      {% else %}
+
+                        <span class="text-base-content/40">
+                          —
+                        </span>
+
+                      {% endif %}
+
+                    </div>
+
+
+                    <div class="space-y-1">
+
+                      <p class="font-semibold text-base-content/55">
+                        Operativo
+                      </p>
+
+                      {% if activity.responsable %}
+
+                        <span class="badge badge-ghost badge-sm"
+                              title="{{ activity.responsable.get_full_name|default:activity.responsable.username }}">
+
+                          {% if activity.responsable.profile.nombre_calendario %}
+
+                            {{ activity.responsable.profile.nombre_calendario }}
+
+                          {% else %}
+
+                            {{ activity.responsable.username|truncatechars:10 }}
+
+                          {% endif %}
+
+                        </span>
+
+                      {% else %}
+
+                        <span class="text-base-content/40">
+                          —
+                        </span>
+
+                      {% endif %}
+
+                    </div>
+
+                  </div>
 
                 </td>
 
@@ -462,23 +521,16 @@
       ¿Qué es el seguimiento?
     </h3>
 
-
     <p class="text-sm text-base-content/80">
-
       Los seguimientos son anotaciones de control
       asociadas a una actividad.
-
     </p>
 
-
     <p class="text-sm text-base-content/80">
-
       Permiten registrar avances, incidencias,
       revisiones, respuestas o situaciones relevantes
       durante su ejecución.
-
     </p>
-
 
     <div class="rounded-xl bg-base-200 p-4">
 
@@ -487,24 +539,18 @@
       </p>
 
       <p class="mt-1 text-sm text-base-content/70">
-
         La ejecución representa una obligación concreta
         programada en una fecha y ámbito determinados.
         El seguimiento únicamente documenta información
         relevante sobre la actividad.
-
       </p>
 
     </div>
 
-
     <p class="text-sm text-base-content/70">
-
       Tampoco sustituye la evidencia registrada para
       una ejecución.
-
     </p>
-
 
     <div class="text-right">
 
@@ -570,7 +616,7 @@
         </span>
 
         <span>
-          Actividad abierta fuera del tiempo comprometido.
+          Actividad abierta con al menos una ejecución vencida.
         </span>
 
       </li>
@@ -583,20 +629,7 @@
         </span>
 
         <span>
-          Actividad cerrada en tiempo.
-        </span>
-
-      </li>
-
-
-      <li class="flex items-center gap-3">
-
-        <span class="badge badge-success badge-outline text-success">
-          Cerrada
-        </span>
-
-        <span>
-          Actividad cerrada fuera de tiempo.
+          Todas las ejecuciones de la actividad están terminadas.
         </span>
 
       </li>

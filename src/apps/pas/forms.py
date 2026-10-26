@@ -25,6 +25,8 @@ from .models import (
     Seguimiento,
     Evidencia,
     AMBITO,
+    A_ESTADO,
+    CERRADA,
     CNC,
 )
 
@@ -374,7 +376,7 @@ class AccionForm(forms.ModelForm):
             *[
                 (
                     unidad.clave,
-                    f"{unidad.clave} — {unidad.nombre}",
+                    unidad.nombre_funcional,
                 )
                 for unidad in unidades_responsables
             ],
@@ -479,25 +481,95 @@ class AccionForm(forms.ModelForm):
         return cleaned_data
 
 class SeguimientoForm(forms.ModelForm):
+    estado = forms.ChoiceField(
+        label="Tipo de seguimiento",
+        choices=(),
+        help_text=(
+            "Indica la situación que se desea "
+            "documentar. El seguimiento no determina "
+            "el cierre de la actividad."
+        ),
+    )
+
     responsable = ResponsableChoiceField(
-        queryset=User.objects.order_by('first_name', 'last_name', 'email'),
+        queryset=User.objects.order_by(
+            "first_name",
+            "last_name",
+            "email",
+        ),
         required=False,
-        label='Responsable',
-        help_text='Persona responsable de la actualización',
+        label="Responsable",
+        help_text=(
+            "Persona relacionada con la actualización."
+        ),
     )
 
     class Meta:
         model = Seguimiento
-        exclude = ['user', 'accion']
+
+        exclude = [
+            "user",
+            "accion",
+        ]
+
         widgets = {
-            'fecha': DateInput(attrs={'type': 'date'}),
+            "fecha": DateInput(
+                format="%Y-%m-%d",
+                attrs={
+                    "type": "date",
+                },
+            ),
+
+            "descripcion": Textarea(
+                attrs={
+                    "rows": 5,
+                }
+            ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['responsable'].empty_label = 'Selecciona un responsable'
-        apply_tailwind_widgets(self)
+        labels = {
+            "descripcion": "Descripción",
+            "fecha": "Fecha",
+        }
 
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        # Conservamos los estados históricos del modelo,
+        # pero "Cerrada" deja de ser una opción para nuevos
+        # seguimientos.
+        self.fields["estado"].choices = [
+            (
+                valor,
+                etiqueta,
+            )
+            for valor, etiqueta in A_ESTADO
+            if valor != CERRADA
+        ]
+
+        self.fields[
+            "responsable"
+        ].empty_label = (
+            "Sin responsable específico"
+        )
+
+        self.fields[
+            "fecha"
+        ].input_formats = [
+            "%Y-%m-%d",
+        ]
+
+        apply_tailwind_widgets(
+            self
+        )
+        
 
 class PlanClosureForm(forms.Form):
     RESULTADO_CHOICES = (

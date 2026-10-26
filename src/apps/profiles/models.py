@@ -62,6 +62,64 @@ PUESTOS = (
     (RA, 'Rama Administrativa')
 )
 
+ETIQUETAS_UNIDAD_ORGANIZACIONAL = {
+    "00": "VEL",
+
+    "0010": "COL",
+    "0020": "AJL",
+    "0030": "ALL",
+    "0040": "CSL",
+    "0099": "RA",
+
+    "10": "VSL",
+
+    "1010": "COA",
+    "1011": "JRH",
+    "1012": "JRF",
+    "1013": "JRM",
+    "1099": "RA",
+
+    "20": "VOL",
+    "2099": "RA",
+
+    "30": "VCL",
+    "3099": "RA",
+
+    "50": "VRL",
+
+    "5010": "JOSA",
+    "5020": "JOCE",
+    "5030": "JAP",
+    "5040": "JDP",
+    "5050": "JCC",
+    "5099": "RA",
+
+    "01": "VED",
+    "02": "VED",
+    "03": "VED",
+
+    "11": "VSD",
+    "12": "VSD",
+    "13": "VSD",
+
+    "21": "VOD",
+    "22": "VOD",
+    "23": "VOD",
+
+    "31": "VCD",
+    "32": "VCD",
+    "33": "VCD",
+
+    "51": "VRD",
+    "52": "VRD",
+    "53": "VRD",
+
+    "5110": "JOSAD",
+    "5210": "JOSAD",
+    "5310": "JOSAD",
+}
+
+
 class UnidadOrganizacional(models.Model):
     clave = models.CharField(
         max_length=10,
@@ -187,6 +245,22 @@ class UnidadOrganizacional(models.Model):
             actual = actual.superior
 
         return False
+
+    @property
+    def etiqueta_funcional(self):
+        return ETIQUETAS_UNIDAD_ORGANIZACIONAL.get(
+            self.clave,
+            self.clave,
+        )
+
+    @property
+    def nombre_funcional(self):
+        etiqueta = self.etiqueta_funcional
+
+        if etiqueta == self.clave:
+            return self.nombre
+
+        return f"{etiqueta} — {self.nombre}"
 
     def obtener_usuarios(
         self,
