@@ -458,6 +458,7 @@ class AgendaView(TemplateView):
             .exclude(
                 periodicidad__in=[
                     PERIODICIDAD_UNICA,
+                    PERIODICIDAD_CONTINUA,
                     PERIODICIDAD_MANUAL,
                 ]
             )
@@ -830,6 +831,17 @@ class AgendaView(TemplateView):
 
                 continue
 
+            if actividad.periodicidad == PERIODICIDAD_CONTINUA and activas_actividad:
+                dias_restantes = (representativa.fecha_fin - hoy).days
+
+                if dias_restantes == 1:
+                    representativa.radar_motivo = "continua_inmediata"
+
+                    urgente.append(representativa)
+
+                    continue
+
+
             if activas_actividad and actividad.prioridad == PRIORIDAD_CRITICA:
                 representativa.radar_motivo = "critica_activa"
 
@@ -840,6 +852,16 @@ class AgendaView(TemplateView):
             # --------------------------------------------------
             # 2. REQUIERE ATENCIÓN
             # --------------------------------------------------
+
+            if actividad.periodicidad == PERIODICIDAD_CONTINUA and activas_actividad:
+                dias_restantes = (representativa.fecha_fin - hoy).days
+
+                if 2 <= dias_restantes <= 5:
+                    representativa.radar_motivo = "continua_proxima"
+
+                    atencion.append(representativa)
+
+                    continue
 
             if proxima_accion:
                 if proxima_accion.fecha_inicio <= limite_atencion:

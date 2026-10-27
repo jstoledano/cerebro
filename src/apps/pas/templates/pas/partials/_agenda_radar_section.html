@@ -176,6 +176,18 @@
                       Vence hoy
                     </span>
 
+                  {% elif execution.radar_motivo == "continua_inmediata" %}
+
+                      <span class="badge badge-error">
+                        Vence mañana
+                      </span>
+
+                    {% elif execution.radar_motivo == "continua_proxima" %}
+
+                      <span class="badge badge-warning badge-outline">
+                        Próxima a vencer
+                      </span>
+
                   {% elif execution.radar_motivo == "critica_activa" %}
 
                     <span class="badge badge-error">
