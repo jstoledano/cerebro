@@ -1613,16 +1613,6 @@ class PlanActivitiesView(DetailView):
         plan = self.object
         hoy = timezone.localdate()
 
-        followups_prefetch = Prefetch(
-            "seguimiento_set",
-            queryset=(
-                Seguimiento.objects.select_related("responsable").order_by(
-                    "-fecha",
-                    "-created",
-                )
-            ),
-        )
-
         executions_prefetch = Prefetch(
             "ejecuciones",
             queryset=(
@@ -1657,7 +1647,6 @@ class PlanActivitiesView(DetailView):
                 "responsable__profile",
             )
             .prefetch_related(
-                followups_prefetch,
                 cycles_prefetch,
             )
             .order_by(
@@ -1672,11 +1661,11 @@ class PlanActivitiesView(DetailView):
             if estado == "Abierta Fuera de Tiempo":
                 return 0
 
-            if estado == "Cerrada":
-                return 3
-
             if estado == "Abierta en Tiempo":
                 return 2
+
+            if estado == "Cerrada":
+                return 3
 
             return 1
 
@@ -1688,7 +1677,7 @@ class PlanActivitiesView(DetailView):
                 return {
                     "classes": ("badge-error text-error-content"),
                     "text": "Abierta",
-                    "title": ("Abierta fuera de tiempo"),
+                    "title": "Abierta fuera de tiempo",
                 }
 
             if estado == "Abierta en Tiempo":
@@ -1700,7 +1689,7 @@ class PlanActivitiesView(DetailView):
                         "bg-transparent"
                     ),
                     "text": "Abierta",
-                    "title": ("Abierta en tiempo"),
+                    "title": "Abierta en tiempo",
                 }
 
             if estado == "Cerrada":
@@ -1708,13 +1697,13 @@ class PlanActivitiesView(DetailView):
                     return {
                         "classes": ("badge-success badge-outline text-success"),
                         "text": "Cerrada",
-                        "title": ("Cerrada fuera de tiempo"),
+                        "title": "Cerrada fuera de tiempo",
                     }
 
                 return {
                     "classes": ("badge-success text-success-content"),
                     "text": "Cerrada",
-                    "title": ("Cerrada en tiempo"),
+                    "title": "Cerrada en tiempo",
                 }
 
             return {
@@ -1804,13 +1793,16 @@ class PlanActivitiesView(DetailView):
         for activity in activities_queryset:
             estado = activity.get_estado
 
-            followups = list(activity.seguimiento_set.all())
-
             cycles = list(activity.ciclos.all())
 
             pending_cycle = ciclo_pendiente(cycles)
 
             reference_cycle = ciclo_referencia(cycles)
+
+            all_executions = []
+
+            for cycle in cycles:
+                all_executions.extend(list(cycle.ejecuciones.all()))
 
             execution_summary = []
 
@@ -1818,7 +1810,7 @@ class PlanActivitiesView(DetailView):
                 for execution in reference_cycle.ejecuciones.all():
                     execution_summary.append(
                         {
-                            "execution": (execution),
+                            "execution": execution,
                             "ambito": (execution.ambito),
                             "ambito_display": (execution.get_ambito_display()),
                             "tiene_evidencia": (execution.tiene_evidencia),
@@ -1826,18 +1818,26 @@ class PlanActivitiesView(DetailView):
                         }
                     )
 
-            closure_followup = next(
-                (followup for followup in followups if (followup.estado == CERRADA)),
-                None,
-            )
+            # ==================================================
+            # Cierre en tiempo
+            #
+            # Ya no depende de Seguimiento.
+            #
+            # Si todas las ejecuciones están cerradas,
+            # se considera fuera de tiempo cuando alguna
+            # fue cerrada después de su fecha de término.
+            # ==================================================
 
             closed_in_time = None
 
-            if closure_followup:
-                if activity.fecha_fin:
-                    closed_in_time = closure_followup.fecha <= activity.fecha_fin
-                else:
-                    closed_in_time = True
+            if estado == "Cerrada" and all_executions:
+                closed_in_time = not any(
+                    (
+                        execution.fecha_completada
+                        and execution.fecha_completada > execution.fecha_fin
+                    )
+                    for execution in all_executions
+                )
 
             nombres_responsables = responsables_ciclo(pending_cycle or reference_cycle)
 
@@ -1854,11 +1854,12 @@ class PlanActivitiesView(DetailView):
 
             if activity.puesto_responsable:
                 unidad_normativa = UnidadOrganizacional.objects.filter(
-                    clave=(activity.puesto_responsable),
+                    clave=(activity.puesto_responsable)
                 ).first()
 
                 if unidad_normativa:
                     responsable_normativo = unidad_normativa.etiqueta_funcional
+
                 else:
                     responsable_normativo = activity.puesto_responsable
 
@@ -1870,8 +1871,6 @@ class PlanActivitiesView(DetailView):
                     "responsable_compacto": (responsable_compacto),
                     "estado": estado,
                     "estado_priority": (state_priority(estado)),
-                    "followup_count": len(followups),
-                    "latest_followup": (followups[0] if followups else None),
                     "closed_in_time": (closed_in_time),
                     "badge": (
                         build_estado_badge(
@@ -1882,9 +1881,9 @@ class PlanActivitiesView(DetailView):
                     "reference_cycle": (reference_cycle),
                     "proxima_accion": (pending_cycle),
                     "execution_summary": (execution_summary),
-                    "execution_total": len(execution_summary),
-                    "execution_with_evidence": sum(
-                        1 for item in execution_summary if item["tiene_evidencia"]
+                    "execution_total": (len(execution_summary)),
+                    "execution_with_evidence": (
+                        sum(1 for item in execution_summary if item["tiene_evidencia"])
                     ),
                 }
             )
@@ -1911,6 +1910,7 @@ class PlanActivitiesView(DetailView):
         )
 
         return context
+
 
 
 class PlanFormMixin:

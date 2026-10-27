@@ -9,7 +9,7 @@
       </h2>
 
       <p class="text-sm text-base-content/70">
-        Gestiona la ejecución, evidencia y seguimiento
+        Gestiona la ejecución y evidencia
         de las actividades definidas.
       </p>
 
@@ -66,44 +66,6 @@
 
             <th class="w-44 text-center">
               Responsables
-            </th>
-
-            <th class="w-32 text-center">
-
-              <span class="inline-flex items-center justify-center gap-1">
-
-                <span>
-                  Seguimiento
-                </span>
-
-                <button type="button"
-                        class="btn btn-ghost btn-xs btn-circle text-base-content/70"
-                        aria-label="Ver explicación de seguimiento"
-                        onclick="document.getElementById('seguimiento-legend-dialog').showModal()">
-
-                  <svg xmlns="http://www.w3.org/2000/svg"
-                       fill="none"
-                       viewBox="0 0 24 24"
-                       stroke-width="1.5"
-                       stroke="currentColor"
-                       class="size-4">
-
-                    <path stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093v.75m0 3.75h.008v.008H12v-.008Z" />
-
-                    <circle cx="12"
-                            cy="12"
-                            r="9"
-                            stroke="currentColor"
-                            stroke-width="1.5" />
-
-                  </svg>
-
-                </button>
-
-              </span>
-
             </th>
 
             <th class="w-32 text-center">
@@ -174,10 +136,16 @@
 
                   <div class="space-y-2">
 
-                    <p class="text-sm font-medium leading-relaxed text-base-content/90"
-                       title="{{ activity.accion|striptags }}">
+                    <button type="button"
+                            class="text-left text-sm font-medium leading-relaxed text-base-content/90 hover:text-primary hover:underline"
+                            title="{{ activity.accion|striptags }}"
+                            hx-get="{% url 'pas:activity-detail' activity.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+
                       {{ item.descripcion_corta }}
-                    </p>
+
+                    </button>
 
 
                     <div class="flex flex-wrap gap-2 text-xs text-base-content/55">
@@ -215,26 +183,6 @@
                         {{ activity.recursos }}
 
                       </p>
-
-                    {% endif %}
-
-
-                    {% if item.latest_followup %}
-
-                      <div class="rounded-lg bg-base-200/60 p-3 text-xs text-base-content/70">
-
-                        <p class="font-semibold text-base-content/80">
-
-                          Último seguimiento ·
-                          {{ item.latest_followup.fecha|date:'d/m/Y' }}
-
-                        </p>
-
-                        <p class="mt-1">
-                          {{ item.latest_followup.descripcion|striptags|truncatechars:160 }}
-                        </p>
-
-                      </div>
 
                     {% endif %}
 
@@ -381,23 +329,9 @@
                 </td>
 
 
-                <td class="text-center align-middle">
-
-                  <button type="button"
-                          class="btn btn-ghost btn-sm px-3"
-                          hx-get="{% url 'pas:followup-list' activity.pk %}"
-                          hx-target="#pas-modal-content"
-                          hx-swap="innerHTML"
-                          title="Ver seguimientos">
-
-                    <span class="badge badge-outline badge-md min-w-[3rem] min-h-[2.5rem] items-center justify-center text-base">
-                      {{ item.followup_count }}
-                    </span>
-
-                  </button>
-
-                </td>
-
+                {# ========================================== #}
+                {# EVIDENCIAS                                 #}
+                {# ========================================== #}
 
                 <td class="text-center align-middle">
 
@@ -406,23 +340,37 @@
                 </td>
 
 
+                {# ========================================== #}
+                {# ESTADO                                    #}
+                {# ========================================== #}
+
                 <td class="text-center align-middle">
 
                   {% with badge=item.badge %}
 
-                    <span class="badge badge-lg min-h-[3.125rem] items-center px-4 text-center {{ badge.classes }}"
-                          title="{{ badge.title }}">
+                    <button type="button"
+                            class="badge badge-lg min-h-[3.125rem] items-center px-4 text-center {{ badge.classes }} cursor-pointer"
+                            title="{{ badge.title }}"
+                            hx-get="{% url 'pas:activity-detail' activity.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
                       {{ badge.text }}
-                    </span>
+                    </button>
 
                   {% endwith %}
 
                 </td>
 
 
+                {# ========================================== #}
+                {# ACCIONES                                  #}
+                {# ========================================== #}
+
                 <td class="text-center">
 
                   <div class="flex flex-col items-center gap-2">
+
+
 
                     {% if can_modify %}
 
@@ -496,7 +444,7 @@
         </h3>
 
         <p class="text-sm">
-          Agrega la primera para comenzar a dar seguimiento al plan.
+          Agrega la primera para comenzar a operar el plan.
         </p>
 
       </div>
@@ -506,78 +454,6 @@
   {% endif %}
 
 </div>
-
-
-{# ======================================================== #}
-{# AYUDA: SEGUIMIENTO                                       #}
-{# ======================================================== #}
-
-<dialog id="seguimiento-legend-dialog"
-        class="modal">
-
-  <div class="modal-box max-w-lg space-y-4">
-
-    <h3 class="text-lg font-semibold text-base-content">
-      ¿Qué es el seguimiento?
-    </h3>
-
-    <p class="text-sm text-base-content/80">
-      Los seguimientos son anotaciones de control
-      asociadas a una actividad.
-    </p>
-
-    <p class="text-sm text-base-content/80">
-      Permiten registrar avances, incidencias,
-      revisiones, respuestas o situaciones relevantes
-      durante su ejecución.
-    </p>
-
-    <div class="rounded-xl bg-base-200 p-4">
-
-      <p class="text-sm font-semibold text-base-content">
-        No es lo mismo que una ejecución.
-      </p>
-
-      <p class="mt-1 text-sm text-base-content/70">
-        La ejecución representa una obligación concreta
-        programada en una fecha y ámbito determinados.
-        El seguimiento únicamente documenta información
-        relevante sobre la actividad.
-      </p>
-
-    </div>
-
-    <p class="text-sm text-base-content/70">
-      Tampoco sustituye la evidencia registrada para
-      una ejecución.
-    </p>
-
-    <div class="text-right">
-
-      <form method="dialog">
-
-        <button type="submit"
-                class="btn btn-primary btn-sm">
-          Entendido
-        </button>
-
-      </form>
-
-    </div>
-
-  </div>
-
-
-  <form method="dialog"
-        class="modal-backdrop">
-
-    <button aria-label="Cerrar">
-      Cerrar
-    </button>
-
-  </form>
-
-</dialog>
 
 
 {# ======================================================== #}
@@ -629,7 +505,7 @@
         </span>
 
         <span>
-          Todas las ejecuciones de la actividad están terminadas.
+          Todas las ejecuciones de la actividad están cerradas.
         </span>
 
       </li>
