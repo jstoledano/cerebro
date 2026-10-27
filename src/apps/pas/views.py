@@ -1893,6 +1893,57 @@ class PASDetail(DetailView):
         return context
 
 
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class PlanSourceDocumentView(
+    View
+):
+    def get(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
+
+        plan = get_object_or_404(
+            visible_plans,
+            pk=kwargs["pk"],
+        )
+
+        if not plan.documento_fuente:
+            raise Http404(
+                "El plan no tiene documento fuente."
+            )
+
+        try:
+            archivo = (
+                plan.documento_fuente
+                .open("rb")
+            )
+        except FileNotFoundError:
+            raise Http404(
+                "No se encontró el documento fuente."
+            )
+
+        nombre = (
+            plan.documento_fuente.name
+            .rsplit("/", 1)[-1]
+        )
+
+        return FileResponse(
+            archivo,
+            as_attachment=False,
+            filename=nombre,
+        )
+
+
 class PlanSummaryView(DetailView):
     model = Plan
     template_name = "pas/partials/_plan_summary.html"

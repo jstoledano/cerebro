@@ -282,8 +282,13 @@
               Documento fuente
             </dt>
 
-            <dd class="text-base-content/70">
-              {{ plan.documento_fuente.name|cut:"pas/documentos/" }}
+            <dd>
+              <a href="{% url 'pas:plan-source-document' plan.pk %}"
+                 target="_blank"
+                 rel="noopener"
+                 class="link link-primary">
+                {{ plan.documento_fuente.name|cut:"pas/documentos/" }}
+              </a>
             </dd>
 
           </div>

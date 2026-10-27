@@ -9,6 +9,7 @@ from .views import (
     PlanActivitiesView,
     PlanUpdateView,
     PlanClosureView,
+    PlanSourceDocumentView,
     ActivityCreateView,
     ActivityDetailView,
     ActivityUpdateView,
@@ -57,6 +58,11 @@ urlpatterns = [
         "detalle/<int:pk>/",
         PASDetail.as_view(),
         name="detalle",
+    ),
+    path(
+        "detalle/<int:pk>/documento-fuente/",
+        PlanSourceDocumentView.as_view(),
+        name="plan-source-document",
     ),
     path(
         "<int:pk>/summary/",
