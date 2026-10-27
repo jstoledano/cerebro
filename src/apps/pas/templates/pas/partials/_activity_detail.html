@@ -17,22 +17,24 @@
       </span>
 
       {% if activity.prioridad == "critica" %}
+
         <span class="badge badge-error">
           Crítica
         </span>
+
       {% elif activity.prioridad == "urgente" %}
+
         <span class="badge badge-warning">
           Urgente
         </span>
+
       {% endif %}
 
     </div>
 
 
     <div class="prose prose-sm max-w-none">
-
       {{ activity.accion|safe }}
-
     </div>
 
 
@@ -86,36 +88,53 @@
     <dl class="grid gap-4 text-sm md:grid-cols-2">
 
       <div>
+
         <dt class="font-semibold text-base-content/55">
           Inicio
         </dt>
 
         <dd class="mt-1">
+
           {% if activity.fecha_inicio %}
+
             {{ activity.fecha_inicio|date:"d/m/Y" }}
+
           {% else %}
+
             —
+
           {% endif %}
+
         </dd>
+
       </div>
 
 
       <div>
+
         <dt class="font-semibold text-base-content/55">
           Término
         </dt>
 
         <dd class="mt-1">
+
           {% if activity.fecha_fin %}
+
             {{ activity.fecha_fin|date:"d/m/Y" }}
+
           {% else %}
+
             Sin fecha de término
+
           {% endif %}
+
         </dd>
+
       </div>
 
 
       <div>
+
         <dt class="font-semibold text-base-content/55">
           Responsable normativo
         </dt>
@@ -123,10 +142,12 @@
         <dd class="mt-1">
           {{ responsable_normativo }}
         </dd>
+
       </div>
 
 
       <div>
+
         <dt class="font-semibold text-base-content/55">
           Responsable operativo
         </dt>
@@ -134,12 +155,14 @@
         <dd class="mt-1">
           {{ responsable_operativo }}
         </dd>
+
       </div>
 
 
       {% if proxima_ejecucion %}
 
         <div>
+
           <dt class="font-semibold text-base-content/55">
             Próxima acción pendiente
           </dt>
@@ -149,16 +172,20 @@
             {{ proxima_ejecucion.fecha_fin|date:"d/m/Y" }}
 
             {% if proxima_ejecucion.ciclo.etiqueta %}
+
               · {{ proxima_ejecucion.ciclo.etiqueta }}
+
             {% endif %}
 
           </dd>
+
         </div>
 
       {% endif %}
 
 
       <div>
+
         <dt class="font-semibold text-base-content/55">
           Ámbitos
         </dt>
@@ -167,13 +194,17 @@
 
           {% if activity.ambitos %}
 
-            {% for ambito in activity.ambitos %}
+            <div class="flex flex-wrap gap-1">
 
-              <span class="badge badge-ghost badge-sm">
-                {{ ambito }}
-              </span>
+              {% for ambito in activity.ambitos %}
 
-            {% endfor %}
+                <span class="badge badge-ghost badge-sm">
+                  {{ ambito }}
+                </span>
+
+              {% endfor %}
+
+            </div>
 
           {% else %}
 
@@ -182,6 +213,7 @@
           {% endif %}
 
         </dd>
+
       </div>
 
     </dl>
@@ -222,6 +254,12 @@
 
         </div>
 
+      {% else %}
+
+        <p class="mt-3 text-sm text-base-content/50">
+          No se registró una descripción de la evidencia esperada.
+        </p>
+
       {% endif %}
 
 
@@ -247,9 +285,17 @@
 
     <div class="flex items-center justify-between gap-3">
 
-      <h4 class="font-semibold">
-        Ejecuciones
-      </h4>
+      <div>
+
+        <h4 class="font-semibold">
+          Ejecuciones
+        </h4>
+
+        <p class="mt-1 text-xs text-base-content/50">
+          Cada fila representa una ocurrencia concreta de la actividad.
+        </p>
+
+      </div>
 
       <span class="badge badge-outline">
         {{ ejecuciones|length }}
@@ -267,12 +313,35 @@
           <thead>
 
             <tr>
-              <th>Fecha</th>
-              <th>Ciclo</th>
-              <th>Ámbito</th>
-              <th>Responsable</th>
-              <th>Estado</th>
-              <th>Evidencia</th>
+
+              <th>
+                Fecha
+              </th>
+
+              <th>
+                Ciclo
+              </th>
+
+              <th>
+                Ámbito
+              </th>
+
+              <th>
+                Responsable
+              </th>
+
+              <th>
+                Estado
+              </th>
+
+              <th>
+                Evidencia
+              </th>
+
+              <th class="text-right">
+                Acciones
+              </th>
+
             </tr>
 
           </thead>
@@ -282,7 +351,11 @@
 
             {% for execution in ejecuciones %}
 
-              <tr>
+              <tr class="{% if execution.completada %}opacity-60{% endif %}">
+
+                {# ========================================== #}
+                {# FECHA                                     #}
+                {# ========================================== #}
 
                 <td class="whitespace-nowrap">
 
@@ -301,15 +374,27 @@
                 </td>
 
 
+                {# ========================================== #}
+                {# CICLO                                     #}
+                {# ========================================== #}
+
                 <td>
                   {{ execution.ciclo.etiqueta|default:"—" }}
                 </td>
 
 
+                {# ========================================== #}
+                {# ÁMBITO                                    #}
+                {# ========================================== #}
+
                 <td>
                   {{ execution.get_ambito_display }}
                 </td>
 
+
+                {# ========================================== #}
+                {# RESPONSABLE                               #}
+                {# ========================================== #}
 
                 <td>
 
@@ -334,6 +419,10 @@
                 </td>
 
 
+                {# ========================================== #}
+                {# ESTADO                                    #}
+                {# ========================================== #}
+
                 <td>
 
                   {% if execution.completada %}
@@ -348,16 +437,32 @@
                       Vencida
                     </span>
 
+                  {% elif execution.fecha_fin == today %}
+
+                    <span class="badge badge-warning badge-sm">
+                      Vence hoy
+                    </span>
+
+                  {% elif execution.fecha_inicio <= today and today < execution.fecha_fin %}
+
+                    <span class="badge badge-info badge-outline badge-sm">
+                      En curso
+                    </span>
+
                   {% else %}
 
-                    <span class="badge badge-warning badge-outline badge-sm">
-                      Pendiente
+                    <span class="badge badge-ghost badge-sm">
+                      Programada
                     </span>
 
                   {% endif %}
 
                 </td>
 
+
+                {# ========================================== #}
+                {# EVIDENCIA                                 #}
+                {# ========================================== #}
 
                 <td>
 
@@ -375,14 +480,99 @@
                             hx-target="#pas-modal-content"
                             hx-swap="innerHTML">
 
-                      Ver evidencia
+                      Evidencia ✓
+
+                    </button>
+
+                  {% elif can_modify and perms.pas.add_evidencia %}
+
+                    <button type="button"
+                            class="btn btn-outline btn-xs"
+                            hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+                            hx-target="#pas-modal-content"
+                            hx-swap="innerHTML">
+
+                      Registrar
 
                     </button>
 
                   {% else %}
 
                     <span class="text-xs text-base-content/45">
-                      Sin evidencia
+                      Pendiente
+                    </span>
+
+                  {% endif %}
+
+                </td>
+
+
+                {# ========================================== #}
+                {# CERRAR / REABRIR                          #}
+                {# ========================================== #}
+
+                <td class="text-right">
+
+                  {% if can_modify %}
+
+                    {% if execution.puede_gestionar %}
+
+                      {% if execution.completada %}
+
+                        <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                              hx-swap="none"
+                              class="inline">
+
+                          {% csrf_token %}
+
+                          <input type="hidden"
+                                 name="action"
+                                 value="reopen">
+
+                          <button type="submit"
+                                  class="btn btn-ghost btn-xs">
+
+                            Reabrir
+
+                          </button>
+
+                        </form>
+
+                      {% else %}
+
+                        <form hx-post="{% url 'pas:execution-complete' execution.pk %}"
+                              hx-swap="none"
+                              class="inline">
+
+                          {% csrf_token %}
+
+                          <input type="hidden"
+                                 name="action"
+                                 value="complete">
+
+                          <button type="submit"
+                                  class="btn btn-success btn-outline btn-xs">
+
+                            Cerrar
+
+                          </button>
+
+                        </form>
+
+                      {% endif %}
+
+                    {% else %}
+
+                      <span class="text-xs text-base-content/40">
+                        Solo lectura
+                      </span>
+
+                    {% endif %}
+
+                  {% else %}
+
+                    <span class="text-xs text-base-content/40">
+                      Plan cerrado
                     </span>
 
                   {% endif %}
@@ -402,7 +592,9 @@
     {% else %}
 
       <div class="rounded-2xl border border-dashed border-base-300 p-6 text-center text-sm text-base-content/50">
+
         La actividad todavía no tiene ejecuciones.
+
       </div>
 
     {% endif %}
@@ -411,7 +603,24 @@
 
 
   {# ====================================================== #}
-  {# ACCIONES                                               #}
+  {# NOTA                                                   #}
+  {# ====================================================== #}
+
+  <div class="rounded-2xl bg-base-200/50 p-4">
+
+    <p class="text-xs leading-relaxed text-base-content/60">
+
+      Cerrar una ejecución únicamente registra que esa ocurrencia
+      fue realizada. La existencia de un archivo de evidencia no
+      implica revisión, aprobación o validación de su contenido.
+
+    </p>
+
+  </div>
+
+
+  {# ====================================================== #}
+  {# PIE                                                    #}
   {# ====================================================== #}
 
   <footer class="flex flex-wrap justify-end gap-2 border-t border-base-300 pt-4">
@@ -419,13 +628,17 @@
     <button type="button"
             class="btn btn-ghost btn-sm"
             data-close-modal="pas-modal">
+
       Cerrar ventana
+
     </button>
 
 
     <a href="{% url 'pas:detalle' plan.pk %}"
        class="btn btn-outline btn-sm">
+
       Ver plan completo
+
     </a>
 
   </footer>

@@ -171,6 +171,91 @@ def obtener_claves_normativas_agenda(
     return unidades
 
 
+def usuario_puede_gestionar_ejecucion(
+    user,
+    execution,
+):
+    """
+    Determina si un usuario puede cerrar o reabrir
+    una ejecución concreta.
+
+    Pueden hacerlo:
+
+    - el creador del plan;
+    - el responsable operativo de la ejecución;
+    - quien tenga responsabilidad normativa sobre
+      la actividad;
+    - un supervisor funcional de esa responsabilidad;
+    - quien tenga permiso change_ejecucion;
+    - un superusuario.
+    """
+
+    if (
+        not user
+        or not user.is_authenticated
+    ):
+        return False
+
+    if user.is_superuser:
+        return True
+
+    if user.has_perm(
+        "pas.change_ejecucion"
+    ):
+        return True
+
+    # ------------------------------------------------------
+    # Responsable operativo
+    # ------------------------------------------------------
+
+    if (
+        execution.responsable_id
+        == user.id
+    ):
+        return True
+
+    plan = execution.plan
+
+    # ------------------------------------------------------
+    # Creador del plan
+    # ------------------------------------------------------
+
+    if (
+        plan.user_id
+        and plan.user_id == user.id
+    ):
+        return True
+
+    # ------------------------------------------------------
+    # Responsabilidad normativa
+    # ------------------------------------------------------
+
+    actividad = execution.accion
+
+    if not actividad.puesto_responsable:
+        return False
+
+    perfil = getattr(
+        user,
+        "profile",
+        None,
+    )
+
+    if not perfil:
+        return False
+
+    claves_normativas = (
+        obtener_claves_normativas_agenda(
+            perfil
+        )
+    )
+
+    return (
+        actividad.puesto_responsable
+        in claves_normativas
+    )
+
+
 @method_decorator(
     login_required,
     name="dispatch",
@@ -2595,6 +2680,7 @@ class ExecutionCompleteView(View):
                 "ciclo",
                 "ciclo__accion",
                 "ciclo__accion__plan",
+                "ciclo__accion__plan__user",
                 "responsable",
             )
             .filter(
@@ -2605,28 +2691,28 @@ class ExecutionCompleteView(View):
             pk=kwargs["pk"],
         )
 
-        puede_actualizar = (
-            execution.responsable_id
-            == request.user.id
-            or request.user.has_perm(
-                "pas.change_ejecucion"
+        if not (
+            usuario_puede_gestionar_ejecucion(
+                request.user,
+                execution,
             )
-        )
-
-        if not puede_actualizar:
+        ):
             return HttpResponse(
                 (
                     "No tienes permiso para "
-                    "actualizar esta ejecución."
+                    "cerrar o reabrir esta ejecución."
                 ),
                 status=403,
             )
 
-        if not execution.plan.permite_modificaciones:
+        if not (
+            execution.plan
+            .permite_modificaciones
+        ):
             return HttpResponse(
                 (
                     "El plan se encuentra cerrado "
-                    "o con recurrencia registrada."
+                    "o no admite modificaciones."
                 ),
                 status=409,
             )
@@ -2702,16 +2788,12 @@ class ActivityDetailView(
         self,
         **kwargs,
     ):
-        context = super().get_context_data(
-            **kwargs
-        )
+        context = super().get_context_data(**kwargs)
 
         activity = self.object
 
         ciclos = list(
-            activity.ciclos
-            .all()
-            .order_by(
+            activity.ciclos.all().order_by(
                 "fecha_inicio",
                 "numero",
             )
@@ -2720,40 +2802,28 @@ class ActivityDetailView(
         ejecuciones = []
 
         for ciclo in ciclos:
-            for ejecucion in (
-                ciclo.ejecuciones
-                .all()
-                .order_by(
-                    "ambito",
-                    "pk",
-                )
+            for ejecucion in ciclo.ejecuciones.all().order_by(
+                "ambito",
+                "pk",
             ):
-                ejecuciones.append(
-                    ejecucion
+                ejecucion.puede_gestionar = usuario_puede_gestionar_ejecucion(
+                    self.request.user,
+                    ejecucion,
                 )
+
+                ejecuciones.append(ejecucion)
 
         unidad_normativa = None
 
         if activity.puesto_responsable:
-            unidad_normativa = (
-                UnidadOrganizacional.objects
-                .filter(
-                    clave=(
-                        activity
-                        .puesto_responsable
-                    )
-                )
-                .first()
-            )
+            unidad_normativa = UnidadOrganizacional.objects.filter(
+                clave=(activity.puesto_responsable)
+            ).first()
 
         responsable_normativo = (
-            unidad_normativa
-            .etiqueta_funcional
+            unidad_normativa.etiqueta_funcional
             if unidad_normativa
-            else (
-                activity.puesto_responsable
-                or "—"
-            )
+            else (activity.puesto_responsable or "—")
         )
 
         responsable_operativo = "—"
@@ -2766,23 +2836,15 @@ class ActivityDetailView(
             )
 
             if perfil_operativo:
-                responsable_operativo = (
-                    perfil_operativo
-                    .nombre_calendario
-                )
+                responsable_operativo = perfil_operativo.nombre_calendario
             else:
                 responsable_operativo = (
-                    activity.responsable
-                    .get_full_name()
-                    or activity.responsable
-                    .username
+                    activity.responsable.get_full_name()
+                    or activity.responsable.username
                 )
 
         ejecuciones_pendientes = [
-            ejecucion
-            for ejecucion
-            in ejecuciones
-            if not ejecucion.completada
+            ejecucion for ejecucion in ejecuciones if not ejecucion.completada
         ]
 
         proxima_ejecucion = None
@@ -2812,3 +2874,4 @@ class ActivityDetailView(
         )
 
         return context
+
