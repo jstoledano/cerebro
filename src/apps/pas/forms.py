@@ -28,6 +28,7 @@ from .models import (
     A_ESTADO,
     CERRADA,
     CNC,
+    PERIODICIDAD_CONTINUA,
 )
 
 
@@ -404,11 +405,38 @@ class AccionForm(forms.ModelForm):
 
         fecha_fin = cleaned_data.get("fecha_fin")
 
+        periodicidad = cleaned_data.get("periodicidad")
+
+        # ======================================================
+        # Fechas
+        # ======================================================
+
         if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
             self.add_error(
                 "fecha_fin",
                 ("La fecha de término no puede ser anterior a la fecha de inicio."),
             )
+
+        # ------------------------------------------------------
+        # Continua siempre representa un intervalo.
+        # ------------------------------------------------------
+
+        if periodicidad == PERIODICIDAD_CONTINUA:
+            if not fecha_inicio:
+                self.add_error(
+                    "fecha_inicio",
+                    ("Una actividad continua debe tener fecha de inicio."),
+                )
+
+            if not fecha_fin:
+                self.add_error(
+                    "fecha_fin",
+                    ("Una actividad continua debe tener fecha de término."),
+                )
+
+        # ======================================================
+        # Ámbitos
+        # ======================================================
 
         ambitos = cleaned_data.get("ambitos") or []
 
@@ -418,23 +446,23 @@ class AccionForm(forms.ModelForm):
 
         responsable = cleaned_data.get("responsable")
 
-        # ------------------------------------------------------
-        # La asignación debe seguir un solo mecanismo:
+        # ======================================================
+        # Responsabilidad
         #
-        # 1. Responsable operativo concreto
-        #    o
-        # 2. Puesto/unidad responsable resuelto por ámbito.
+        # Normativo y operativo pueden coexistir.
         #
-        # Nunca ambos.
-        # ------------------------------------------------------
+        # Cuando existen varios ámbitos necesitamos una unidad
+        # normativa que permita resolver las equivalencias por
+        # Junta Local / Distrital.
+        # ======================================================
 
         if len(ambitos) > 1 and not puesto_responsable:
             self.add_error(
                 "puesto_responsable",
                 (
                     "Para una actividad con varios "
-                    "ámbitos selecciona el puesto "
-                    "responsable."
+                    "ámbitos selecciona el responsable "
+                    "normativo."
                 ),
             )
 
@@ -444,20 +472,32 @@ class AccionForm(forms.ModelForm):
                 ("Selecciona un responsable operativo o un responsable normativo."),
             )
 
+        # ======================================================
+        # Creación
+        # ======================================================
+
         if not self.instance.pk:
             return cleaned_data
+
+        # ======================================================
+        # Edición
+        #
+        # Si cambia la estructura de ejecución y ya existen
+        # evidencias, no modificamos retrospectivamente los
+        # ciclos a los que esas evidencias pertenecen.
+        # ======================================================
 
         original = Accion.objects.get(pk=self.instance.pk)
 
         estructura_modificada = any(
             [
-                original.periodicidad != cleaned_data.get("periodicidad"),
-                set(original.ambitos or []) != set(ambitos),
-                original.fecha_inicio != fecha_inicio,
-                original.fecha_fin != fecha_fin,
-                original.formato_evidencia != cleaned_data.get("formato_evidencia"),
-                original.puesto_responsable != puesto_responsable,
-                original.responsable_id != (responsable.pk if responsable else None),
+                (original.periodicidad != periodicidad),
+                (set(original.ambitos or []) != set(ambitos)),
+                (original.fecha_inicio != fecha_inicio),
+                (original.fecha_fin != fecha_fin),
+                (original.formato_evidencia != cleaned_data.get("formato_evidencia")),
+                (original.puesto_responsable != puesto_responsable),
+                (original.responsable_id != (responsable.pk if responsable else None)),
             ]
         )
 
@@ -479,6 +519,7 @@ class AccionForm(forms.ModelForm):
             )
 
         return cleaned_data
+
 
 class SeguimientoForm(forms.ModelForm):
     estado = forms.ChoiceField(
@@ -569,7 +610,7 @@ class SeguimientoForm(forms.ModelForm):
         apply_tailwind_widgets(
             self
         )
-        
+
 
 class PlanClosureForm(forms.Form):
     RESULTADO_CHOICES = (

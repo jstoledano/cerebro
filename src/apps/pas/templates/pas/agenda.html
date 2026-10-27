@@ -240,8 +240,6 @@
 </section>
 
 
-
-
 {# ======================================================== #}
 {# MODAL                                                    #}
 {# ======================================================== #}
@@ -285,19 +283,6 @@
         )
       );
 
-      const modal = (
-        document.getElementById(
-          'pas-modal'
-        )
-      );
-
-      const modalContent = (
-        document.getElementById(
-          'pas-modal-content'
-        )
-      );
-
-
       if (
         !calendarElement
         || typeof FullCalendar === 'undefined'
@@ -309,7 +294,6 @@
       function applyEventStyle(
         info
       ) {
-
         const estado = (
           info.event
           .extendedProps
@@ -324,7 +308,6 @@
 
 
         if (estado === 'vencida') {
-
           info.el.style.backgroundColor = (
             'var(--fallback-er, oklch(var(--er)))'
           );
@@ -334,11 +317,9 @@
           );
 
           info.el.style.color = 'white';
-
         }
 
         else if (estado === 'vence_hoy') {
-
           info.el.style.backgroundColor = (
             'var(--fallback-wa, oklch(var(--wa)))'
           );
@@ -346,11 +327,9 @@
           info.el.style.borderColor = (
             'var(--fallback-wa, oklch(var(--wa)))'
           );
-
         }
 
         else if (estado === 'inicia_hoy') {
-
           info.el.style.backgroundColor = (
             'var(--fallback-in, oklch(var(--in)))'
           );
@@ -358,32 +337,23 @@
           info.el.style.borderColor = (
             'var(--fallback-in, oklch(var(--in)))'
           );
-
         }
 
         else if (estado === 'terminada') {
-
           info.el.style.opacity = '0.55';
 
           info.el.style.textDecoration = (
             'line-through'
           );
-
         }
 
 
         if (esMia) {
-
-          info.el.style.fontWeight = (
-            '700'
-          );
-
+          info.el.style.fontWeight = '700';
         }
 
 
-        info.el.style.cursor = (
-          'pointer'
-        );
+        info.el.style.cursor = 'pointer';
 
 
         info.el.title = [
@@ -393,79 +363,33 @@
         ]
           .filter(Boolean)
           .join(' · ');
-
       }
 
 
-      function addDetailRow(
-        container,
-        label,
-        value
-      ) {
-
-        const row = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        row.className = (
-          'grid gap-1 border-b '
-          + 'border-base-200 py-3 '
-          + 'sm:grid-cols-3'
-        );
-
-
-        const labelElement = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        labelElement.className = (
-          'text-sm font-semibold '
-          + 'text-base-content/60'
-        );
-
-        labelElement.textContent = (
-          label
-        );
-
-
-        const valueElement = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        valueElement.className = (
-          'text-sm text-base-content '
-          + 'sm:col-span-2'
-        );
-
-        valueElement.textContent = (
-          value || '—'
-        );
-
-
-        row.appendChild(
-          labelElement
-        );
-
-        row.appendChild(
-          valueElement
-        );
-
-        container.appendChild(
-          row
-        );
-
-      }
-
-
-      function showEventDetail(
+      function openActivityDetail(
         event
       ) {
+        const detailUrl = (
+          event
+          .extendedProps
+          .activityDetailUrl
+        );
+
+        if (!detailUrl) {
+          return;
+        }
+
+        const modal = (
+          document.getElementById(
+            'pas-modal'
+          )
+        );
+
+        const modalContent = (
+          document.getElementById(
+            'pas-modal-content'
+          )
+        );
 
         if (
           !modal
@@ -474,271 +398,18 @@
           return;
         }
 
-
-        modalContent.innerHTML = '';
-
-
-        const props = (
-          event.extendedProps
-        );
-
-
-        const header = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        header.className = (
-          'flex items-start '
-          + 'justify-between gap-4'
-        );
-
-
-        const headingWrapper = (
-          document.createElement(
-            'div'
-          )
-        );
-
-
-        const eyebrow = (
-          document.createElement(
-            'p'
-          )
-        );
-
-        eyebrow.className = (
-          'text-sm font-medium text-primary'
-        );
-
-        eyebrow.textContent = (
-          props.esMia
-            ? 'Mi tarea'
-            : 'Actividad bajo seguimiento'
-        );
-
-
-        const heading = (
-          document.createElement(
-            'h3'
-          )
-        );
-
-        heading.className = (
-          'mt-1 text-xl font-bold'
-        );
-
-        heading.textContent = (
-          event.title
-        );
-
-
-        headingWrapper.appendChild(
-          eyebrow
-        );
-
-        headingWrapper.appendChild(
-          heading
-        );
-
-
-        const closeButton = (
-          document.createElement(
-            'button'
-          )
-        );
-
-        closeButton.type = 'button';
-
-        closeButton.className = (
-          'btn btn-ghost btn-sm btn-circle'
-        );
-
-        closeButton.textContent = '✕';
-
-        closeButton.addEventListener(
-          'click',
-          function () {
-            modal.close();
-          }
-        );
-
-
-        header.appendChild(
-          headingWrapper
-        );
-
-        header.appendChild(
-          closeButton
-        );
-
-
-        const details = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        details.className = 'mt-6';
-
-
-        addDetailRow(
-          details,
-          'Plan',
-          (
-            props.folio
-              ? (
-                  props.folio
-                  + ' — '
-                  + props.plan
-                )
-              : props.plan
-          )
-        );
-
-
-addDetailRow(
-  details,
-  'Responsable normativo',
-  props.responsableNormativo
-);
-
-
-addDetailRow(
-  details,
-  'Responsable operativo',
-  props.responsableOperativo
-);
-
-
-if (props.unidadOperativa) {
-
-  addDetailRow(
-    details,
-    'Unidad operativa',
-    props.unidadOperativa
-  );
-
-}
-
-
-        addDetailRow(
-          details,
-          'Ciclo',
-          props.ciclo
-        );
-
-
-        addDetailRow(
-          details,
-          'Ámbito',
-          props.ambito
-        );
-
-
-        addDetailRow(
-          details,
-          'Fecha',
-          event.startStr
-        );
-
-
-        addDetailRow(
-          details,
-          'Estado',
-          props.estadoDisplay
-        );
-
-
-        addDetailRow(
-          details,
-          'Evidencia',
-          props.evidencia
-        );
-
-
-        const actions = (
-          document.createElement(
-            'div'
-          )
-        );
-
-        actions.className = (
-          'mt-6 flex flex-wrap '
-          + 'justify-end gap-3'
-        );
-
-
-        const closeAction = (
-          document.createElement(
-            'button'
-          )
-        );
-
-        closeAction.type = 'button';
-
-        closeAction.className = (
-          'btn btn-ghost btn-sm'
-        );
-
-        closeAction.textContent = (
-          'Cerrar'
-        );
-
-        closeAction.addEventListener(
-          'click',
-          function () {
-            modal.close();
-          }
-        );
-
-
-        const planLink = (
-          document.createElement(
-            'a'
-          )
-        );
-
-        planLink.href = (
-          props.planUrl
-        );
-
-        planLink.className = (
-          'btn btn-primary btn-sm'
-        );
-
-        planLink.textContent = (
-          'Ver plan'
-        );
-
-
-        actions.appendChild(
-          closeAction
-        );
-
-        actions.appendChild(
-          planLink
-        );
-
-
-        modalContent.appendChild(
-          header
-        );
-
-        modalContent.appendChild(
-          details
-        );
-
-        modalContent.appendChild(
-          actions
-        );
-
-
         if (!modal.open) {
           modal.showModal();
         }
 
+        htmx.ajax(
+          'GET',
+          detailUrl,
+          {
+            target: '#pas-modal-content',
+            swap: 'innerHTML',
+          }
+        );
       }
 
 
@@ -746,7 +417,6 @@ if (props.unidadOperativa) {
         new FullCalendar.Calendar(
           calendarElement,
           {
-
             initialView: (
               'dayGridMonth'
             ),
@@ -802,13 +472,11 @@ if (props.unidadOperativa) {
             eventClick: function (
               info
             ) {
-
               info.jsEvent.preventDefault();
 
-              showEventDetail(
+              openActivityDetail(
                 info.event
               );
-
             }
 
           }
@@ -821,7 +489,6 @@ if (props.unidadOperativa) {
     }
   );
 </script>
-
 
 <script>
   (function () {

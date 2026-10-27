@@ -48,6 +48,7 @@ from .models import (
     PERIODICIDAD_ANUAL,
     PRIORIDAD_URGENTE,
     PRIORIDAD_CRITICA,
+    PERIODICIDAD_CONTINUA,
 )
 from apps.profiles.models import (
     UnidadOrganizacional,
@@ -965,22 +966,47 @@ class CalendarEventsView(View):
         *args,
         **kwargs,
     ):
-        start_value = request.GET.get("start")
+        start_value = request.GET.get(
+            "start"
+        )
 
-        end_value = request.GET.get("end")
+        end_value = request.GET.get(
+            "end"
+        )
 
         try:
-            fecha_inicio = date.fromisoformat(start_value[:10]) if start_value else None
+            fecha_inicio = (
+                date.fromisoformat(
+                    start_value[:10]
+                )
+                if start_value
+                else None
+            )
 
-            fecha_fin = date.fromisoformat(end_value[:10]) if end_value else None
+            fecha_fin = (
+                date.fromisoformat(
+                    end_value[:10]
+                )
+                if end_value
+                else None
+            )
 
         except ValueError:
             return JsonResponse(
-                {"error": ("El rango de fechas no es válido.")},
+                {
+                    "error": (
+                        "El rango de fechas "
+                        "no es válido."
+                    )
+                },
                 status=400,
             )
 
-        visible_plans = Plan.objects.visible_to(request.user)
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
 
         # ======================================================
         # Perfil y alcance de agenda
@@ -993,20 +1019,34 @@ class CalendarEventsView(View):
         )
 
         if perfil:
-            responsables = list(perfil.obtener_usuarios_agenda())
+            responsables = list(
+                perfil.obtener_usuarios_agenda()
+            )
 
-            es_supervisor_agenda = perfil.es_supervisor_agenda
+            es_supervisor_agenda = (
+                perfil.es_supervisor_agenda
+            )
 
-            claves_normativas = obtener_claves_normativas_agenda(perfil)
+            claves_normativas = (
+                obtener_claves_normativas_agenda(
+                    perfil
+                )
+            )
 
         else:
-            responsables = [request.user]
+            responsables = [
+                request.user
+            ]
 
             es_supervisor_agenda = False
 
             claves_normativas = set()
 
-        responsables_ids = {usuario.pk for usuario in responsables}
+        responsables_ids = {
+            usuario.pk
+            for usuario
+            in responsables
+        }
 
         # ======================================================
         # Catálogo organizacional
@@ -1014,7 +1054,13 @@ class CalendarEventsView(View):
 
         unidades_organizacionales = {
             unidad.clave: unidad
-            for unidad in (UnidadOrganizacional.objects.filter(activa=True))
+            for unidad
+            in (
+                UnidadOrganizacional.objects
+                .filter(
+                    activa=True
+                )
+            )
         }
 
         def unidad_por_clave(
@@ -1023,20 +1069,37 @@ class CalendarEventsView(View):
             if not clave:
                 return None
 
-            return unidades_organizacionales.get(clave)
+            return (
+                unidades_organizacionales
+                .get(
+                    clave
+                )
+            )
 
         def responsable_normativo_display(
             actividad,
         ):
-            if not actividad.puesto_responsable:
+            if not (
+                actividad
+                .puesto_responsable
+            ):
                 return ""
 
-            unidad = unidad_por_clave(actividad.puesto_responsable)
+            unidad = unidad_por_clave(
+                actividad
+                .puesto_responsable
+            )
 
             if not unidad:
-                return actividad.puesto_responsable
+                return (
+                    actividad
+                    .puesto_responsable
+                )
 
-            return unidad.etiqueta_funcional
+            return (
+                unidad
+                .etiqueta_funcional
+            )
 
         def unidad_operativa_display(
             usuario,
@@ -1050,16 +1113,24 @@ class CalendarEventsView(View):
                 None,
             )
 
-            if not perfil_usuario or not perfil_usuario.unidad_organizacional:
+            if (
+                not perfil_usuario
+                or not (
+                    perfil_usuario
+                    .unidad_organizacional
+                )
+            ):
                 return ""
 
-            unidad = perfil_usuario.unidad_organizacional
+            unidad = (
+                perfil_usuario
+                .unidad_organizacional
+            )
 
-            return unidad.nombre_funcional
-
-        # ======================================================
-        # Nombre corto para calendario
-        # ======================================================
+            return (
+                unidad
+                .nombre_funcional
+            )
 
         def nombre_calendario(
             usuario,
@@ -1074,21 +1145,39 @@ class CalendarEventsView(View):
             )
 
             if perfil_usuario:
-                return perfil_usuario.nombre_calendario
+                return (
+                    perfil_usuario
+                    .nombre_calendario
+                )
 
-            return (usuario.get_full_name() or usuario.username)[:10]
+            return (
+                usuario.get_full_name()
+                or usuario.username
+            )[:10]
 
         # ======================================================
         # Ejecuciones materializadas
         # ======================================================
 
         ejecuciones = (
-            Ejecucion.objects.filter(
+            Ejecucion.objects
+            .filter(
                 (
-                    Q(responsable__in=(responsables))
-                    | Q(ciclo__accion__puesto_responsable__in=(claves_normativas))
+                    Q(
+                        responsable__in=(
+                            responsables
+                        )
+                    )
+                    |
+                    Q(
+                        ciclo__accion__puesto_responsable__in=(
+                            claves_normativas
+                        )
+                    )
                 ),
-                ciclo__accion__plan__in=(visible_plans),
+                ciclo__accion__plan__in=(
+                    visible_plans
+                ),
             )
             .select_related(
                 "ciclo",
@@ -1104,6 +1193,7 @@ class CalendarEventsView(View):
             )
             .distinct()
             .order_by(
+                "ciclo__fecha_inicio",
                 "ciclo__fecha_fin",
                 "responsable__first_name",
                 "responsable__last_name",
@@ -1111,11 +1201,52 @@ class CalendarEventsView(View):
             )
         )
 
-        if fecha_inicio:
-            ejecuciones = ejecuciones.filter(ciclo__fecha_fin__gte=(fecha_inicio))
+        # ======================================================
+        # Intersección con el rango visible
+        #
+        # Antes sólo se filtraba por fecha_fin. Eso excluía
+        # actividades largas que empezaban antes del mes y
+        # terminaban después.
+        #
+        # Una ejecución entra si:
+        #
+        # inicio < final del rango
+        # y
+        # fin >= inicio del rango
+        # ======================================================
 
-        if fecha_fin:
-            ejecuciones = ejecuciones.filter(ciclo__fecha_fin__lt=(fecha_fin))
+        if (
+            fecha_inicio
+            and fecha_fin
+        ):
+            ejecuciones = (
+                ejecuciones.filter(
+                    ciclo__fecha_inicio__lt=(
+                        fecha_fin
+                    ),
+                    ciclo__fecha_fin__gte=(
+                        fecha_inicio
+                    ),
+                )
+            )
+
+        elif fecha_inicio:
+            ejecuciones = (
+                ejecuciones.filter(
+                    ciclo__fecha_fin__gte=(
+                        fecha_inicio
+                    )
+                )
+            )
+
+        elif fecha_fin:
+            ejecuciones = (
+                ejecuciones.filter(
+                    ciclo__fecha_inicio__lt=(
+                        fecha_fin
+                    )
+                )
+            )
 
         eventos = []
 
@@ -1126,40 +1257,83 @@ class CalendarEventsView(View):
         for ejecucion in ejecuciones:
             accion = ejecucion.accion
 
-            actividad = strip_tags(accion.accion or "").strip()
+            actividad = (
+                strip_tags(
+                    accion.accion
+                    or ""
+                )
+                .strip()
+            )
 
             if not actividad:
-                actividad = f"Actividad {accion.pk}"
+                actividad = (
+                    f"Actividad {accion.pk}"
+                )
 
             # --------------------------------------------------
             # Evidencia
             # --------------------------------------------------
 
-            if accion.formato_evidencia == FORMATO_SIN_EVIDENCIA:
-                evidencia_estado = "No requerida"
+            if (
+                accion.formato_evidencia
+                == FORMATO_SIN_EVIDENCIA
+            ):
+                evidencia_estado = (
+                    "No requerida"
+                )
 
             elif ejecucion.tiene_evidencia:
-                evidencia_estado = "Registrada"
+                evidencia_estado = (
+                    "Registrada"
+                )
 
             else:
-                evidencia_estado = "Pendiente"
+                evidencia_estado = (
+                    "Pendiente"
+                )
 
             # --------------------------------------------------
             # Responsabilidades
             # --------------------------------------------------
 
-            responsable_operativo = nombre_calendario(ejecucion.responsable)
+            responsable_operativo = (
+                nombre_calendario(
+                    ejecucion.responsable
+                )
+            )
 
-            responsable_normativo = responsable_normativo_display(accion)
+            responsable_normativo = (
+                responsable_normativo_display(
+                    accion
+                )
+            )
 
-            unidad_operativa = unidad_operativa_display(ejecucion.responsable)
+            unidad_operativa = (
+                unidad_operativa_display(
+                    ejecucion.responsable
+                )
+            )
 
-            es_mia = ejecucion.responsable_id == request.user.id
+            es_mia = (
+                ejecucion.responsable_id
+                == request.user.id
+            )
 
-            visible_por_operacion = ejecucion.responsable_id in responsables_ids
+            visible_por_operacion = (
+                ejecucion.responsable_id
+                in responsables_ids
+            )
 
-            visible_por_normativa = bool(accion.puesto_responsable) and (
-                accion.puesto_responsable in claves_normativas
+            visible_por_normativa = (
+                bool(
+                    accion
+                    .puesto_responsable
+                )
+                and (
+                    accion
+                    .puesto_responsable
+                    in claves_normativas
+                )
             )
 
             # --------------------------------------------------
@@ -1167,20 +1341,70 @@ class CalendarEventsView(View):
             # --------------------------------------------------
 
             if es_supervisor_agenda:
+
                 if es_mia:
-                    titulo = f"YO — {actividad}"
+                    titulo = (
+                        f"YO — {actividad}"
+                    )
 
                 elif responsable_operativo:
-                    titulo = f"{responsable_operativo} — {actividad}"
+                    titulo = (
+                        f"{responsable_operativo} "
+                        f"— {actividad}"
+                    )
 
                 elif responsable_normativo:
-                    titulo = f"{responsable_normativo} — {actividad}"
+                    titulo = (
+                        f"{responsable_normativo} "
+                        f"— {actividad}"
+                    )
 
                 else:
                     titulo = actividad
 
             else:
                 titulo = actividad
+
+            # ==================================================
+            # Representación temporal
+            #
+            # Continua:
+            # fecha_inicio -> fecha_fin completa.
+            #
+            # FullCalendar interpreta "end" como exclusivo.
+            #
+            # Las demás periodicidades permanecen como eventos
+            # puntuales sobre su fecha de término.
+            # ==================================================
+
+            es_continua = (
+                accion.periodicidad
+                == PERIODICIDAD_CONTINUA
+            )
+
+            if es_continua:
+                event_start = (
+                    ejecucion
+                    .fecha_inicio
+                    .isoformat()
+                )
+
+                event_end = (
+                    ejecucion
+                    .fecha_fin
+                    + datetime.timedelta(
+                        days=1
+                    )
+                ).isoformat()
+
+            else:
+                event_start = (
+                    ejecucion
+                    .fecha_fin
+                    .isoformat()
+                )
+
+                event_end = None
 
             eventos_existentes.add(
                 (
@@ -1190,95 +1414,216 @@ class CalendarEventsView(View):
                 )
             )
 
+            evento = {
+                "id": str(
+                    ejecucion.pk
+                ),
+                "title": titulo,
+                "start": event_start,
+                "allDay": True,
+                "extendedProps": {
+                    "activityId": (
+                        accion.pk
+                    ),
+                    "planId": (
+                        ejecucion.plan.pk
+                    ),
+                    "plan": (
+                        ejecucion.plan.nombre
+                    ),
+                    "planUrl": reverse(
+                        "pas:detalle",
+                        args=[
+                            ejecucion.plan.pk
+                        ],
+                    ),
+                    "activityDetailUrl": reverse(
+                        "pas:activity-detail",
+                        args=[
+                            accion.pk
+                        ],
+                    ),
+                    "folio": (
+                        ejecucion.plan.folio
+                        or ""
+                    ),
+                    "ciclo": (
+                        ejecucion
+                        .ciclo
+                        .etiqueta
+                    ),
+                    "ambito": (
+                        ejecucion
+                        .get_ambito_display()
+                    ),
+                    "responsable": (
+                        responsable_operativo
+                    ),
+                    "responsableOperativo": (
+                        responsable_operativo
+                    ),
+                    "responsableNormativo": (
+                        responsable_normativo
+                    ),
+                    "unidadOperativa": (
+                        unidad_operativa
+                    ),
+                    "visiblePorOperacion": (
+                        visible_por_operacion
+                    ),
+                    "visiblePorNormativa": (
+                        visible_por_normativa
+                    ),
+                    "estado": (
+                        ejecucion.estado_agenda
+                    ),
+                    "estadoDisplay": (
+                        ejecucion
+                        .estado_agenda_display
+                    ),
+                    "evidencia": (
+                        evidencia_estado
+                    ),
+                    "completada": (
+                        ejecucion.completada
+                    ),
+                    "esMia": es_mia,
+                    "proyectada": False,
+                    "continua": (
+                        es_continua
+                    ),
+                },
+            }
+
+            if event_end:
+                evento[
+                    "end"
+                ] = event_end
+
             eventos.append(
-                {
-                    "id": str(ejecucion.pk),
-                    "title": titulo,
-                    "start": (ejecucion.fecha_fin.isoformat()),
-                    "allDay": True,
-                    "extendedProps": {
-                        "planId": (ejecucion.plan.pk),
-                        "plan": (ejecucion.plan.nombre),
-                        "planUrl": reverse(
-                            "pas:detalle",
-                            args=[ejecucion.plan.pk],
-                        ),
-                        "folio": (ejecucion.plan.folio or ""),
-                        "ciclo": (ejecucion.ciclo.etiqueta),
-                        "ambito": (ejecucion.get_ambito_display()),
-                        "responsable": (responsable_operativo),
-                        "responsableOperativo": (responsable_operativo),
-                        "responsableNormativo": (responsable_normativo),
-                        "unidadOperativa": (unidad_operativa),
-                        "visiblePorOperacion": (visible_por_operacion),
-                        "visiblePorNormativa": (visible_por_normativa),
-                        "estado": (ejecucion.estado_agenda),
-                        "estadoDisplay": (ejecucion.estado_agenda_display),
-                        "evidencia": (evidencia_estado),
-                        "completada": (ejecucion.completada),
-                        "esMia": es_mia,
-                        "proyectada": False,
-                    },
-                }
+                evento
             )
 
         # ======================================================
         # Proyecciones de recurrencias
+        #
+        # Continua NO entra aquí porque ya cuenta con un único
+        # ciclo materializado.
         # ======================================================
 
-        if fecha_inicio and fecha_fin:
-            actividades = Accion.objects.filter(
-                plan__in=visible_plans,
-                periodicidad__in=[
-                    PERIODICIDAD_SEMANAL,
-                    PERIODICIDAD_QUINCENAL,
-                    PERIODICIDAD_MENSUAL,
-                    PERIODICIDAD_BIMESTRAL,
-                    PERIODICIDAD_TRIMESTRAL,
-                    PERIODICIDAD_ANUAL,
-                ],
-            ).select_related(
-                "plan",
-                "responsable",
-                "responsable__profile",
-                "responsable__profile__unidad_organizacional",
+        if (
+            fecha_inicio
+            and fecha_fin
+        ):
+            actividades = (
+                Accion.objects
+                .filter(
+                    plan__in=(
+                        visible_plans
+                    ),
+                    periodicidad__in=[
+                        PERIODICIDAD_SEMANAL,
+                        PERIODICIDAD_QUINCENAL,
+                        PERIODICIDAD_MENSUAL,
+                        PERIODICIDAD_BIMESTRAL,
+                        PERIODICIDAD_TRIMESTRAL,
+                        PERIODICIDAD_ANUAL,
+                    ],
+                )
+                .select_related(
+                    "plan",
+                    "responsable",
+                    "responsable__profile",
+                    "responsable__profile__unidad_organizacional",
+                )
             )
 
             for actividad in actividades:
-                fechas = actividad.fechas_programadas_en_rango(
-                    fecha_inicio,
-                    fecha_fin,
+                fechas = (
+                    actividad
+                    .fechas_programadas_en_rango(
+                        fecha_inicio,
+                        fecha_fin,
+                    )
                 )
 
-                ambitos = actividad.ambitos or ["JL"]
+                ambitos = (
+                    actividad.ambitos
+                    or [
+                        "JL"
+                    ]
+                )
 
-                descripcion = strip_tags(actividad.accion or "").strip()
+                descripcion = (
+                    strip_tags(
+                        actividad.accion
+                        or ""
+                    )
+                    .strip()
+                )
 
                 if not descripcion:
-                    descripcion = f"Actividad {actividad.pk}"
+                    descripcion = (
+                        f"Actividad "
+                        f"{actividad.pk}"
+                    )
 
-                responsable_normativo = responsable_normativo_display(actividad)
+                responsable_normativo = (
+                    responsable_normativo_display(
+                        actividad
+                    )
+                )
 
                 for ambito in ambitos:
-                    responsable = actividad.resolver_responsable_ejecucion(ambito)
+                    responsable = (
+                        actividad
+                        .resolver_responsable_ejecucion(
+                            ambito
+                        )
+                    )
 
                     es_operativamente_visible = (
-                        responsable is not None and responsable.pk in responsables_ids
+                        responsable
+                        is not None
+                        and responsable.pk
+                        in responsables_ids
                     )
 
-                    es_normativamente_visible = bool(actividad.puesto_responsable) and (
-                        actividad.puesto_responsable in claves_normativas
+                    es_normativamente_visible = (
+                        bool(
+                            actividad
+                            .puesto_responsable
+                        )
+                        and (
+                            actividad
+                            .puesto_responsable
+                            in claves_normativas
+                        )
                     )
 
-                    if not es_operativamente_visible and not es_normativamente_visible:
+                    if (
+                        not es_operativamente_visible
+                        and not es_normativamente_visible
+                    ):
                         continue
 
-                    responsable_operativo = nombre_calendario(responsable)
+                    responsable_operativo = (
+                        nombre_calendario(
+                            responsable
+                        )
+                    )
 
-                    unidad_operativa = unidad_operativa_display(responsable)
+                    unidad_operativa = (
+                        unidad_operativa_display(
+                            responsable
+                        )
+                    )
 
                     es_mia = (
-                        responsable is not None and responsable.pk == request.user.id
+                        responsable
+                        is not None
+                        and responsable.pk
+                        == request.user.id
                     )
 
                     for fecha in fechas:
@@ -1288,7 +1633,10 @@ class CalendarEventsView(View):
                             fecha,
                         )
 
-                        if clave in eventos_existentes:
+                        if (
+                            clave
+                            in eventos_existentes
+                        ):
                             continue
 
                         # --------------------------------------
@@ -1296,49 +1644,83 @@ class CalendarEventsView(View):
                         # --------------------------------------
 
                         if fecha > hoy:
-                            estado = "programada"
+                            estado = (
+                                "programada"
+                            )
 
-                            estado_display = "Programada"
+                            estado_display = (
+                                "Programada"
+                            )
 
                         elif fecha == hoy:
-                            estado = "vence_hoy"
+                            estado = (
+                                "vence_hoy"
+                            )
 
-                            estado_display = "Vence hoy"
+                            estado_display = (
+                                "Vence hoy"
+                            )
 
                         else:
-                            estado = "pendiente"
+                            estado = (
+                                "pendiente"
+                            )
 
-                            estado_display = "Pendiente"
+                            estado_display = (
+                                "Pendiente"
+                            )
 
                         # --------------------------------------
                         # Título
                         # --------------------------------------
 
                         if es_supervisor_agenda:
+
                             if es_mia:
-                                titulo = f"YO — {descripcion}"
+                                titulo = (
+                                    f"YO — "
+                                    f"{descripcion}"
+                                )
 
                             elif responsable_operativo:
-                                titulo = f"{responsable_operativo} — {descripcion}"
+                                titulo = (
+                                    f"{responsable_operativo} "
+                                    f"— {descripcion}"
+                                )
 
                             elif responsable_normativo:
-                                titulo = f"{responsable_normativo} — {descripcion}"
+                                titulo = (
+                                    f"{responsable_normativo} "
+                                    f"— {descripcion}"
+                                )
 
                             else:
-                                titulo = descripcion
+                                titulo = (
+                                    descripcion
+                                )
 
                         else:
-                            titulo = descripcion
+                            titulo = (
+                                descripcion
+                            )
 
                         # --------------------------------------
                         # Evidencia
                         # --------------------------------------
 
-                        if actividad.formato_evidencia == FORMATO_SIN_EVIDENCIA:
-                            evidencia = "No requerida"
+                        if (
+                            actividad
+                            .formato_evidencia
+                            == FORMATO_SIN_EVIDENCIA
+                        ):
+                            evidencia = (
+                                "No requerida"
+                            )
 
                         else:
-                            evidencia = "Pendiente"
+                            evidencia = (
+                                "Pendiente"
+                            )
 
                         eventos.append(
                             {
@@ -1349,43 +1731,97 @@ class CalendarEventsView(View):
                                     f"{fecha.isoformat()}"
                                 ),
                                 "title": titulo,
-                                "start": (fecha.isoformat()),
+                                "start": (
+                                    fecha.isoformat()
+                                ),
                                 "allDay": True,
                                 "extendedProps": {
-                                    "planId": (actividad.plan.pk),
-                                    "plan": (actividad.plan.nombre),
+                                    "activityId": (
+                                        actividad.pk
+                                    ),
+                                    "planId": (
+                                        actividad
+                                        .plan
+                                        .pk
+                                    ),
+                                    "plan": (
+                                        actividad
+                                        .plan
+                                        .nombre
+                                    ),
                                     "planUrl": reverse(
                                         "pas:detalle",
-                                        args=[actividad.plan.pk],
+                                        args=[
+                                            actividad
+                                            .plan
+                                            .pk
+                                        ],
                                     ),
-                                    "folio": (actividad.plan.folio or ""),
-                                    "ciclo": ("Proyección"),
+                                    "activityDetailUrl": reverse(
+                                        "pas:activity-detail",
+                                        args=[
+                                            actividad.pk
+                                        ],
+                                    ),
+                                    "folio": (
+                                        actividad
+                                        .plan
+                                        .folio
+                                        or ""
+                                    ),
+                                    "ciclo": (
+                                        "Proyección"
+                                    ),
                                     "ambito": (
-                                        dict(AMBITO).get(
+                                        dict(
+                                            AMBITO
+                                        )
+                                        .get(
                                             ambito,
                                             ambito,
                                         )
                                     ),
-                                    "responsable": (responsable_operativo),
-                                    "responsableOperativo": (responsable_operativo),
-                                    "responsableNormativo": (responsable_normativo),
-                                    "unidadOperativa": (unidad_operativa),
-                                    "visiblePorOperacion": (es_operativamente_visible),
-                                    "visiblePorNormativa": (es_normativamente_visible),
+                                    "responsable": (
+                                        responsable_operativo
+                                    ),
+                                    "responsableOperativo": (
+                                        responsable_operativo
+                                    ),
+                                    "responsableNormativo": (
+                                        responsable_normativo
+                                    ),
+                                    "unidadOperativa": (
+                                        unidad_operativa
+                                    ),
+                                    "visiblePorOperacion": (
+                                        es_operativamente_visible
+                                    ),
+                                    "visiblePorNormativa": (
+                                        es_normativamente_visible
+                                    ),
                                     "estado": estado,
-                                    "estadoDisplay": (estado_display),
-                                    "evidencia": (evidencia),
+                                    "estadoDisplay": (
+                                        estado_display
+                                    ),
+                                    "evidencia": (
+                                        evidencia
+                                    ),
                                     "completada": False,
                                     "esMia": es_mia,
                                     "proyectada": True,
+                                    "continua": False,
                                 },
                             }
                         )
 
         eventos.sort(
             key=lambda evento: (
-                evento["start"],
-                evento["title"],
+                evento[
+                    "start"
+                ],
+                evento[
+                    "title"
+                ],
             )
         )
 
