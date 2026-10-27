@@ -269,49 +269,25 @@ class PASIndex(ListView):
         self,
         **kwargs,
     ):
-        context = super().get_context_data(
-            **kwargs
-        )
-
-        followups_prefetch = Prefetch(
-            "seguimiento_set",
-            queryset=(
-                Seguimiento.objects
-                .select_related(
-                    "responsable"
-                )
-                .order_by(
-                    "-fecha",
-                    "-created",
-                )
-            ),
-        )
+        context = super().get_context_data(**kwargs)
 
         plan_actions_prefetch = Prefetch(
             "accion_set",
             queryset=(
-                Accion.objects
-                .select_related(
-                    "responsable"
-                )
-                .prefetch_related(
-                    followups_prefetch
+                Accion.objects.select_related(
+                    "responsable",
+                    "responsable__profile",
+                ).prefetch_related(
+                    "ciclos__ejecuciones",
                 )
             ),
             to_attr="pas_actions",
         )
 
         plan_list = (
-            Plan.objects
-            .visible_to(
-                self.request.user
-            )
-            .prefetch_related(
-                plan_actions_prefetch
-            )
-            .order_by(
-                "-fecha_llenado"
-            )
+            Plan.objects.visible_to(self.request.user)
+            .prefetch_related(plan_actions_prefetch)
+            .order_by("-fecha_llenado")
         )
 
         def state_priority(
@@ -331,16 +307,14 @@ class PASIndex(ListView):
         action_items = []
 
         action_qs = (
-            Accion.objects
-            .filter(
-                plan__in=plan_list
-            )
+            Accion.objects.filter(plan__in=plan_list)
             .select_related(
                 "plan",
                 "responsable",
+                "responsable__profile",
             )
             .prefetch_related(
-                followups_prefetch
+                "ciclos__ejecuciones",
             )
         )
 
@@ -350,9 +324,7 @@ class PASIndex(ListView):
             if estado == "Cerrada":
                 continue
 
-            priority = state_priority(
-                estado
-            )
+            priority = state_priority(estado)
 
             action_items.append(
                 (
@@ -371,10 +343,7 @@ class PASIndex(ListView):
             )
         )
 
-        action_list = [
-            item[3]
-            for item in action_items
-        ]
+        action_list = [item[3] for item in action_items]
 
         for plan in plan_list:
             cerradas = 0
@@ -395,27 +364,17 @@ class PASIndex(ListView):
 
             plan.cerradas = cerradas
 
-            plan.abiertas_en_tiempo = (
-                abiertas_en_tiempo
-            )
+            plan.abiertas_en_tiempo = abiertas_en_tiempo
 
-            plan.abiertas_fuera_de_tiempo = (
-                abiertas_fuera_de_tiempo
-            )
+            plan.abiertas_fuera_de_tiempo = abiertas_fuera_de_tiempo
 
             plan.total_actividades = (
-                cerradas
-                + abiertas_en_tiempo
-                + abiertas_fuera_de_tiempo
+                cerradas + abiertas_en_tiempo + abiertas_fuera_de_tiempo
             )
 
-        context[
-            "plan_list"
-        ] = plan_list
+        context["plan_list"] = plan_list
 
-        context[
-            "action_list"
-        ] = action_list
+        context["action_list"] = action_list
 
         return context
 

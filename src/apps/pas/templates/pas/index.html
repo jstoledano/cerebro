@@ -79,7 +79,6 @@
               <th class="text-left">Actividad</th>
               <th class="text-center">Fecha compromiso</th>
               <th class="text-center">Responsable</th>
-              <th class="text-center">Seguimiento</th>
               <th class="text-center">Estado</th>
             </tr>
           </thead>
@@ -98,12 +97,6 @@
               </td>
               <td class="text-center text-base-content/80">{{ action.fecha_fin|date:"d/m/Y" }}</td>
               <td class="text-center text-base-content/80">{{ action.responsable_display|default:'—' }}</td>
-              <td class="text-center text-base-content/80">
-                <button type="button" class="btn btn-ghost btn-xs gap-2" hx-get="{% url 'pas:followup-list' action.pk %}" hx-target="#pas-modal-content" hx-swap="innerHTML">
-                  Seguimientos
-                  <span class="badge badge-outline badge-sm">{{ action.seguimiento_set.count }}</span>
-                </button>
-              </td>
               <td class="text-center">
                 {% if action.get_estado == 'Cerrada' %}
                 <div class="tooltip" data-tip="Cerrada">
@@ -126,7 +119,10 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="py-10 text-center text-base-content/60">No hay actividades registradas.</td>
+              <td colspan="5"
+                  class="py-10 text-center text-base-content/60">
+                No hay actividades registradas.
+              </td>
             </tr>
             {% endfor %}
           </tbody>
