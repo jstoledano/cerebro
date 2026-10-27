@@ -345,22 +345,73 @@ class AgendaView(TemplateView):
         self,
         **kwargs,
     ):
-        context = super().get_context_data(**kwargs)
+        context = super().get_context_data(
+            **kwargs
+        )
 
         hoy = timezone.localdate()
 
-        inicio_semana = hoy - datetime.timedelta(days=hoy.weekday())
+        # ======================================================
+        # Horizontes móviles del radar
+        #
+        # Ya no usamos el domingo como límite operativo.
+        #
+        # Atención:
+        #   hoy -> D+7
+        #
+        # Vigilar:
+        #   D+8 -> D+14
+        #
+        # El calendario seguirá mostrando todo.
+        # ======================================================
 
-        fin_semana = inicio_semana + datetime.timedelta(days=6)
+        limite_atencion = (
+            hoy
+            + datetime.timedelta(
+                days=7
+            )
+        )
 
-        visible_plans = Plan.objects.visible_to(self.request.user)
+        limite_vigilar = (
+            hoy
+            + datetime.timedelta(
+                days=14
+            )
+        )
+
+        # Se conservan estas fechas por compatibilidad con
+        # cualquier parte del template que todavía las utilice.
+        inicio_semana = (
+            hoy
+            - datetime.timedelta(
+                days=hoy.weekday()
+            )
+        )
+
+        fin_semana = (
+            inicio_semana
+            + datetime.timedelta(
+                days=6
+            )
+        )
+
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
 
         # ======================================================
         # Generación de ejecuciones recurrentes abiertas
+        #
+        # Para actividades sin fecha de término necesitamos
+        # garantizar que exista, además del histórico, la
+        # siguiente ocurrencia futura.
         # ======================================================
 
         actividades_recurrentes_abiertas = (
-            Accion.objects.filter(
+            Accion.objects
+            .filter(
                 plan__in=visible_plans,
                 fecha_fin__isnull=True,
             )
@@ -376,7 +427,9 @@ class AgendaView(TemplateView):
             )
         )
 
-        for actividad in actividades_recurrentes_abiertas:
+        for actividad in (
+            actividades_recurrentes_abiertas
+        ):
             actividad.generar_ejecuciones()
 
         # ======================================================
@@ -390,50 +443,69 @@ class AgendaView(TemplateView):
         )
 
         if perfil:
-            usuarios_agenda = list(perfil.obtener_usuarios_agenda())
+            usuarios_agenda = list(
+                perfil.obtener_usuarios_agenda()
+            )
         else:
-            usuarios_agenda = [self.request.user]
+            usuarios_agenda = [
+                self.request.user
+            ]
 
-        usuarios_agenda_ids = {usuario.pk for usuario in usuarios_agenda}
+        usuarios_agenda_ids = {
+            usuario.pk
+            for usuario
+            in usuarios_agenda
+        }
 
-        es_supervisor_agenda = perfil.es_supervisor_agenda if perfil else False
+        es_supervisor_agenda = (
+            perfil.es_supervisor_agenda
+            if perfil
+            else False
+        )
 
         # ======================================================
         # Alcance normativo
         # ======================================================
 
         claves_normativas = (
-            obtener_claves_normativas_agenda(perfil) if perfil else set()
+            obtener_claves_normativas_agenda(
+                perfil
+            )
+            if perfil
+            else set()
         )
 
-        # Cargamos en una sola consulta las unidades necesarias
-        # para poder mostrar VRL, JOSA, VRD, etc.
         unidades_normativas = {
             unidad.clave: unidad
             for unidad in (
-                UnidadOrganizacional.objects.filter(clave__in=claves_normativas)
+                UnidadOrganizacional.objects
+                .filter(
+                    clave__in=(
+                        claves_normativas
+                    )
+                )
             )
         }
 
         # ======================================================
         # Ejecuciones visibles
         #
-        # Una ejecución entra si:
+        # Una ejecución es visible si:
         #
-        # 1. Es operativamente responsabilidad del usuario
-        #    o de alguien de su equipo.
+        # 1. pertenece operativamente al usuario o a alguien
+        #    bajo su supervisión;
         #
-        # 2. Su responsable normativo está dentro del ámbito
-        #    organizacional que debe supervisar el usuario.
+        # 2. pertenece a una actividad cuya responsabilidad
+        #    normativa está dentro del ámbito que supervisa.
         # ======================================================
 
         ejecuciones = list(
             Ejecucion.objects.filter(
                 (
-                    Q(responsable__in=(usuarios_agenda))
-                    | Q(ciclo__accion__puesto_responsable__in=(claves_normativas))
+                    Q(responsable__in=usuarios_agenda)
+                    | Q(ciclo__accion__puesto_responsable__in=claves_normativas)
                 ),
-                ciclo__accion__plan__in=(visible_plans),
+                ciclo__accion__plan__in=visible_plans,
             )
             .select_related(
                 "ciclo",
@@ -459,39 +531,42 @@ class AgendaView(TemplateView):
         )
 
         # ======================================================
-        # Datos de presentación y motivo de visibilidad
+        # Datos de presentación
         # ======================================================
 
         for ejecucion in ejecuciones:
-            actividad = ejecucion.accion
+            actividad = (
+                ejecucion.accion
+            )
 
             # --------------------------------------------------
-            # ¿Es una ejecución que realiza personalmente?
+            # Ejecución propia
             # --------------------------------------------------
 
-            ejecucion.es_mia = ejecucion.responsable_id == self.request.user.id
+            ejecucion.es_mia = (
+                ejecucion.responsable_id
+                == self.request.user.id
+            )
 
             # --------------------------------------------------
-            # ¿Entra por responsabilidad operativa?
-            #
-            # Esto incluye al propio usuario y al personal
-            # subordinado incluido en su agenda.
+            # Motivo de visibilidad
             # --------------------------------------------------
 
             ejecucion.visible_por_operacion = (
-                ejecucion.responsable_id in usuarios_agenda_ids
+                ejecucion.responsable_id
+                in usuarios_agenda_ids
+            )
+
+            ejecucion.visible_por_normativa = (
+                bool(
+                    actividad.puesto_responsable
+                )
+                and actividad.puesto_responsable
+                in claves_normativas
             )
 
             # --------------------------------------------------
-            # ¿Entra por responsabilidad normativa?
-            # --------------------------------------------------
-
-            ejecucion.visible_por_normativa = bool(actividad.puesto_responsable) and (
-                actividad.puesto_responsable in claves_normativas
-            )
-
-            # --------------------------------------------------
-            # Responsable operativo legible
+            # Responsable operativo
             # --------------------------------------------------
 
             if ejecucion.responsable:
@@ -503,46 +578,74 @@ class AgendaView(TemplateView):
 
                 if perfil_operativo:
                     ejecucion.responsable_operativo_display = (
-                        perfil_operativo.nombre_calendario
+                        perfil_operativo
+                        .nombre_calendario
                     )
                 else:
                     ejecucion.responsable_operativo_display = (
-                        ejecucion.responsable.get_full_name()
-                        or ejecucion.responsable.username
-                    )[:10]
+                        (
+                            ejecucion.responsable
+                            .get_full_name()
+                            or
+                            ejecucion.responsable
+                            .username
+                        )[:10]
+                    )
 
             else:
-                ejecucion.responsable_operativo_display = "—"
+                ejecucion.responsable_operativo_display = (
+                    "—"
+                )
 
             # --------------------------------------------------
-            # Responsable normativo legible
+            # Responsable normativo
             # --------------------------------------------------
 
-            ejecucion.responsable_normativo_display = "—"
+            ejecucion.responsable_normativo_display = (
+                "—"
+            )
 
             if actividad.puesto_responsable:
-                unidad_normativa = unidades_normativas.get(actividad.puesto_responsable)
+                unidad_normativa = (
+                    unidades_normativas.get(
+                        actividad.puesto_responsable
+                    )
+                )
 
-                # La actividad puede tener una clave normativa
-                # válida que no esté dentro del alcance del
-                # usuario actual. En ese caso la buscamos sólo
-                # para mostrar su etiqueta.
                 if unidad_normativa is None:
-                    unidad_normativa = UnidadOrganizacional.objects.filter(
-                        clave=(actividad.puesto_responsable)
-                    ).first()
+                    unidad_normativa = (
+                        UnidadOrganizacional.objects
+                        .filter(
+                            clave=(
+                                actividad
+                                .puesto_responsable
+                            )
+                        )
+                        .first()
+                    )
 
                 if unidad_normativa:
                     ejecucion.responsable_normativo_display = (
-                        unidad_normativa.etiqueta_funcional
+                        unidad_normativa
+                        .etiqueta_funcional
                     )
                 else:
                     ejecucion.responsable_normativo_display = (
-                        actividad.puesto_responsable
+                        actividad
+                        .puesto_responsable
                     )
 
         # ======================================================
-        # Clasificación por nivel de atención
+        # Clasificación del radar
+        #
+        # Importante:
+        #
+        # En esta primera corrección seguimos trabajando con
+        # ejecuciones individuales para no modificar todavía
+        # agenda.html.
+        #
+        # El siguiente paso será agrupar por ACTIVIDAD y mostrar
+        # deuda + próxima acción en una sola tarjeta.
         # ======================================================
 
         urgente = []
@@ -552,78 +655,176 @@ class AgendaView(TemplateView):
 
         vencidas = []
         vencen_hoy = []
-        vencen_semana = []
+        vencen_proximos_7_dias = []
         prioridad_alta = []
-        inician_hoy = []
-        inician_semana = []
+        activas = []
+        proximos_14_dias = []
 
         for ejecucion in ejecuciones:
+
             if ejecucion.completada:
-                terminadas.append(ejecucion)
+                terminadas.append(
+                    ejecucion
+                )
                 continue
 
-            fecha_inicio = ejecucion.fecha_inicio
+            fecha_inicio = (
+                ejecucion.fecha_inicio
+            )
 
-            fecha_fin = ejecucion.fecha_fin
+            fecha_fin = (
+                ejecucion.fecha_fin
+            )
 
-            # --------------------------------------------------
+            actividad = (
+                ejecucion.accion
+            )
+
+            esta_en_ejecucion = (
+                fecha_inicio
+                <= hoy
+                < fecha_fin
+            )
+
+            # ==================================================
             # 1. URGENTE
-            # --------------------------------------------------
+            # ==================================================
 
             if fecha_fin < hoy:
-                urgente.append(ejecucion)
+                urgente.append(
+                    ejecucion
+                )
 
-                vencidas.append(ejecucion)
+                vencidas.append(
+                    ejecucion
+                )
 
                 continue
 
             if fecha_fin == hoy:
-                urgente.append(ejecucion)
+                urgente.append(
+                    ejecucion
+                )
 
-                vencen_hoy.append(ejecucion)
+                vencen_hoy.append(
+                    ejecucion
+                )
 
                 continue
 
-            # --------------------------------------------------
+            if (
+                esta_en_ejecucion
+                and actividad.prioridad
+                == PRIORIDAD_CRITICA
+            ):
+                urgente.append(
+                    ejecucion
+                )
+
+                prioridad_alta.append(
+                    ejecucion
+                )
+
+                continue
+
+            # ==================================================
             # 2. REQUIERE ATENCIÓN
-            # --------------------------------------------------
+            #
+            # Ventana móvil D+7.
+            #
+            # Una ejecución entra si:
+            #
+            # - comienza dentro de siete días;
+            # - vence dentro de siete días;
+            # - está activa y tiene prioridad Urgente.
+            #
+            # Esto hace que, por ejemplo, una tarea del
+            # 02/11 aparezca el 26/10.
+            # ==================================================
 
-            if hoy < fecha_fin <= fin_semana:
-                atencion.append(ejecucion)
+            inicia_en_7_dias = (
+                hoy
+                < fecha_inicio
+                <= limite_atencion
+            )
 
-                vencen_semana.append(ejecucion)
+            vence_en_7_dias = (
+                hoy
+                < fecha_fin
+                <= limite_atencion
+            )
+
+            if (
+                inicia_en_7_dias
+                or vence_en_7_dias
+            ):
+                atencion.append(
+                    ejecucion
+                )
+
+                vencen_proximos_7_dias.append(
+                    ejecucion
+                )
 
                 continue
 
-            esta_en_ejecucion = fecha_inicio <= hoy < fecha_fin
+            if (
+                esta_en_ejecucion
+                and actividad.prioridad
+                == PRIORIDAD_URGENTE
+            ):
+                atencion.append(
+                    ejecucion
+                )
 
-            es_prioridad_alta = ejecucion.accion.prioridad in {
-                PRIORIDAD_URGENTE,
-                PRIORIDAD_CRITICA,
-            }
-
-            if esta_en_ejecucion and es_prioridad_alta:
-                atencion.append(ejecucion)
-
-                prioridad_alta.append(ejecucion)
+                prioridad_alta.append(
+                    ejecucion
+                )
 
                 continue
 
-            # --------------------------------------------------
+            # ==================================================
             # 3. VIGILAR
-            # --------------------------------------------------
+            #
+            # A. Actividades que ya están en curso.
+            #
+            # B. Próximas acciones entre D+8 y D+14.
+            # ==================================================
 
-            if fecha_inicio == hoy:
-                vigilar.append(ejecucion)
+            if esta_en_ejecucion:
+                vigilar.append(
+                    ejecucion
+                )
 
-                inician_hoy.append(ejecucion)
+                activas.append(
+                    ejecucion
+                )
 
                 continue
 
-            if hoy < fecha_inicio <= fin_semana:
-                vigilar.append(ejecucion)
+            inicia_en_14_dias = (
+                limite_atencion
+                < fecha_inicio
+                <= limite_vigilar
+            )
 
-                inician_semana.append(ejecucion)
+            vence_en_14_dias = (
+                limite_atencion
+                < fecha_fin
+                <= limite_vigilar
+            )
+
+            if (
+                inicia_en_14_dias
+                or vence_en_14_dias
+            ):
+                vigilar.append(
+                    ejecucion
+                )
+
+                proximos_14_dias.append(
+                    ejecucion
+                )
 
                 continue
 
@@ -634,49 +835,172 @@ class AgendaView(TemplateView):
         context.update(
             {
                 "hoy": hoy,
-                "inicio_semana": (inicio_semana),
-                "fin_semana": (fin_semana),
+
+                # Compatibilidad
+                "inicio_semana": (
+                    inicio_semana
+                ),
+                "fin_semana": (
+                    fin_semana
+                ),
+
+                # Nuevos horizontes
+                "limite_atencion": (
+                    limite_atencion
+                ),
+                "limite_vigilar": (
+                    limite_vigilar
+                ),
+
                 # ----------------------------------------------
                 # Alcance
                 # ----------------------------------------------
-                "usuarios_agenda": (usuarios_agenda),
-                "usuarios_agenda_ids": (usuarios_agenda_ids),
-                "es_supervisor_agenda": (es_supervisor_agenda),
-                "total_usuarios_agenda": len(usuarios_agenda),
-                "claves_normativas": (claves_normativas),
+
+                "usuarios_agenda": (
+                    usuarios_agenda
+                ),
+
+                "usuarios_agenda_ids": (
+                    usuarios_agenda_ids
+                ),
+
+                "es_supervisor_agenda": (
+                    es_supervisor_agenda
+                ),
+
+                "total_usuarios_agenda": (
+                    len(
+                        usuarios_agenda
+                    )
+                ),
+
+                "claves_normativas": (
+                    claves_normativas
+                ),
+
                 # ----------------------------------------------
                 # Radar
                 # ----------------------------------------------
-                "urgentes": (urgente),
-                "requieren_atencion": (atencion),
-                "vigilar": (vigilar),
-                "terminadas": (terminadas),
+
+                "urgentes": (
+                    urgente
+                ),
+
+                "requieren_atencion": (
+                    atencion
+                ),
+
+                "vigilar": (
+                    vigilar
+                ),
+
+                "terminadas": (
+                    terminadas
+                ),
+
                 # ----------------------------------------------
                 # Subcategorías
                 # ----------------------------------------------
-                "vencidas": (vencidas),
-                "vencen_hoy": (vencen_hoy),
-                "vencen_semana": (vencen_semana),
-                "prioridad_alta": (prioridad_alta),
-                "inician_hoy": (inician_hoy),
-                "inician_semana": (inician_semana),
+
+                "vencidas": (
+                    vencidas
+                ),
+
+                "vencen_hoy": (
+                    vencen_hoy
+                ),
+
+                "vencen_semana": (
+                    vencen_proximos_7_dias
+                ),
+
+                "vencen_proximos_7_dias": (
+                    vencen_proximos_7_dias
+                ),
+
+                "prioridad_alta": (
+                    prioridad_alta
+                ),
+
+                "activas": (
+                    activas
+                ),
+
+                "proximos_14_dias": (
+                    proximos_14_dias
+                ),
+
+                # Conservamos estos nombres temporalmente
+                # para no romper agenda.html.
+                "inician_hoy": [],
+                "inician_semana": (
+                    proximos_14_dias
+                ),
+
                 # ----------------------------------------------
                 # Totales
                 # ----------------------------------------------
-                "total_urgentes": len(urgente),
-                "total_requieren_atencion": len(atencion),
-                "total_vigilar": len(vigilar),
-                "total_terminadas": len(terminadas),
-                "total_vencidas": len(vencidas),
-                "total_vencen_hoy": len(vencen_hoy),
-                "total_vencen_semana": len(vencen_semana),
-                "total_prioridad_alta": len(prioridad_alta),
-                "total_inician_hoy": len(inician_hoy),
-                "total_inician_semana": len(inician_semana),
+
+                "total_urgentes": (
+                    len(
+                        urgente
+                    )
+                ),
+
+                "total_requieren_atencion": (
+                    len(
+                        atencion
+                    )
+                ),
+
+                "total_vigilar": (
+                    len(
+                        vigilar
+                    )
+                ),
+
+                "total_terminadas": (
+                    len(
+                        terminadas
+                    )
+                ),
+
+                "total_vencidas": (
+                    len(
+                        vencidas
+                    )
+                ),
+
+                "total_vencen_hoy": (
+                    len(
+                        vencen_hoy
+                    )
+                ),
+
+                "total_vencen_semana": (
+                    len(
+                        vencen_proximos_7_dias
+                    )
+                ),
+
+                "total_prioridad_alta": (
+                    len(
+                        prioridad_alta
+                    )
+                ),
+
+                "total_inician_hoy": 0,
+
+                "total_inician_semana": (
+                    len(
+                        proximos_14_dias
+                    )
+                ),
             }
         )
 
         return context
+
 
 class CalendarEventsView(View):
     def get(
