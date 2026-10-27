@@ -484,17 +484,17 @@
 
                     </button>
 
-                  {% elif can_modify and perms.pas.add_evidencia %}
+                  {% elif can_modify and execution.puede_gestionar and perms.pas.add_evidencia %}
 
-                    <button type="button"
-                            class="btn btn-outline btn-xs"
-                            hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-                            hx-target="#pas-modal-content"
-                            hx-swap="innerHTML">
+                  <button type="button"
+                          class="btn btn-outline btn-xs"
+                          hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+                          hx-target="#pas-modal-content"
+                          hx-swap="innerHTML">
 
-                      Registrar
+                    Registrar
 
-                    </button>
+                  </button>
 
                   {% else %}
 

@@ -2981,60 +2981,45 @@ class ExecutionEvidenceBaseView(CreateView):
         *args,
         **kwargs,
     ):
-        visible_plans = (
-            Plan.objects.visible_to(
-                request.user
-            )
-        )
+        visible_plans = Plan.objects.visible_to(request.user)
 
         self.execution = get_object_or_404(
-            Ejecucion.objects
-            .select_related(
+            Ejecucion.objects.select_related(
                 "ciclo",
                 "ciclo__accion",
                 "ciclo__accion__plan",
+                "ciclo__accion__plan__user",
                 "responsable",
-            )
-            .filter(
-                ciclo__accion__plan__in=(
-                    visible_plans
-                ),
+            ).filter(
+                ciclo__accion__plan__in=(visible_plans),
             ),
             pk=kwargs["pk"],
         )
 
-        if (
-            self.execution.accion.formato_evidencia
-            == FORMATO_SIN_EVIDENCIA
+        if not usuario_puede_gestionar_ejecucion(
+            request.user,
+            self.execution,
         ):
             return HttpResponse(
-                (
-                    "Esta actividad no requiere "
-                    "evidencia documental."
-                ),
+                ("No tienes permiso para registrar evidencia en esta ejecución."),
+                status=403,
+            )
+
+        if self.execution.accion.formato_evidencia == FORMATO_SIN_EVIDENCIA:
+            return HttpResponse(
+                ("Esta actividad no requiere evidencia documental."),
                 status=409,
             )
 
-        if (
-            not self.execution.plan
-            .permite_modificaciones
-        ):
+        if not (self.execution.plan.permite_modificaciones):
             return HttpResponse(
-                (
-                    "El plan se encuentra cerrado "
-                    "o con recurrencia registrada."
-                ),
+                ("El plan se encuentra cerrado o no admite modificaciones."),
                 status=409,
             )
 
-        if Evidencia.objects.filter(
-            ejecucion=self.execution
-        ).exists():
+        if Evidencia.objects.filter(ejecucion=self.execution).exists():
             return HttpResponse(
-                (
-                    "Esta ejecución ya tiene una "
-                    "evidencia registrada."
-                ),
+                ("Esta ejecución ya tiene una evidencia registrada."),
                 status=409,
             )
 
