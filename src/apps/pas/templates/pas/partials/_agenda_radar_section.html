@@ -102,15 +102,7 @@
               lg:justify-between
             ">
 
-              {# ================================================== #}
-              {# INFORMACIÓN DE LA ACTIVIDAD                        #}
-              {# ================================================== #}
-
               <div class="min-w-0 flex-1">
-
-                {# ------------------------------------------------ #}
-                {# BADGES                                           #}
-                {# ------------------------------------------------ #}
 
                 <div class="mb-3 flex flex-wrap items-center gap-2">
 
@@ -178,15 +170,15 @@
 
                   {% elif execution.radar_motivo == "continua_inmediata" %}
 
-                      <span class="badge badge-error">
-                        Vence mañana
-                      </span>
+                    <span class="badge badge-error">
+                      Vence mañana
+                    </span>
 
-                    {% elif execution.radar_motivo == "continua_proxima" %}
+                  {% elif execution.radar_motivo == "continua_proxima" %}
 
-                      <span class="badge badge-warning badge-outline">
-                        Próxima a vencer
-                      </span>
+                    <span class="badge badge-warning badge-outline">
+                      Próxima a vencer
+                    </span>
 
                   {% elif execution.radar_motivo == "critica_activa" %}
 
@@ -223,10 +215,6 @@
                 </div>
 
 
-                {# ------------------------------------------------ #}
-                {# ACTIVIDAD                                        #}
-                {# ------------------------------------------------ #}
-
                 <div class="
                   prose
                   prose-sm
@@ -237,10 +225,6 @@
                   {{ execution.accion.accion|safe }}
                 </div>
 
-
-                {# ------------------------------------------------ #}
-                {# PLAN Y ÁMBITOS                                   #}
-                {# ------------------------------------------------ #}
 
                 <div class="
                   mt-3
@@ -273,10 +257,6 @@
                 </div>
 
 
-                {# ================================================== #}
-                {# SITUACIÓN OPERATIVA                                #}
-                {# ================================================== #}
-
                 <div class="
                   mt-4
                   grid
@@ -284,10 +264,6 @@
                   sm:grid-cols-2
                   xl:grid-cols-3
                 ">
-
-                  {# ------------------------------------------------ #}
-                  {# DEUDA                                            #}
-                  {# ------------------------------------------------ #}
 
                   {% if execution.radar_vencidas_count %}
 
@@ -327,10 +303,6 @@
                   {% endif %}
 
 
-                  {# ------------------------------------------------ #}
-                  {# VENCE HOY                                        #}
-                  {# ------------------------------------------------ #}
-
                   {% if execution.radar_vencen_hoy_count %}
 
                     <div class="
@@ -368,10 +340,6 @@
                   {% endif %}
 
 
-                  {# ------------------------------------------------ #}
-                  {# PRÓXIMA ACCIÓN                                   #}
-                  {# ------------------------------------------------ #}
-
                   {% if execution.radar_proxima_accion %}
 
                     <div class="
@@ -394,9 +362,7 @@
                       </p>
 
                       <p class="mt-1 text-sm font-semibold">
-
                         {{ execution.radar_proxima_accion.fecha_inicio|date:"d/m/Y" }}
-
                       </p>
 
 
@@ -412,10 +378,6 @@
 
                   {% endif %}
 
-
-                  {# ------------------------------------------------ #}
-                  {# ACTIVIDAD ACTUAL                                 #}
-                  {# ------------------------------------------------ #}
 
                   {% if execution.radar_activas %}
 
@@ -438,9 +400,20 @@
                         En curso
                       </p>
 
-                      <p class="mt-1 text-sm font-semibold">
-                        Actividad actualmente activa
-                      </p>
+                      {% if execution.accion.periodicidad == "continua" %}
+
+                        <p class="mt-1 text-sm font-semibold">
+                          Termina el
+                          {{ execution.fecha_fin|date:"d/m/Y" }}
+                        </p>
+
+                      {% else %}
+
+                        <p class="mt-1 text-sm font-semibold">
+                          Actividad actualmente activa
+                        </p>
+
+                      {% endif %}
 
                     </div>
 
@@ -450,10 +423,6 @@
 
               </div>
 
-
-              {# ================================================== #}
-              {# ACCIONES                                           #}
-              {# ================================================== #}
 
               <div class="
                 flex

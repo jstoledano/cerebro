@@ -448,6 +448,9 @@ class AgendaView(TemplateView):
         # ======================================================
         # Mantener materializada la siguiente ocurrencia
         # de las recurrencias abiertas.
+        #
+        # Continua no entra aquí: es un único intervalo
+        # y exige fecha de término.
         # ======================================================
 
         actividades_recurrentes_abiertas = (
@@ -500,9 +503,6 @@ class AgendaView(TemplateView):
 
         claves_unidades = set(claves_normativas)
 
-        # También necesitamos etiquetas de actividades
-        # visibles por operación aunque su unidad normativa
-        # quede fuera del alcance del usuario actual.
         claves_unidades.update(
             Accion.objects.filter(
                 plan__in=visible_plans,
@@ -581,7 +581,7 @@ class AgendaView(TemplateView):
         def nombre_normativo(
             actividad,
         ):
-            if not actividad.puesto_responsable:
+            if not (actividad.puesto_responsable):
                 return "—"
 
             unidad = unidades_normativas.get(actividad.puesto_responsable)
@@ -604,9 +604,8 @@ class AgendaView(TemplateView):
                 ejecucion.responsable_id in usuarios_agenda_ids
             )
 
-            ejecucion.visible_por_normativa = (
-                bool(actividad.puesto_responsable)
-                and actividad.puesto_responsable in claves_normativas
+            ejecucion.visible_por_normativa = bool(actividad.puesto_responsable) and (
+                actividad.puesto_responsable in claves_normativas
             )
 
             ejecucion.responsable_operativo_display = nombre_operativo(
@@ -616,18 +615,7 @@ class AgendaView(TemplateView):
             ejecucion.responsable_normativo_display = nombre_normativo(actividad)
 
         # ======================================================
-        # Agrupar por ACTIVIDAD
-        #
-        # Ésta es la diferencia fundamental respecto del radar
-        # anterior.
-        #
-        # Una actividad recurrente puede tener:
-        #
-        # - ejecuciones vencidas;
-        # - una ejecución actual;
-        # - próximas ejecuciones.
-        #
-        # El radar debe representarla una sola vez.
+        # Agrupar por actividad
         # ======================================================
 
         grupos = {}
@@ -674,6 +662,8 @@ class AgendaView(TemplateView):
 
             actividad = ejecuciones_actividad[0].accion
 
+            es_continua = actividad.periodicidad == PERIODICIDAD_CONTINUA
+
             # --------------------------------------------------
             # Situación histórica / actual
             # --------------------------------------------------
@@ -704,15 +694,12 @@ class AgendaView(TemplateView):
 
             # --------------------------------------------------
             # Próxima acción
-            #
-            # Para una recurrente ésta es la primera ejecución
-            # futura pendiente.
             # --------------------------------------------------
 
             proxima_accion = futuras_actividad[0] if futuras_actividad else None
 
             # --------------------------------------------------
-            # Responsables operativos involucrados
+            # Responsables operativos
             # --------------------------------------------------
 
             nombres_operativos = []
@@ -728,7 +715,7 @@ class AgendaView(TemplateView):
             )
 
             # --------------------------------------------------
-            # Ámbitos involucrados
+            # Ámbitos
             # --------------------------------------------------
 
             ambitos = []
@@ -742,11 +729,7 @@ class AgendaView(TemplateView):
             ambitos_display = ", ".join(ambitos)
 
             # --------------------------------------------------
-            # Seleccionamos una ejecución representativa.
-            #
-            # Por ahora agenda.html todavía espera recibir
-            # objetos Ejecucion. Utilizamos uno como vehículo
-            # para los datos agregados.
+            # Ejecución representativa
             # --------------------------------------------------
 
             if vencidas_actividad:
@@ -765,7 +748,7 @@ class AgendaView(TemplateView):
                 representativa = ejecuciones_actividad[0]
 
             # ==================================================
-            # Datos agregados del radar
+            # Datos agregados
             # ==================================================
 
             representativa.radar_vencidas = vencidas_actividad
@@ -800,7 +783,7 @@ class AgendaView(TemplateView):
             representativa.responsable_normativo_display = nombre_normativo(actividad)
 
             # --------------------------------------------------
-            # Contadores globales reales de ejecuciones
+            # Contadores globales
             # --------------------------------------------------
 
             total_ejecuciones_vencidas += len(vencidas_actividad)
@@ -810,11 +793,11 @@ class AgendaView(TemplateView):
             # ==================================================
             # CLASIFICACIÓN
             #
-            # Una actividad sólo entra en UNA categoría.
+            # Una actividad entra en una sola categoría.
             # ==================================================
 
             # --------------------------------------------------
-            # 1. URGENTE
+            # 1. REQUIERE ATENCIÓN INMEDIATA
             # --------------------------------------------------
 
             if vencidas_actividad:
@@ -831,7 +814,11 @@ class AgendaView(TemplateView):
 
                 continue
 
-            if actividad.periodicidad == PERIODICIDAD_CONTINUA and activas_actividad:
+            # --------------------------------------------------
+            # Continua activa: D-1
+            # --------------------------------------------------
+
+            if es_continua and activas_actividad:
                 dias_restantes = (representativa.fecha_fin - hoy).days
 
                 if dias_restantes == 1:
@@ -840,7 +827,6 @@ class AgendaView(TemplateView):
                     urgente.append(representativa)
 
                     continue
-
 
             if activas_actividad and actividad.prioridad == PRIORIDAD_CRITICA:
                 representativa.radar_motivo = "critica_activa"
@@ -853,7 +839,11 @@ class AgendaView(TemplateView):
             # 2. REQUIERE ATENCIÓN
             # --------------------------------------------------
 
-            if actividad.periodicidad == PERIODICIDAD_CONTINUA and activas_actividad:
+            # --------------------------------------------------
+            # Continua activa: D-5 a D-2
+            # --------------------------------------------------
+
+            if es_continua and activas_actividad:
                 dias_restantes = (representativa.fecha_fin - hoy).days
 
                 if 2 <= dias_restantes <= 5:
@@ -862,6 +852,10 @@ class AgendaView(TemplateView):
                     atencion.append(representativa)
 
                     continue
+
+            # --------------------------------------------------
+            # Próxima ejecución dentro de 7 días
+            # --------------------------------------------------
 
             if proxima_accion:
                 if proxima_accion.fecha_inicio <= limite_atencion:
@@ -898,7 +892,7 @@ class AgendaView(TemplateView):
                     continue
 
         # ======================================================
-        # Orden dentro de cada grupo
+        # Orden
         # ======================================================
 
         urgente.sort(
@@ -937,34 +931,22 @@ class AgendaView(TemplateView):
                 "fin_semana": (fin_semana),
                 "limite_atencion": (limite_atencion),
                 "limite_vigilar": (limite_vigilar),
-                # ----------------------------------------------
-                # Alcance
-                # ----------------------------------------------
                 "usuarios_agenda": (usuarios_agenda),
                 "usuarios_agenda_ids": (usuarios_agenda_ids),
                 "es_supervisor_agenda": (es_supervisor_agenda),
                 "total_usuarios_agenda": (len(usuarios_agenda)),
                 "claves_normativas": (claves_normativas),
-                # ----------------------------------------------
-                # Radar agrupado por actividad
-                # ----------------------------------------------
                 "urgentes": (urgente),
                 "requieren_atencion": (atencion),
                 "vigilar": (vigilar),
                 "terminadas": (terminadas),
-                # ----------------------------------------------
-                # Totales de ACTIVIDADES
-                # ----------------------------------------------
                 "total_urgentes": (len(urgente)),
                 "total_requieren_atencion": (len(atencion)),
                 "total_vigilar": (len(vigilar)),
-                # ----------------------------------------------
-                # Totales de EJECUCIONES
-                # ----------------------------------------------
                 "total_vencidas": (total_ejecuciones_vencidas),
                 "total_vencen_hoy": (total_vencen_hoy),
                 "total_terminadas": (len(terminadas)),
-                # Compatibilidad temporal con agenda.html.
+                # Compatibilidad temporal
                 "vencidas": [],
                 "vencen_hoy": [],
                 "vencen_semana": [],
@@ -2580,47 +2562,146 @@ class ActivityUpdateView(PermissionRequiredMixin, ActivityBaseView, UpdateView):
         return obj
 
 
-class ActivityDeleteView(PermissionRequiredMixin, DeleteView):
-    permission_required = "pas.delete_accion"
+class ActivityDeleteView(
+    PermissionRequiredMixin,
+    DeleteView,
+):
+    permission_required = (
+        "pas.delete_accion"
+    )
+
     model = Accion
-    template_name = "pas/partials/_confirm_delete.html"
 
-    def get_success_url(self):
-        return reverse("pas:detalle", args=[self.object.plan.pk])
+    template_name = (
+        "pas/partials/"
+        "_confirm_delete.html"
+    )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_queryset(
+        self,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
+
+        return (
+            Accion.objects
+            .filter(
+                plan__in=visible_plans
+            )
+            .select_related(
+                "plan"
+            )
+        )
+
+    def get_success_url(
+        self,
+    ):
+        return reverse(
+            "pas:detalle",
+            args=[
+                self.object.plan.pk
+            ],
+        )
+
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = (
+            super()
+            .get_context_data(
+                **kwargs
+            )
+        )
+
         context.update(
             {
-                "activity": self.object,
-                "form_action": self.request.path,
-                "modal_id": "pas-modal",
+                "activity": (
+                    self.object
+                ),
+                "form_action": (
+                    self.request.path
+                ),
+                "modal_id": (
+                    "pas-modal"
+                ),
             }
         )
+
         return context
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
+    def get_object(
+        self,
+        queryset=None,
+    ):
+        obj = super().get_object(
+            queryset
+        )
 
-        if obj.plan.eliminacion or obj.plan.recurrencia:
-            from django.core.exceptions import PermissionDenied
+        if not (
+            obj.plan
+            .permite_modificaciones
+        ):
+            from django.core.exceptions import (
+                PermissionDenied,
+            )
 
             raise PermissionDenied(
-                "El plan se encuentra cerrado o con recurrencia registrada."
+                (
+                    "El plan se encuentra "
+                    "cerrado o no admite "
+                    "modificaciones."
+                )
             )
 
         return obj
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
+    def form_valid(
+        self,
+        form,
+    ):
+        self.object = (
+            self.get_object()
+        )
 
-        response = super().delete(request, *args, **kwargs)
-        if request.headers.get("HX-Request"):
-            header = hx_trigger_header(
-                "pas:refresh-activities", "pas:refresh-summary", "pas:close-modal"
+        success_url = (
+            self.get_success_url()
+        )
+
+        self.object.delete()
+
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            header = (
+                hx_trigger_header(
+                    "pas:refresh-activities",
+                    "pas:refresh-summary",
+                    "pas:close-modal",
+                )
             )
-            return HttpResponse("", status=204, headers={"HX-Trigger": header})
-        return response
+
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": (
+                        header
+                    ),
+                },
+            )
+
+        return HttpResponse(
+            status=302,
+            headers={
+                "Location": (
+                    success_url
+                ),
+            },
+        )
 
 
 class FollowUpBaseView(CreateView):
