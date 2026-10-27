@@ -43,67 +43,54 @@
     </div>
 
 
-    <div class="grid gap-6 md:grid-cols-3">
+<div class="grid gap-6 md:grid-cols-2">
 
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">
-            {{ form.puesto_responsable.label }}
-          </span>
-        </label>
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ form.puesto_responsable.label }}
+      </span>
+    </label>
 
-        {{ form.puesto_responsable }}
+    {{ form.puesto_responsable }}
 
-        {% if form.puesto_responsable.help_text %}
-          <p class="mt-1 text-xs text-base-content/60">
-            {{ form.puesto_responsable.help_text }}
-          </p>
-        {% endif %}
+    {% if form.puesto_responsable.help_text %}
+      <p class="mt-1 text-xs text-base-content/60">
+        {{ form.puesto_responsable.help_text }}
+      </p>
+    {% endif %}
 
-        {% for error in form.puesto_responsable.errors %}
-          <p class="mt-1 text-xs text-error">
-            {{ error }}
-          </p>
-        {% endfor %}
-      </div>
-
-
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text font-semibold">
-            {{ form.responsable.label }}
-          </span>
-        </label>
-
-      {{ form.responsable }}
-
-        {% if form.responsable.help_text %}
-          <p class="mt-1 text-xs text-base-content/60">
-            {{ form.responsable.help_text }}
-          </p>
-        {% endif %}
-
-        {% for error in form.responsable.errors %}
-          <p class="mt-1 text-xs text-error">
-            {{ error }}
-          </p>
-        {% endfor %}
-      </div>
+    {% for error in form.puesto_responsable.errors %}
+      <p class="mt-1 text-xs text-error">
+        {{ error }}
+      </p>
+    {% endfor %}
+  </div>
 
 
-      <div class="form-control">
-        {{ form.recursos.label_tag }}
-        {{ form.recursos }}
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ form.responsable.label }}
+      </span>
+    </label>
 
-        {% for error in form.recursos.errors %}
-          <p class="mt-1 text-xs text-error">
-            {{ error }}
-          </p>
-        {% endfor %}
-      </div>
+    {{ form.responsable }}
 
-    </div>
+    {% if form.responsable.help_text %}
+      <p class="mt-1 text-xs text-base-content/60">
+        {{ form.responsable.help_text }}
+      </p>
+    {% endif %}
 
+    {% for error in form.responsable.errors %}
+      <p class="mt-1 text-xs text-error">
+        {{ error }}
+      </p>
+    {% endfor %}
+  </div>
+
+</div>
 
     <div class="grid gap-6 md:grid-cols-3">
 

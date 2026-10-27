@@ -302,6 +302,7 @@ class AccionForm(forms.ModelForm):
         exclude = [
             "user",
             "plan",
+            "recursos",
         ]
 
         labels = {
