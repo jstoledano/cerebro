@@ -2386,34 +2386,95 @@ class PlanFormMixin:
         return super().form_invalid(form)
 
 
-class PlanUpdateView(PermissionRequiredMixin, PlanFormMixin, UpdateView):
+class PlanUpdateView(
+    PermissionRequiredMixin,
+    PlanFormMixin,
+    UpdateView,
+):
     permission_required = "pas.change_plan"
     model = Plan
     form_class = PlanForm
     template_name = "pas/partials/_plan_form.html"
 
+    def get_queryset(self):
+        return Plan.objects.visible_to(
+            self.request.user
+        )
+
     def get_success_url(self):
-        return reverse("pas:detalle", args=[self.object.pk])
+        return reverse(
+            "pas:detalle",
+            args=[
+                self.object.pk,
+            ],
+        )
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.request.headers.get("HX-Request"):
-            header = hx_trigger_header("pas:refresh-summary", "pas:close-modal")
-            return HttpResponse("", status=204, headers={"HX-Trigger": header})
+        response = super().form_valid(
+            form
+        )
+
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            header = hx_trigger_header(
+                "pas:refresh-summary",
+                "pas:close-modal",
+            )
+
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": header,
+                },
+            )
+
         return response
 
 
-class PlanClosureView(PermissionRequiredMixin, FormView):
+class PlanClosureView(
+    PermissionRequiredMixin,
+    FormView,
+):
     permission_required = "pas.change_plan"
     form_class = PlanClosureForm
-    template_name = "pas/partials/_plan_closure_form.html"
+    template_name = (
+        "pas/partials/"
+        "_plan_closure_form.html"
+    )
 
-    def dispatch(self, request, *args, **kwargs):
-        self.plan = get_object_or_404(Plan, pk=kwargs["pk"])
-        return super().dispatch(request, *args, **kwargs)
+    def dispatch(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        self.plan = get_object_or_404(
+            visible_plans,
+            pk=kwargs["pk"],
+        )
+
+        return super().dispatch(
+            request,
+            *args,
+            **kwargs,
+        )
+
+    def get_context_data(
+        self,
+        **kwargs,
+    ):
+        context = super().get_context_data(
+            **kwargs
+        )
+
         context.update(
             {
                 "plan": self.plan,
@@ -2421,35 +2482,75 @@ class PlanClosureView(PermissionRequiredMixin, FormView):
                 "modal_id": "pas-modal",
             }
         )
+
         return context
 
     def get_initial(self):
         initial = super().get_initial()
+
         if self.plan.eliminacion:
             initial["resultado"] = "close"
-            initial["comentarios"] = self.plan.txt_eliminacion
+            initial["comentarios"] = (
+                self.plan.txt_eliminacion
+            )
+
         elif self.plan.recurrencia:
-            initial["resultado"] = "recurrence"
-            initial["comentarios"] = self.plan.txt_recurrencia
+            initial["resultado"] = (
+                "recurrence"
+            )
+            initial["comentarios"] = (
+                self.plan.txt_recurrencia
+            )
+
         return initial
 
-    def form_invalid(self, form):
-        if self.request.headers.get("HX-Request"):
-            return self.render_to_response(self.get_context_data(form=form), status=422)
-        return super().form_invalid(form)
+    def form_invalid(
+        self,
+        form,
+    ):
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            return self.render_to_response(
+                self.get_context_data(
+                    form=form
+                ),
+                status=422,
+            )
 
-    def form_valid(self, form):
-        resultado = form.cleaned_data["resultado"]
-        comentarios = form.cleaned_data.get("comentarios")
+        return super().form_invalid(
+            form
+        )
+
+    def form_valid(
+        self,
+        form,
+    ):
+        resultado = (
+            form.cleaned_data[
+                "resultado"
+            ]
+        )
+
+        comentarios = (
+            form.cleaned_data.get(
+                "comentarios"
+            )
+        )
 
         if resultado == "close":
             self.plan.eliminacion = True
-            self.plan.txt_eliminacion = comentarios
+            self.plan.txt_eliminacion = (
+                comentarios
+            )
             self.plan.recurrencia = False
             self.plan.txt_recurrencia = ""
+
         else:
             self.plan.recurrencia = True
-            self.plan.txt_recurrencia = comentarios
+            self.plan.txt_recurrencia = (
+                comentarios
+            )
             self.plan.eliminacion = False
             self.plan.txt_eliminacion = ""
 
@@ -2462,14 +2563,33 @@ class PlanClosureView(PermissionRequiredMixin, FormView):
             ]
         )
 
-        if self.request.headers.get("HX-Request"):
-            header = hx_trigger_header("pas:refresh-summary", "pas:close-modal")
-            return HttpResponse("", status=204, headers={"HX-Trigger": header})
+        if self.request.headers.get(
+            "HX-Request"
+        ):
+            header = hx_trigger_header(
+                "pas:refresh-summary",
+                "pas:close-modal",
+            )
 
-        return super().form_valid(form)
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": header,
+                },
+            )
+
+        return super().form_valid(
+            form
+        )
 
     def get_success_url(self):
-        return reverse("pas:detalle", args=[self.plan.pk])
+        return reverse(
+            "pas:detalle",
+            args=[
+                self.plan.pk,
+            ],
+        )
 
 
 class ActivityBaseView:
@@ -2537,41 +2657,112 @@ class ActivityBaseView:
         return response
 
 
-class ActivityCreateView(PermissionRequiredMixin, ActivityBaseView, CreateView):
+class ActivityCreateView(
+    PermissionRequiredMixin,
+    ActivityBaseView,
+    CreateView,
+):
     permission_required = "pas.add_accion"
     model = Accion
 
-    def dispatch(self, request, *args, **kwargs):
-        self.plan = get_object_or_404(Plan, pk=kwargs["pk"])
+    def dispatch(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        visible_plans = (
+            Plan.objects.visible_to(
+                request.user
+            )
+        )
+
+        self.plan = get_object_or_404(
+            visible_plans,
+            pk=kwargs["pk"],
+        )
+
         if not self.plan.permite_modificaciones:
             return HttpResponse(
-                "El plan se encuentra cerrado o con recurrencia registrada.",
+                (
+                    "El plan se encuentra cerrado "
+                    "o con recurrencia registrada."
+                ),
                 status=409,
             )
-        return super().dispatch(request, *args, **kwargs)
 
-    def form_valid(self, form):
+        return super().dispatch(
+            request,
+            *args,
+            **kwargs,
+        )
+
+    def form_valid(
+        self,
+        form,
+    ):
         form.instance.plan = self.plan
-        form.instance.user = self.request.user
-        return super().form_valid(form)
+        form.instance.user = (
+            self.request.user
+        )
+
+        return super().form_valid(
+            form
+        )
 
 
-class ActivityUpdateView(PermissionRequiredMixin, ActivityBaseView, UpdateView):
-    permission_required = "pas.change_accion"
+class ActivityUpdateView(
+    PermissionRequiredMixin,
+    ActivityBaseView,
+    UpdateView,
+):
+    permission_required = (
+        "pas.change_accion"
+    )
+
     model = Accion
 
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    def get_queryset(self):
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
+        return (
+            Accion.objects
+            .filter(
+                plan__in=visible_plans
+            )
+            .select_related(
+                "plan"
+            )
+        )
+
+    def get_object(
+        self,
+        queryset=None,
+    ):
+        obj = super().get_object(
+            queryset
+        )
+
         self.plan = obj.plan
-        if not self.plan.permite_modificaciones:
-            from django.core.exceptions import PermissionDenied
+
+        if not (
+            self.plan.permite_modificaciones
+        ):
+            from django.core.exceptions import (
+                PermissionDenied,
+            )
 
             raise PermissionDenied(
-                "El plan se encuentra cerrado o con recurrencia registrada."
+                (
+                    "El plan se encuentra cerrado "
+                    "o con recurrencia registrada."
+                )
             )
+
         return obj
 
 
