@@ -588,35 +588,6 @@ class Accion(TrackingFields):
         verbose_name = _("Actividad")
         verbose_name_plural = _("Actividades")
 
-    def _latest_seguimiento(self):
-        prefetched = getattr(
-            self,
-            "_prefetched_objects_cache",
-            {},
-        ).get("seguimiento_set")
-
-        if prefetched is not None:
-            return prefetched[0] if prefetched else None
-
-        return self.seguimiento_set.order_by(
-            "-fecha",
-            "-created",
-        ).first()
-
-    @property
-    def estado(self):
-        latest = self._latest_seguimiento()
-        return latest.estado if latest else None
-
-    @property
-    def estado_operativo(self):
-        latest = self._latest_seguimiento()
-
-        if not latest:
-            return None
-
-        return latest.get_estado_display()
-
     @property
     def responsable_display(self):
         return user_display_name(self.responsable)
