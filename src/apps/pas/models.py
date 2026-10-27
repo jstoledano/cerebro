@@ -598,24 +598,28 @@ class Accion(TrackingFields):
         Estado general de la actividad a partir de sus
         ejecuciones concretas.
 
-        El seguimiento no abre ni cierra una actividad.
-        Los seguimientos son únicamente anotaciones de control.
+        Una actividad recurrente sin fecha de término
+        permanece abierta aunque todas las ejecuciones
+        materializadas hasta el momento estén cerradas.
         """
 
         hoy = django.utils.timezone.localdate()
 
         ejecuciones = list(
             Ejecucion.objects.filter(ciclo__accion=self)
+            .select_related("ciclo")
             .only(
                 "completada",
                 "ciclo_id",
+                "ciclo__fecha_fin",
             )
-            .select_related("ciclo")
         )
 
-        # ------------------------------------------------------
-        # Actividad sin ejecuciones materializadas
-        # ------------------------------------------------------
+        es_recurrente_abierta = self.fecha_fin is None and self.periodicidad not in {
+            PERIODICIDAD_UNICA,
+            PERIODICIDAD_CONTINUA,
+            PERIODICIDAD_MANUAL,
+        }
 
         if not ejecuciones:
             if self.fecha_fin and self.fecha_fin < hoy:
@@ -623,27 +627,17 @@ class Accion(TrackingFields):
 
             return "Abierta en Tiempo"
 
-        # ------------------------------------------------------
-        # Todas las ejecuciones concretas están terminadas
-        # ------------------------------------------------------
-
-        if all(ejecucion.completada for ejecucion in ejecuciones):
-            return "Cerrada"
-
-        # ------------------------------------------------------
-        # Existe al menos una ejecución pendiente vencida
-        # ------------------------------------------------------
-
         if any(
             (not ejecucion.completada and ejecucion.fecha_fin < hoy)
             for ejecucion in ejecuciones
         ):
             return "Abierta Fuera de Tiempo"
 
-        # ------------------------------------------------------
-        # Todavía existen ejecuciones pendientes,
-        # pero ninguna está vencida
-        # ------------------------------------------------------
+        if es_recurrente_abierta:
+            return "Abierta en Tiempo"
+
+        if all(ejecucion.completada for ejecucion in ejecuciones):
+            return "Cerrada"
 
         return "Abierta en Tiempo"
 
@@ -653,8 +647,9 @@ class Accion(TrackingFields):
         Resume la situación temporal de la actividad
         a partir de sus ejecuciones concretas.
 
-        Los seguimientos no determinan el cierre ni
-        la salud temporal de la actividad.
+        Una recurrencia abierta no se considera cerrada
+        sólo porque las ejecuciones materializadas hasta
+        el momento hayan sido completadas.
         """
 
         hoy = django.utils.timezone.localdate()
@@ -670,11 +665,11 @@ class Accion(TrackingFields):
             )
         )
 
-        # ------------------------------------------------------
-        # Aún no existen ejecuciones materializadas.
-        # Conservamos una lectura útil con las fechas de
-        # definición de la actividad.
-        # ------------------------------------------------------
+        es_recurrente_abierta = self.fecha_fin is None and self.periodicidad not in {
+            PERIODICIDAD_UNICA,
+            PERIODICIDAD_CONTINUA,
+            PERIODICIDAD_MANUAL,
+        }
 
         if not ejecuciones:
             if not self.fecha_fin:
@@ -692,14 +687,21 @@ class Accion(TrackingFields):
             ejecucion for ejecucion in ejecuciones if not ejecucion.completada
         ]
 
-        # ------------------------------------------------------
-        # Todas las ejecuciones materializadas terminaron.
-        # ------------------------------------------------------
+        if any(ejecucion.fecha_fin < hoy for ejecucion in pendientes):
+            return "Vencida"
+
+        if any(ejecucion.fecha_fin == hoy for ejecucion in pendientes):
+            return "Vence hoy"
+
+        if es_recurrente_abierta:
+            return "En tiempo"
 
         if not pendientes:
             cerrada_fuera_de_tiempo = any(
-                ejecucion.fecha_completada
-                and ejecucion.fecha_completada > ejecucion.fecha_fin
+                (
+                    ejecucion.fecha_completada
+                    and ejecucion.fecha_completada > ejecucion.fecha_fin
+                )
                 for ejecucion in ejecuciones
             )
 
@@ -707,20 +709,6 @@ class Accion(TrackingFields):
                 return "Cerrada fuera de tiempo"
 
             return "Cerrada en tiempo"
-
-        # ------------------------------------------------------
-        # Existe al menos una ejecución pendiente vencida.
-        # ------------------------------------------------------
-
-        if any(ejecucion.fecha_fin < hoy for ejecucion in pendientes):
-            return "Vencida"
-
-        # ------------------------------------------------------
-        # Existe una ejecución que vence hoy.
-        # ------------------------------------------------------
-
-        if any(ejecucion.fecha_fin == hoy for ejecucion in pendientes):
-            return "Vence hoy"
 
         return "En tiempo"
 
