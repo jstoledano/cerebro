@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from django.db.models import Q
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import DjangoModelPermissions
 
@@ -40,19 +41,43 @@ class AccionViewSet(SessionOnlyAuthMixin, viewsets.ModelViewSet):
         )
 
 
-class EvidenciaViewSet(SessionOnlyAuthMixin, viewsets.ModelViewSet):
+class EvidenciaViewSet(
+    SessionOnlyAuthMixin,
+    viewsets.ModelViewSet,
+):
     queryset = Evidencia.objects.all()
     serializer_class = EvidenciaSerializer
 
     def get_queryset(self):
-        visible_plans = Plan.objects.visible_to(self.request.user)
+        visible_plans = (
+            Plan.objects.visible_to(
+                self.request.user
+            )
+        )
 
         return (
             Evidencia.objects
-            .filter(accion__plan__in=visible_plans)
+            .filter(
+                Q(
+                    ejecucion__ciclo__accion__plan__in=(
+                        visible_plans
+                    )
+                )
+                |
+                Q(
+                    accion__plan__in=(
+                        visible_plans
+                    )
+                )
+            )
             .select_related(
+                "ejecucion",
+                "ejecucion__ciclo",
+                "ejecucion__ciclo__accion",
+                "ejecucion__ciclo__accion__plan",
                 "accion",
                 "accion__plan",
                 "user",
             )
+            .distinct()
         )

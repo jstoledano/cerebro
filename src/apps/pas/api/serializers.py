@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.pas.models import (
     Plan,
     Accion,
+    Ejecucion,
     Evidencia,
 )
 
@@ -124,15 +125,24 @@ class AccionSerializer(serializers.ModelSerializer):
         ]
 
 
-class EvidenciaSerializer(serializers.ModelSerializer):
+class EvidenciaSerializer(
+    serializers.ModelSerializer
+):
     user = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
 
+    ejecucion = serializers.PrimaryKeyRelatedField(
+        queryset=Ejecucion.objects.all(),
+        required=True,
+    )
+
     class Meta:
         model = Evidencia
+
         fields = [
             "id",
+            "ejecucion",
             "accion",
             "archivo",
             "descripcion",
@@ -141,21 +151,77 @@ class EvidenciaSerializer(serializers.ModelSerializer):
             "created",
             "modified",
         ]
+
         read_only_fields = [
             "id",
+            "accion",
             "created",
             "modified",
         ]
 
-    def validate(self, attrs):
-        accion = attrs.get(
-            "accion",
-            getattr(self.instance, "accion", None),
+    def validate(
+        self,
+        attrs,
+    ):
+        ejecucion = attrs.get(
+            "ejecucion",
+            getattr(
+                self.instance,
+                "ejecucion",
+                None,
+            ),
         )
 
-        if accion and not accion.plan.permite_modificaciones:
+        if not ejecucion:
             raise serializers.ValidationError(
-                "El plan se encuentra cerrado o con recurrencia registrada."
+                {
+                    "ejecucion": (
+                        "La evidencia debe estar "
+                        "asociada a una ejecución."
+                    )
+                }
+            )
+
+        plan = ejecucion.plan
+
+        request = self.context.get(
+            "request"
+        )
+
+        if (
+            request
+            and not Plan.objects
+            .visible_to(request.user)
+            .filter(pk=plan.pk)
+            .exists()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "ejecucion": (
+                        "La ejecución seleccionada "
+                        "no está disponible."
+                    )
+                }
+            )
+
+        if not plan.permite_modificaciones:
+            raise serializers.ValidationError(
+                (
+                    "El plan se encuentra cerrado "
+                    "o no admite modificaciones."
+                )
             )
 
         return attrs
+
+    def create(
+        self,
+        validated_data,
+    ):
+        validated_data[
+            "accion"
+        ] = None
+
+        return super().create(
+            validated_data
+        )
