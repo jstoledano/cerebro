@@ -124,6 +124,7 @@ class PlanQuerySet(models.QuerySet):
 
 
 PERIODICIDAD_UNICA = "unica"
+PERIODICIDAD_CONTINUA = "continua"
 PERIODICIDAD_SEMANAL = "semanal"
 PERIODICIDAD_QUINCENAL = "quincenal"
 PERIODICIDAD_MENSUAL = "mensual"
@@ -133,13 +134,38 @@ PERIODICIDAD_ANUAL = "anual"
 PERIODICIDAD_MANUAL = "manual"
 
 PERIODICIDAD = (
-    (PERIODICIDAD_UNICA, "Una vez"),
-    (PERIODICIDAD_SEMANAL, "Semanal"),
-    (PERIODICIDAD_QUINCENAL, "Quincenal"),
-    (PERIODICIDAD_MENSUAL, "Mensual"),
-    (PERIODICIDAD_BIMESTRAL, "Bimestral"),
-    (PERIODICIDAD_TRIMESTRAL, "Trimestral"),
-    (PERIODICIDAD_ANUAL, "Anual"),
+    (
+        PERIODICIDAD_UNICA,
+        "Una vez",
+    ),
+    (
+        PERIODICIDAD_CONTINUA,
+        "Continua",
+    ),
+    (
+        PERIODICIDAD_SEMANAL,
+        "Semanal",
+    ),
+    (
+        PERIODICIDAD_QUINCENAL,
+        "Quincenal",
+    ),
+    (
+        PERIODICIDAD_MENSUAL,
+        "Mensual",
+    ),
+    (
+        PERIODICIDAD_BIMESTRAL,
+        "Bimestral",
+    ),
+    (
+        PERIODICIDAD_TRIMESTRAL,
+        "Trimestral",
+    ),
+    (
+        PERIODICIDAD_ANUAL,
+        "Anual",
+    ),
     (
         PERIODICIDAD_MANUAL,
         "Fechas definidas manualmente",
@@ -984,17 +1010,28 @@ class Accion(TrackingFields):
         return fechas
 
     def generar_ejecuciones(self):
-        def normalizar_fecha(valor):
+        def normalizar_fecha(
+            valor,
+        ):
             if valor is None:
                 return None
 
-            if isinstance(valor, datetime.datetime):
+            if isinstance(
+                valor,
+                datetime.datetime,
+            ):
                 return valor.date()
 
-            if isinstance(valor, datetime.date):
+            if isinstance(
+                valor,
+                datetime.date,
+            ):
                 return valor
 
-            if isinstance(valor, str):
+            if isinstance(
+                valor,
+                str,
+            ):
                 return datetime.date.fromisoformat(valor)
 
             raise TypeError(f"Tipo de fecha no soportado: {type(valor).__name__}")
@@ -1011,6 +1048,13 @@ class Accion(TrackingFields):
                 "La fecha de término no puede ser anterior a la fecha de inicio."
             )
 
+        # ======================================================
+        # Continua requiere un intervalo real.
+        # ======================================================
+
+        if self.periodicidad == PERIODICIDAD_CONTINUA and not fecha_fin_actividad:
+            raise ValueError("Una actividad continua debe tener fecha de término.")
+
         ambitos = self.ambitos or [AMBITO_JL]
 
         ambitos_validos = {
@@ -1024,11 +1068,14 @@ class Accion(TrackingFields):
 
         if ambitos_invalidos:
             raise ValueError(
-                "La actividad contiene ámbitos no válidos: "
-                + ", ".join(sorted(ambitos_invalidos))
+                "La actividad contiene ámbitos "
+                "no válidos: " + ", ".join(sorted(ambitos_invalidos))
             )
 
-        def sumar_meses(fecha, meses):
+        def sumar_meses(
+            fecha,
+            meses,
+        ):
             mes = fecha.month - 1 + meses
 
             anio = fecha.year + mes // 12
@@ -1061,7 +1108,9 @@ class Accion(TrackingFields):
                 dia,
             )
 
-        def siguiente_fecha(fecha):
+        def siguiente_fecha(
+            fecha,
+        ):
             if self.periodicidad == PERIODICIDAD_SEMANAL:
                 return fecha + datetime.timedelta(days=7)
 
@@ -1119,8 +1168,19 @@ class Accion(TrackingFields):
             return f"Ciclo {numero}"
 
         def construir_periodos():
+            # --------------------------------------------------
+            # Manual: utiliza los ciclos existentes.
+            # --------------------------------------------------
+
             if self.periodicidad == PERIODICIDAD_MANUAL:
                 return None
+
+            # --------------------------------------------------
+            # Una vez:
+            #
+            # Un solo ciclo. Puede ser puntual o abarcar
+            # un intervalo si existe fecha_fin.
+            # --------------------------------------------------
 
             if self.periodicidad == PERIODICIDAD_UNICA:
                 return [
@@ -1131,6 +1191,27 @@ class Accion(TrackingFields):
                         "fecha_fin": (fecha_fin_actividad or fecha_inicio_actividad),
                     }
                 ]
+
+            # --------------------------------------------------
+            # Continua:
+            #
+            # Un solo ciclo cuya ejecución permanece activa
+            # durante todo el intervalo.
+            # --------------------------------------------------
+
+            if self.periodicidad == PERIODICIDAD_CONTINUA:
+                return [
+                    {
+                        "numero": 1,
+                        "etiqueta": "Continua",
+                        "fecha_inicio": (fecha_inicio_actividad),
+                        "fecha_fin": (fecha_fin_actividad),
+                    }
+                ]
+
+            # --------------------------------------------------
+            # Recurrentes
+            # --------------------------------------------------
 
             periodos = []
 
@@ -1152,9 +1233,11 @@ class Accion(TrackingFields):
                 periodos.append(
                     {
                         "numero": numero,
-                        "etiqueta": construir_etiqueta(
-                            numero,
-                            fecha,
+                        "etiqueta": (
+                            construir_etiqueta(
+                                numero,
+                                fecha,
+                            )
                         ),
                         "fecha_inicio": fecha,
                         "fecha_fin": fecha,
@@ -1172,6 +1255,10 @@ class Accion(TrackingFields):
 
         periodos = construir_periodos()
 
+        # ======================================================
+        # Ciclos manuales
+        # ======================================================
+
         if periodos is None:
             ciclos = list(
                 self.ciclos.order_by(
@@ -1182,9 +1269,14 @@ class Accion(TrackingFields):
 
             if not ciclos:
                 raise ValueError(
-                    "La actividad utiliza fechas manuales "
-                    "pero todavía no tiene ciclos definidos."
+                    "La actividad utiliza fechas "
+                    "manuales pero todavía no tiene "
+                    "ciclos definidos."
                 )
+
+        # ======================================================
+        # Ciclos generados
+        # ======================================================
 
         else:
             numeros_generados = set()
@@ -1194,7 +1286,7 @@ class Accion(TrackingFields):
 
                 CicloActividad.objects.update_or_create(
                     accion=self,
-                    numero=periodo["numero"],
+                    numero=(periodo["numero"]),
                     defaults={
                         "etiqueta": (periodo["etiqueta"]),
                         "fecha_inicio": (periodo["fecha_inicio"]),
@@ -1203,7 +1295,7 @@ class Accion(TrackingFields):
                     },
                 )
 
-            self.ciclos.exclude(numero__in=numeros_generados).delete()
+            self.ciclos.exclude(numero__in=(numeros_generados)).delete()
 
             ciclos = list(
                 self.ciclos.order_by(
@@ -1211,6 +1303,10 @@ class Accion(TrackingFields):
                     "numero",
                 )
             )
+
+        # ======================================================
+        # Ejecuciones por ámbito
+        # ======================================================
 
         ejecuciones = []
 
