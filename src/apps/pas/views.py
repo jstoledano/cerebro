@@ -27,16 +27,19 @@ from django.views.generic import (
     TemplateView,
     View,
 )
-from .forms import PlanForm, AccionForm, SeguimientoForm, PlanClosureForm, EvidenciaForm
+from .forms import (
+    PlanForm,
+    AccionForm,
+    PlanClosureForm,
+    EvidenciaForm,
+)
 from .models import (
     Plan,
     Accion,
-    Seguimiento,
     Evidencia,
     CicloActividad,
     Ejecucion,
     AMBITO,
-    CERRADA,
     PERIODICIDAD_UNICA,
     PERIODICIDAD_MANUAL,
     FORMATO_SIN_EVIDENCIA,
@@ -2712,82 +2715,6 @@ class ActivityDeleteView(
                 ),
             },
         )
-
-
-class FollowUpBaseView(CreateView):
-    model = Seguimiento
-    form_class = SeguimientoForm
-    template_name = "pas/partials/_followup_form.html"
-
-    def dispatch(self, request, *args, **kwargs):
-        self.activity = get_object_or_404(Accion, pk=kwargs["pk"])
-
-        if self.activity.plan.eliminacion or self.activity.plan.recurrencia:
-            return HttpResponse(
-                "El plan se encuentra cerrado o con recurrencia registrada.",
-                status=409,
-            )
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse("pas:detalle", args=[self.activity.plan.pk])
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(
-            {
-                "form_action": self.request.path,
-                "activity": self.activity,
-                "modal_id": "pas-modal",
-            }
-        )
-        return context
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial.setdefault("fecha", timezone.now().date())
-        return initial
-
-    def form_invalid(self, form):
-        if self.request.headers.get("HX-Request"):
-            return self.render_to_response(self.get_context_data(form=form), status=422)
-        return super().form_invalid(form)
-
-    def form_valid(self, form):
-        form.instance.accion = self.activity
-        form.instance.user = self.request.user
-        response = super().form_valid(form)
-        if self.request.headers.get("HX-Request"):
-            header = hx_trigger_header(
-                "pas:refresh-activities", "pas:refresh-summary", "pas:close-modal"
-            )
-            return HttpResponse("", status=204, headers={"HX-Trigger": header})
-        return response
-
-
-class FollowUpCreateView(PermissionRequiredMixin, FollowUpBaseView):
-    permission_required = "pas.add_seguimiento"
-
-    pass
-
-
-class FollowUpListView(DetailView):
-    model = Accion
-    template_name = "pas/partials/_followup_list.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        followups = self.object.seguimiento_set.select_related("responsable").order_by(
-            "-fecha", "-created"
-        )
-        context.update(
-            {
-                "activity": self.object,
-                "followups": followups,
-            }
-        )
-        return context
 
 
 class EvidenceBaseView(CreateView):

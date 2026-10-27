@@ -22,11 +22,8 @@ from apps.profiles.models import (
 from .models import (
     Plan,
     Accion,
-    Seguimiento,
     Evidencia,
     AMBITO,
-    A_ESTADO,
-    CERRADA,
     CNC,
     PERIODICIDAD_CONTINUA,
 )
@@ -520,97 +517,6 @@ class AccionForm(forms.ModelForm):
             )
 
         return cleaned_data
-
-
-class SeguimientoForm(forms.ModelForm):
-    estado = forms.ChoiceField(
-        label="Tipo de seguimiento",
-        choices=(),
-        help_text=(
-            "Indica la situación que se desea "
-            "documentar. El seguimiento no determina "
-            "el cierre de la actividad."
-        ),
-    )
-
-    responsable = ResponsableChoiceField(
-        queryset=User.objects.order_by(
-            "first_name",
-            "last_name",
-            "email",
-        ),
-        required=False,
-        label="Responsable",
-        help_text=(
-            "Persona relacionada con la actualización."
-        ),
-    )
-
-    class Meta:
-        model = Seguimiento
-
-        exclude = [
-            "user",
-            "accion",
-        ]
-
-        widgets = {
-            "fecha": DateInput(
-                format="%Y-%m-%d",
-                attrs={
-                    "type": "date",
-                },
-            ),
-
-            "descripcion": Textarea(
-                attrs={
-                    "rows": 5,
-                }
-            ),
-        }
-
-        labels = {
-            "descripcion": "Descripción",
-            "fecha": "Fecha",
-        }
-
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(
-            *args,
-            **kwargs,
-        )
-
-        # Conservamos los estados históricos del modelo,
-        # pero "Cerrada" deja de ser una opción para nuevos
-        # seguimientos.
-        self.fields["estado"].choices = [
-            (
-                valor,
-                etiqueta,
-            )
-            for valor, etiqueta in A_ESTADO
-            if valor != CERRADA
-        ]
-
-        self.fields[
-            "responsable"
-        ].empty_label = (
-            "Sin responsable específico"
-        )
-
-        self.fields[
-            "fecha"
-        ].input_formats = [
-            "%Y-%m-%d",
-        ]
-
-        apply_tailwind_widgets(
-            self
-        )
 
 
 class PlanClosureForm(forms.Form):

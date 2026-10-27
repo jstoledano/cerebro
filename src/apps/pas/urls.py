@@ -14,8 +14,6 @@ from .views import (
     ActivityDetailView,
     ActivityUpdateView,
     ActivityDeleteView,
-    FollowUpCreateView,
-    FollowUpListView,
     EvidenceCreateView,
     EvidenceListView,
     EvidenceDownloadView,
@@ -103,16 +101,6 @@ urlpatterns = [
         "activities/<int:pk>/delete/",
         ActivityDeleteView.as_view(),
         name="activity-delete",
-    ),
-    path(
-        "activities/<int:pk>/followups/",
-        FollowUpListView.as_view(),
-        name="followup-list",
-    ),
-    path(
-        "activities/<int:pk>/followups/add/",
-        FollowUpCreateView.as_view(),
-        name="followup-add",
     ),
     path(
         "activities/<int:pk>/evidences/",
