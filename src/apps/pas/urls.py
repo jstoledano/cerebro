@@ -10,6 +10,7 @@ from .views import (
     PlanUpdateView,
     PlanClosureView,
     ActivityCreateView,
+    ActivityDetailView,
     ActivityUpdateView,
     ActivityDeleteView,
     FollowUpCreateView,
@@ -22,7 +23,6 @@ from .views import (
     ExecutionCompleteView,
     CalendarEventsView,
 )
-
 
 app_name = "pas"
 
@@ -82,6 +82,11 @@ urlpatterns = [
         "<int:pk>/activities/add/",
         ActivityCreateView.as_view(),
         name="activity-add",
+    ),
+    path(
+        "activities/<int:pk>/detail/",
+        ActivityDetailView.as_view(),
+        name="activity-detail",
     ),
     path(
         "activities/<int:pk>/edit/",
