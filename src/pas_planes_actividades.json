@@ -1,0 +1,1033 @@
+[
+{
+  "model": "pas.plan",
+  "pk": 5,
+  "fields": {
+    "created": "2026-10-22T18:14:50.021Z",
+    "modified": "2026-10-28T23:05:32.063Z",
+    "user": 2,
+    "nombre": "Gestión del CECPE",
+    "documento": 3,
+    "folio": "CECPE",
+    "fecha_llenado": "2026-10-22",
+    "descripcion": "<p><br data-mce-bogus=\"1\"></p>",
+    "documento_fuente": "",
+    "fecha_inicio": "2026-10-01",
+    "fecha_termino": null,
+    "visibilidad": "publica",
+    "tipo": null,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": null,
+    "otra_fuente": null,
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.plan",
+  "pk": 6,
+  "fields": {
+    "created": "2026-10-23T16:09:21.958Z",
+    "modified": "2026-10-23T18:50:23.309Z",
+    "user": 2,
+    "nombre": "DERFE-51",
+    "documento": 5,
+    "folio": "DERFE-51",
+    "fecha_llenado": "2026-10-23",
+    "descripcion": "Ejecutar, coordinar y asegurar la realización de visitas domiciliarias de verificación al 100% de los ciudadanos de 98 años o más inscritos en el Padrón Electoral en su ámbito distrital, mediante la planeación, organización y supervisión directa del personal de campo, garantizando la correcta aplicación de los instrumentos de entrevista, la validación de la información recabada y el registro oportuno de resultados en el sistema, con el propósito de contribuir a la actualización, depuración y confiabilidad del Padrón Electoral y la Lista Nominal de Electores.",
+    "documento_fuente": "pas/documentos/MC__DERFE-29_31_51_2026_2027.xlsx",
+    "fecha_inicio": "2026-09-01",
+    "fecha_termino": "2027-03-31",
+    "visibilidad": "publica",
+    "tipo": null,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": null,
+    "otra_fuente": null,
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.plan",
+  "pk": 7,
+  "fields": {
+    "created": "2026-10-26T16:12:43.453Z",
+    "modified": "2026-10-26T16:12:43.453Z",
+    "user": 2,
+    "nombre": "SGC-NC-29_03/2026",
+    "documento": 2,
+    "folio": "SGC-NC-29_03/2026",
+    "fecha_llenado": "2026-09-09",
+    "descripcion": "Durante la auditoría interna al SGC en Tlaxcala, se identificó una falta de alineación operativa, desapropiación del sistema y ausencia de controles documentales que interconectan las atribuciones del SGC con el personal operativo del proceso de apoyo de Suministro de Bienes y Servicios",
+    "documento_fuente": "pas/documentos/SGC-NC-29_032026.docx",
+    "fecha_inicio": "2026-09-09",
+    "fecha_termino": "2026-11-30",
+    "visibilidad": "publica",
+    "tipo": null,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": null,
+    "otra_fuente": null,
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.plan",
+  "pk": 8,
+  "fields": {
+    "created": "2026-10-26T17:48:38.190Z",
+    "modified": "2026-10-26T22:37:10.481Z",
+    "user": 2,
+    "nombre": "SGC-NC-29_02/2026",
+    "documento": 2,
+    "folio": "SGC-NC-29_02/2026",
+    "fecha_llenado": "2026-09-09",
+    "descripcion": "En el proceso de conciliación, se identificó que 2 credenciales, pertenecientes a las secciones 0488 y 0494, estaban archivadas en la sección 0484.\r\nEsto incumple las Instrucciones de trabajo para la operación del Módulo de Atención Ciudadana, Tomo II, pp. 33 y 34, así como el punto 8.5.4 de la Norma ISO 9001:2015.",
+    "documento_fuente": "pas/documentos/SGC-NC-29_022026.docx",
+    "fecha_inicio": "2026-09-09",
+    "fecha_termino": null,
+    "visibilidad": "publica",
+    "tipo": null,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": null,
+    "otra_fuente": null,
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.plan",
+  "pk": 9,
+  "fields": {
+    "created": "2026-10-26T19:03:03.768Z",
+    "modified": "2026-10-26T19:03:03.768Z",
+    "user": 2,
+    "nombre": "SGC-NC-29_01/2026",
+    "documento": 1,
+    "folio": "SGC-NC-29_01/2026",
+    "fecha_llenado": "2026-09-09",
+    "descripcion": "Durante el proceso sustantivo de Trámite: \r\n•  Se omite mencionar el Aviso de Privacidad \r\n• Se omite solicitar autorización de búsqueda en el Padrón durante el trámite. \r\n\r\nComo se indica en la Ficha de Proceso de Trámite, incumpliendo el punto 8.5.3, párrafos 1 y 2 de la Norma ISO 9001:2015.",
+    "documento_fuente": "pas/documentos/SGC-NC-29_012026.docx",
+    "fecha_inicio": "2026-09-09",
+    "fecha_termino": "2027-01-31",
+    "visibilidad": "publica",
+    "tipo": 2,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": 2,
+    "otra_fuente": "",
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.plan",
+  "pk": 10,
+  "fields": {
+    "created": "2026-10-26T21:48:50.496Z",
+    "modified": "2026-10-26T22:37:40.195Z",
+    "user": 2,
+    "nombre": "Voto Anticipado Art141",
+    "documento": 3,
+    "folio": "ART141",
+    "fecha_llenado": "2026-10-26",
+    "descripcion": "Modelo de Operación para la organización del Voto Anticipado para el Proceso Electoral Concurrente 2026 – 2027 y las elecciones extraordinarias que de este deriven",
+    "documento_fuente": "pas/documentos/Modelo_Operativo_para_la_organización_del_VA_PEC_2026-2027.PDF",
+    "fecha_inicio": "2026-10-26",
+    "fecha_termino": "2027-06-29",
+    "visibilidad": "publica",
+    "tipo": null,
+    "desc_cnc": "",
+    "correccion": "",
+    "fuente": null,
+    "otra_fuente": null,
+    "proposito": null,
+    "requisito": null,
+    "proceso": null,
+    "desc_pcm": "",
+    "consecuencias": "",
+    "analisis": "",
+    "evidencia_analisis": "",
+    "eliminacion": false,
+    "txt_eliminacion": null,
+    "recurrencia": false,
+    "txt_recurrencia": null
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 13,
+  "fields": {
+    "created": "2026-10-22T18:25:37.523Z",
+    "modified": "2026-10-22T18:41:44.109Z",
+    "user": 2,
+    "plan": 5,
+    "accion": "<p>Notificar a las representaciones partidistas ante la Comisi&oacute;n Local de Vigilancia la actualizaci&oacute;n de la tabala CIUDADANO_29.</p>",
+    "responsable": 2,
+    "puesto_responsable": "VRL",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "ninguno",
+    "periodicidad": "semanal",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-22",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 14,
+  "fields": {
+    "created": "2026-10-22T22:14:25.728Z",
+    "modified": "2026-10-22T22:15:04.705Z",
+    "user": 2,
+    "plan": 5,
+    "accion": "<p>Cambiar la contrase&ntilde;a del escritorio virtual</p>",
+    "responsable": 2,
+    "puesto_responsable": "",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "ninguno",
+    "periodicidad": "trimestral",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2027-01-18",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 15,
+  "fields": {
+    "created": "2026-10-23T16:30:06.678Z",
+    "modified": "2026-10-23T19:35:29.853Z",
+    "user": 2,
+    "plan": 6,
+    "accion": "DERFE-51.1 Validar la información recabada mediante los instrumentos de campo, previo a su integración y remisión a la DERFE.",
+    "responsable": 6,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Correo mediante el cual se remita a la DERFE la información validada derivada de los instrumentos de campo, anexando el listado de los folios verificados.",
+    "formato_evidencia": "pdf",
+    "periodicidad": "quincenal",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-19",
+    "fecha_fin": "2027-03-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 16,
+  "fields": {
+    "created": "2026-10-23T16:34:12.254Z",
+    "modified": "2026-10-23T19:35:40.388Z",
+    "user": 2,
+    "plan": 6,
+    "accion": "DERFE-51.2 Supervisar las visitas de verificación o reentrevistas en campo",
+    "responsable": 6,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "La Vocalía del RFE de la JLE envía un listado de su entidad con los folios de las visitas de verificación o reentrevistas en campo por domicilio no localizado y/o no hubo informante.",
+    "formato_evidencia": "xlsx",
+    "periodicidad": "bimestral",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-19",
+    "fecha_fin": "2027-03-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 17,
+  "fields": {
+    "created": "2026-10-23T16:36:33.899Z",
+    "modified": "2026-10-23T18:41:37.595Z",
+    "user": 2,
+    "plan": 6,
+    "accion": "<p><strong>DERFE-51.3</strong> Integrar y remitir a la DDVC el reporte quincenal del avance general del trabajo en campo</p>",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Correo mediante el cual se remita a la DDVC el reporte quincenal del avance general del trabajo en campo, con los elementos establecidos en el criterio de eficiencia 3.",
+    "formato_evidencia": "pdf",
+    "periodicidad": "quincenal",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-30",
+    "fecha_fin": "2027-03-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 18,
+  "fields": {
+    "created": "2026-10-23T16:47:04.963Z",
+    "modified": "2026-10-23T18:57:44.176Z",
+    "user": 2,
+    "plan": 6,
+    "accion": "DERFE-51.4 Validar, previo a la solicitud de baja, las testimoniales de aquellos registros con defunción confirmada",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Correo mediante el cual se informe a la DERFE la validación de las testimoniales correspondientes a los registros con defunción confirmada mediante dos testimonios cuya baja se solicite en el mes, anexando el listado de los folios validados.",
+    "formato_evidencia": "pdf",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "JL",
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2026-10-26",
+    "fecha_fin": "2027-03-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 19,
+  "fields": {
+    "created": "2026-10-26T16:25:00.126Z",
+    "modified": "2026-10-26T16:27:35.811Z",
+    "user": 2,
+    "plan": 7,
+    "accion": "Modificar la Ficha del Proceso de Suministro de Bienes y Servicios para corregir el flujo de actividades e incorporar el procedimiento de Reevaluación de Proveedores Externos.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Ficha de Proceso de suministro de ByS actualizada, validada y firmada.",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-09-09",
+    "fecha_fin": "2026-10-30",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 20,
+  "fields": {
+    "created": "2026-10-26T16:26:36.155Z",
+    "modified": "2026-10-26T16:26:36.155Z",
+    "user": 2,
+    "plan": 7,
+    "accion": "Documentar la evaluación y reevaluación de Proveedores",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Reporte de evaluación y/o reevaluación del proveedor",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-09-09",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 21,
+  "fields": {
+    "created": "2026-10-26T16:37:16.224Z",
+    "modified": "2026-10-26T16:37:31.405Z",
+    "user": 2,
+    "plan": 7,
+    "accion": "Documentar y dar seguimiento al indicador del Proceso de Suministro de Bienes y Servicios, asegurando que los dueños del proceso conozcan las fechas de actualización, análisis y evaluación",
+    "responsable": 10,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Tablero de Control de Indicadores de PA, por UR y concentrado por entidad. Correos.",
+    "formato_evidencia": "xlsx",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-01",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 22,
+  "fields": {
+    "created": "2026-10-26T16:41:25.047Z",
+    "modified": "2026-10-26T16:41:25.047Z",
+    "user": 2,
+    "plan": 7,
+    "accion": "Gestionar y efectuar una capacitación específica sobre las atribuciones, responsabilidades, política de calidad e impacto normativo para el personal involucrado en los Procesos Reclutamiento y Selección y de Suministro de Bienes y Servicios.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Constancias de capacitación y/o evaluaciones",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-09-01",
+    "fecha_fin": "2026-11-30",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 23,
+  "fields": {
+    "created": "2026-10-26T16:49:33.370Z",
+    "modified": "2026-10-26T16:49:33.370Z",
+    "user": 2,
+    "plan": 7,
+    "accion": "Validar mediante supervisiones cruzadas que el personal involucrado en los procesos de Reclutamiento y Selección y de Suministro de Bienes y Servicios domina sus indicadores, aplica los formatos correspondientes y se encuentra sensibilizado en el SGC.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Lista de verificación y reporte de resultados",
+    "formato_evidencia": "pdf",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-09-09",
+    "fecha_fin": "2026-11-30",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 24,
+  "fields": {
+    "created": "2026-10-26T18:09:55.835Z",
+    "modified": "2026-10-26T18:09:55.835Z",
+    "user": 2,
+    "plan": 8,
+    "accion": "Realizar una reunión de análisis con vocales distritales del Registro Federal de Electores, responsables de módulo y el personal operativo involucrado, con el propósito de revisar las circunstancias en que ocurrió el acomodo incorrecto, analizar la aplicación de la Instrucción de Trabajo y evaluar el funcionamiento del arqueo semanal y de las supervisiones.",
+    "responsable": 5,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Lista de asistencia y/o Minuta de trabajo",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2026-10-02",
+    "fecha_fin": "2026-10-02",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 25,
+  "fields": {
+    "created": "2026-10-26T18:11:55.772Z",
+    "modified": "2026-10-26T18:11:55.772Z",
+    "user": 2,
+    "plan": 8,
+    "accion": "Fortalecer el arqueo semanal mediante una revisión previa del acomodo físico de las secciones electorales en las que, durante la semana, se hayan recibido CPV, verificando que cada credencial se encuentre archivada en la sección que le corresponde.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "ninguno",
+    "periodicidad": "semanal",
+    "ambitos": [],
+    "fecha_inicio": "2026-10-26",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 26,
+  "fields": {
+    "created": "2026-10-26T18:14:01.299Z",
+    "modified": "2026-10-26T18:14:01.299Z",
+    "user": 2,
+    "plan": 8,
+    "accion": "Registrar el resultado de la revisión previa y del arqueo semanal en la minuta de trabajo semanal del MAC, indicando las secciones revisadas, la fecha, el responsable y, en su caso, las diferencias detectadas y las acciones realizadas para su corrección.",
+    "responsable": 10,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Reporte nominativo y Minuta",
+    "formato_evidencia": "",
+    "periodicidad": "semanal",
+    "ambitos": [],
+    "fecha_inicio": "2026-10-26",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 27,
+  "fields": {
+    "created": "2026-10-26T18:16:51.556Z",
+    "modified": "2026-10-26T18:16:51.556Z",
+    "user": 2,
+    "plan": 8,
+    "accion": "Incorporar la verificación del acomodo físico de una muestra de secciones electorales como un punto específico de las supervisiones programadas por las juntas Local y distritales, registrando la actividad en la Cédula de Supervisión correspondiente.",
+    "responsable": null,
+    "puesto_responsable": "5030",
+    "recursos": null,
+    "evidencia": "Cédula de Supervisión",
+    "formato_evidencia": "",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-11-03",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 28,
+  "fields": {
+    "created": "2026-10-26T18:18:50.697Z",
+    "modified": "2026-10-26T18:18:50.697Z",
+    "user": 2,
+    "plan": 8,
+    "accion": "Verificar la eficacia de las acciones implementadas durante la siguiente auditoría interna, revisando que las revisiones se hayan realizado y documentado, que las diferencias que en su caso hayan sido detectadas, se atendieron oportunamente y que no se presente reincidencia del hallazgo.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Informe de auditoría",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2027-08-16",
+    "fecha_fin": "2027-09-30",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 29,
+  "fields": {
+    "created": "2026-10-26T19:04:11.900Z",
+    "modified": "2026-10-26T19:04:11.900Z",
+    "user": 2,
+    "plan": 9,
+    "accion": "Realizar una reunión de análisis con vocales distritales del Registro Federal de Electores, responsables de módulo y el personal operativo involucrado, con el propósito de:\r\n•\tconfirmar las causas de la omisión de actividades (menciones) del proceso de Trámite;\r\n•\tdeterminar el nivel de conocimiento y toma de conciencia del personal;\r\n•\trevisar la forma en que se comunican y supervisan dichas actividades; e\r\n•\tidentificar las fallas de control que permitieron que la desviación ocurriera y no fuera detectada oportunamente.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Lista de asistencia y/o Minuta de trabajo",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-02",
+    "fecha_fin": "2026-10-02",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 30,
+  "fields": {
+    "created": "2026-10-26T19:06:29.995Z",
+    "modified": "2026-10-26T19:06:29.995Z",
+    "user": 2,
+    "plan": 9,
+    "accion": "Comunicar formalmente al personal de MAC que las actividades establecidas en la ficha de proceso de Trámite y en la lista de verificación forman parte obligatoria del proceso de Trámite y no pueden omitirse con base en el criterio individual ni en la consideración de que no afectan directamente la generación de la CVP.",
+    "responsable": 5,
+    "puesto_responsable": "",
+    "recursos": null,
+    "evidencia": "Acuses de conocimiento",
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-07",
+    "fecha_fin": "2026-10-16",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 31,
+  "fields": {
+    "created": "2026-10-26T19:09:36.047Z",
+    "modified": "2026-10-26T19:09:36.047Z",
+    "user": 2,
+    "plan": 9,
+    "accion": "Incorporar en la minuta semanal de los MAC la relevancia de cumplir íntegramente con las fichas de los procesos sustantivos e Instrucciones de trabajo.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Minutas",
+    "formato_evidencia": "",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2026-10-26",
+    "fecha_fin": null,
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 32,
+  "fields": {
+    "created": "2026-10-26T19:19:22.455Z",
+    "modified": "2026-10-26T19:19:22.455Z",
+    "user": 2,
+    "plan": 9,
+    "accion": "Realizar un seguimiento periódico de los resultados por parte de los niveles jerárquicos correspondientes, con el fin de identificar, en su caso, reincidencias y asegurar la eficacia de las acciones implementadas.",
+    "responsable": 10,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Cédula de Supervisión",
+    "formato_evidencia": "pdf",
+    "periodicidad": "mensual",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-11-01",
+    "fecha_fin": "2027-01-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 33,
+  "fields": {
+    "created": "2026-10-26T21:57:58.250Z",
+    "modified": "2026-10-27T19:24:33.186Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.03 \r\nDisposición de los formatos SIILNEVA a través de la página de Internet del Instituto",
+    "responsable": 5,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "ninguno",
+    "periodicidad": "continua",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-10-15",
+    "fecha_fin": "2027-01-25",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 34,
+  "fields": {
+    "created": "2026-10-26T22:04:31.842Z",
+    "modified": "2026-10-27T21:13:27.284Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.08\r\nImpartición de las pláticas de sensibilización a integrantes de las JLE y de las JDE por parte de UTIGyND / DEOE.",
+    "responsable": 5,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Listas de asistencia",
+    "formato_evidencia": "pdf",
+    "periodicidad": "continua",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2026-12-01",
+    "fecha_fin": "2027-01-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 35,
+  "fields": {
+    "created": "2026-10-26T22:10:18.093Z",
+    "modified": "2026-10-27T21:13:44.009Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.09\r\nAprobación del Personal Designado que realizará las visitas domiciliarias",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Oficios de designación",
+    "formato_evidencia": "pdf",
+    "periodicidad": "continua",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2027-01-06",
+    "fecha_fin": "2027-01-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 36,
+  "fields": {
+    "created": "2026-10-26T22:14:42.970Z",
+    "modified": "2026-10-26T22:14:42.971Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.14 Entrega por parte de la Dirección de Operaciones del Centro de Cómputo y Resguardo Documental a la Dirección de Productos y Servicios Electorales, de la relación de trámites al amparo del artículo 141 de la LGIPE, correspondiente al periodo comprendido del 01 de enero de 2018 al 25 de enero de 2027, con credencial entregada al 28 de enero de 2027.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Archivo con relación de trámites",
+    "formato_evidencia": "xlsx",
+    "periodicidad": "unica",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2027-02-02",
+    "fecha_fin": "2027-02-02",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 37,
+  "fields": {
+    "created": "2026-10-26T22:25:10.229Z",
+    "modified": "2026-10-26T22:25:10.229Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.16\r\nDisposición y envío para las JLE y JDE de las cartas invitación para las Personas Solicitante, por parte de la DEOE.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-02",
+    "fecha_fin": "2027-02-04",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 39,
+  "fields": {
+    "created": "2026-10-26T22:33:06.022Z",
+    "modified": "2026-10-26T22:33:06.022Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.17 \r\nGeneración y envío de las SIILNEVA de artículo 141 de la LGIPE y PCP, a las JLE.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-03",
+    "fecha_fin": "2027-02-04",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 40,
+  "fields": {
+    "created": "2026-10-26T22:34:04.414Z",
+    "modified": "2026-10-26T22:34:04.414Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.18\r\nEntrega a domicilio de las cartas invitación y SIILNEVA para las Personas Solicitantes y las PCP.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-05",
+    "fecha_fin": "2027-02-11",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 41,
+  "fields": {
+    "created": "2026-10-26T22:35:55.996Z",
+    "modified": "2026-10-26T22:35:55.996Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.19\r\nReporte del avance en la entrega de invitaciones y SIILNEVA a las Personas Solicitantes.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-05",
+    "fecha_fin": "2027-02-12",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 42,
+  "fields": {
+    "created": "2026-10-26T22:39:30.850Z",
+    "modified": "2026-10-26T22:39:30.850Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.20\r\nRemisión de información nominativa de las SIILNEVA requisitadas y formatos en archivo .PDF vía correo institucional a la DERFE. Los originales los integra la JLE para atender consultas",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-07",
+    "fecha_fin": "2027-02-12",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 43,
+  "fields": {
+    "created": "2026-10-26T22:41:39.377Z",
+    "modified": "2026-10-26T22:41:39.377Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.21\r\nDeterminación de procedencia o improcedencia de SIILNEVA.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-02-10",
+    "fecha_fin": "2027-02-26",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 44,
+  "fields": {
+    "created": "2026-10-26T22:42:44.684Z",
+    "modified": "2026-10-26T22:42:44.684Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.23\r\nA propuesta de la JDE, aprobación de la cantidad y ubicación de las MEC VA.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": null,
+    "formato_evidencia": "",
+    "periodicidad": "unica",
+    "ambitos": [],
+    "fecha_inicio": "2027-03-01",
+    "fecha_fin": "2027-03-25",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 45,
+  "fields": {
+    "created": "2026-10-28T22:53:25.962Z",
+    "modified": "2026-10-28T23:04:17.382Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.24 A propuesta de la JDE, aprobación del listado de personal del Instituto para realizar funciones de suplencia del funcionariado de las MEC VA.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Listados",
+    "formato_evidencia": "pdf",
+    "periodicidad": "unica",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2027-03-15",
+    "fecha_fin": "2027-05-31",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 46,
+  "fields": {
+    "created": "2026-10-28T22:55:38.917Z",
+    "modified": "2026-10-28T23:02:58.703Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.25 Generación y entrega de archivos de impresión de la LNEVA-D a la JLE, para el periodo de Votación Anticipada.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Archivos de impresión",
+    "formato_evidencia": "pdf",
+    "periodicidad": "continua",
+    "ambitos": [
+      "JL"
+    ],
+    "fecha_inicio": "2027-04-05",
+    "fecha_fin": "2027-04-19",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 47,
+  "fields": {
+    "created": "2026-10-28T22:57:38.221Z",
+    "modified": "2026-10-28T23:03:23.113Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.27 Entrega de Notificación de Procedencia o Improcedencia de SIILNEVA a las Personas Solicitantes y las Personas Cuidadoras Primarias, en el domicilio de visita.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Notificaciones de procedencia.",
+    "formato_evidencia": "pdf",
+    "periodicidad": "continua",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2027-04-08",
+    "fecha_fin": "2027-04-30",
+    "prioridad": "urgente"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 48,
+  "fields": {
+    "created": "2026-10-28T22:59:05.732Z",
+    "modified": "2026-10-28T23:03:48.890Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.28 Entrega a la JLE de la documentación y materiales para la integración de los SPES JL VA.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Documentación SIILNEVA",
+    "formato_evidencia": "pdf",
+    "periodicidad": "continua",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2027-05-01",
+    "fecha_fin": "2027-05-13",
+    "prioridad": "normal"
+  }
+},
+{
+  "model": "pas.accion",
+  "pk": 49,
+  "fields": {
+    "created": "2026-10-28T23:02:18.609Z",
+    "modified": "2026-10-28T23:04:01.317Z",
+    "user": 2,
+    "plan": 10,
+    "accion": "MO.29 Periodo de Votación Anticipada en modalidad .presencial en el domicilio de la PVA.",
+    "responsable": null,
+    "puesto_responsable": "50",
+    "recursos": null,
+    "evidencia": "Sobres votos",
+    "formato_evidencia": "zip",
+    "periodicidad": "continua",
+    "ambitos": [
+      "D01",
+      "D02",
+      "D03"
+    ],
+    "fecha_inicio": "2027-05-15",
+    "fecha_fin": "2027-05-26",
+    "prioridad": "critica"
+  }
+}
+]
