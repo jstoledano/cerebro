@@ -1919,24 +1919,37 @@ class PlanSummaryView(DetailView):
         self,
         **kwargs,
     ):
-        context = super().get_context_data(**kwargs)
+        context = super().get_context_data(
+            **kwargs
+        )
 
         plan = self.object
 
         activities = list(
-            plan.accion_set.select_related("responsable")
-            .prefetch_related("ciclos__ejecuciones")
-            .order_by("id")
+            plan.accion_set
+            .select_related(
+                "responsable"
+            )
+            .prefetch_related(
+                "ciclos__ejecuciones"
+            )
+            .order_by(
+                "id"
+            )
         )
 
-        total_activities = len(activities)
+        total_activities = len(
+            activities
+        )
 
         # ======================================================
         # El avance global sólo tiene sentido cuando el plan
         # tiene un horizonte finito.
         # ======================================================
 
-        tiene_avance = bool(plan.fecha_termino)
+        tiene_avance = bool(
+            plan.fecha_termino
+        )
 
         total_ejecuciones = 0
         ejecuciones_terminadas = 0
@@ -1957,9 +1970,10 @@ class PlanSummaryView(DetailView):
             # --------------------------------------------------
 
             for activity in activities:
-                if activity.periodicidad == PERIODICIDAD_MANUAL:
-                    # Las actividades manuales dependen de
-                    # ciclos definidos explícitamente.
+                if (
+                    activity.periodicidad
+                    == PERIODICIDAD_MANUAL
+                ):
                     continue
 
                 activity.generar_ejecuciones()
@@ -1968,51 +1982,76 @@ class PlanSummaryView(DetailView):
             # Universo real de ejecuciones del plan.
             # --------------------------------------------------
 
-            executions = Ejecucion.objects.filter(
-                ciclo__accion__plan=plan,
-                ciclo__fecha_fin__lte=(plan.fecha_termino),
+            executions = (
+                Ejecucion.objects.filter(
+                    ciclo__accion__plan=plan,
+                    ciclo__fecha_fin__lte=(
+                        plan.fecha_termino
+                    ),
+                )
             )
 
             if plan.fecha_inicio:
-                executions = executions.filter(
-                    ciclo__fecha_inicio__gte=(plan.fecha_inicio)
+                executions = (
+                    executions.filter(
+                        ciclo__fecha_inicio__gte=(
+                            plan.fecha_inicio
+                        )
+                    )
                 )
 
-            total_ejecuciones = executions.count()
+            total_ejecuciones = (
+                executions.count()
+            )
 
-            ejecuciones_terminadas = executions.filter(completada=True).count()
+            ejecuciones_terminadas = (
+                executions.filter(
+                    completada=True
+                ).count()
+            )
 
-            ejecuciones_pendientes = total_ejecuciones - ejecuciones_terminadas
+            ejecuciones_pendientes = (
+                total_ejecuciones
+                - ejecuciones_terminadas
+            )
 
             # --------------------------------------------------
             # Avance
             # --------------------------------------------------
 
             if total_ejecuciones:
-                progress = round((ejecuciones_terminadas / total_ejecuciones) * 100)
+                progress = round(
+                    (
+                        ejecuciones_terminadas
+                        / total_ejecuciones
+                    )
+                    * 100
+                )
 
             else:
                 progress = 0
 
             # --------------------------------------------------
             # Cierre operativo del universo programado.
-            #
-            # Ya no depende de Seguimiento.
             # --------------------------------------------------
 
-            all_closed = total_ejecuciones > 0 and ejecuciones_pendientes == 0
+            all_closed = (
+                total_ejecuciones > 0
+                and ejecuciones_pendientes == 0
+            )
 
         # ======================================================
         # Estado de las definiciones de actividad
-        #
-        # Esto es informativo. No gobierna el cierre del plan.
         # ======================================================
 
         closed_activities = 0
         open_activities = 0
 
         for activity in activities:
-            if activity.get_estado == "Cerrada":
+            if (
+                activity.get_estado
+                == "Cerrada"
+            ):
                 closed_activities += 1
 
             else:
@@ -2025,27 +2064,31 @@ class PlanSummaryView(DetailView):
         context.update(
             {
                 "plan": plan,
-                # ----------------------------------------------
-                # Definiciones de actividad
-                # ----------------------------------------------
-                "total_activities": (total_activities),
-                "closed_activities": (closed_activities),
-                "open_activities": (open_activities),
-                # ----------------------------------------------
-                # Avance por ejecuciones
-                # ----------------------------------------------
-                "tiene_avance": (tiene_avance),
-                "total_ejecuciones": (total_ejecuciones),
-                "ejecuciones_terminadas": (ejecuciones_terminadas),
-                "ejecuciones_pendientes": (ejecuciones_pendientes),
-                "progress": (progress),
-                # ----------------------------------------------
-                # Posibilidad de cierre administrativo
-                #
-                # Sólo puede ser True en un plan finito cuyo
-                # universo completo de ejecuciones terminó.
-                # ----------------------------------------------
-                "all_closed": (all_closed),
+                "total_activities": (
+                    total_activities
+                ),
+                "closed_activities": (
+                    closed_activities
+                ),
+                "open_activities": (
+                    open_activities
+                ),
+                "tiene_avance": (
+                    tiene_avance
+                ),
+                "total_ejecuciones": (
+                    total_ejecuciones
+                ),
+                "ejecuciones_terminadas": (
+                    ejecuciones_terminadas
+                ),
+                "ejecuciones_pendientes": (
+                    ejecuciones_pendientes
+                ),
+                "progress": progress,
+                "all_closed": (
+                    all_closed
+                ),
             }
         )
 

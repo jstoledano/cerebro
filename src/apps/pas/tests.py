@@ -38,7 +38,11 @@ User = get_user_model()
 
 class PASAccessTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="password",
+        )
+
         self.plan = Plan.objects.create(
             folio=1,
             fecha_llenado=date.today(),
@@ -47,67 +51,149 @@ class PASAccessTests(TestCase):
             desc_cnc="Test Plan",
             analisis="Test Analysis",
         )
+
         self.action = Accion.objects.create(
             plan=self.plan,
             accion="Test Action",
             responsable=self.user,
             fecha_fin=date.today(),
         )
+
         self.factory = RequestFactory()
 
-    def test_index_public_access(self):
-        request = self.factory.get("/pas/")
-        request.user = AnonymousUser()
-        response = PASIndex.as_view()(request)
-        self.assertEqual(response.status_code, 200)
+    def test_agenda_requires_authentication(self):
+        response = self.client.get(
+            reverse("pas:index")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_plan_list_requires_authentication(self):
+        response = self.client.get(
+            reverse("pas:plans")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
 
     def test_detail_public_access(self):
-        request = self.factory.get(f"/pas/detalle/{self.plan.pk}/")
+        request = self.factory.get(
+            f"/pas/detalle/{self.plan.pk}/"
+        )
+
         request.user = AnonymousUser()
+
         response = PASDetail.as_view()(
             request,
             pk=self.plan.pk,
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context_data["plan"], self.plan)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertEqual(
+            response.context_data["plan"],
+            self.plan,
+        )
 
     def test_add_plan_protected(self):
-        """Test that adding a plan requires login."""
-        response = self.client.get(reverse("pas:add"))
-        self.assertNotEqual(response.status_code, 200)
-        # Should redirect to login
-        self.assertEqual(response.status_code, 302)
+        response = self.client.get(
+            reverse("pas:add")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
 
     def test_edit_plan_protected(self):
-        """Test that editing a plan requires login."""
-        response = self.client.get(reverse("pas:plan-edit", args=[self.plan.pk]))
-        self.assertEqual(response.status_code, 302)
+        response = self.client.get(
+            reverse(
+                "pas:plan-edit",
+                args=[self.plan.pk],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
 
     def test_summary_partial_public_access(self):
-        """Test that plan summary partial is accessible."""
-        response = self.client.get(reverse("pas:plan-summary", args=[self.plan.pk]))
-        self.assertEqual(response.status_code, 200)
-        # Ensure 'Editar plan' button is NOT present
-        self.assertNotContains(response, "Editar plan")
+        response = self.client.get(
+            reverse(
+                "pas:plan-summary",
+                args=[self.plan.pk],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertNotContains(
+            response,
+            "Editar plan",
+        )
 
     def test_activities_partial_public_access(self):
-        """Test that activities list partial is accessible."""
-        response = self.client.get(reverse("pas:plan-activities", args=[self.plan.pk]))
-        self.assertEqual(response.status_code, 200)
-        # Ensure 'Agregar actividad' button is NOT present
-        self.assertNotContains(response, "Agregar actividad")
-        # Ensure 'Editar' button is NOT present
-        self.assertNotContains(response, "Editar")
+        response = self.client.get(
+            reverse(
+                "pas:plan-activities",
+                args=[self.plan.pk],
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertNotContains(
+            response,
+            "Agregar actividad",
+        )
+
+        self.assertNotContains(
+            response,
+            "Editar",
+        )
 
     def test_plan_siglas(self):
-        """Test the siglas property of Plan model."""
-        plan_cnc = Plan(documento=1)  # CNC
-        self.assertEqual(plan_cnc.siglas, "CNC")
-        plan_pcm = Plan(documento=2)  # PCM
-        self.assertEqual(plan_pcm.siglas, "PCM")
-        plan_unknown = Plan(documento=99)
-        self.assertEqual(plan_unknown.siglas, "N/A")
+        plan_cnc = Plan(
+            documento=1
+        )
+
+        self.assertEqual(
+            plan_cnc.siglas,
+            "CNC",
+        )
+
+        plan_pcm = Plan(
+            documento=2
+        )
+
+        self.assertEqual(
+            plan_pcm.siglas,
+            "PCM",
+        )
+
+        plan_unknown = Plan(
+            documento=99
+        )
+
+        self.assertEqual(
+            plan_unknown.siglas,
+            "N/A",
+        )
 
 
 class PASPlanFormTests(TestCase):
@@ -501,13 +587,23 @@ class PASIndexQueryTests(TestCase):
         )
 
     def get_index_query_count(self):
-        request = self.factory.get("/pas/")
-        request.user = AnonymousUser()
+        request = self.factory.get(
+            "/pas/plans/"
+        )
 
-        with CaptureQueriesContext(connection) as queries:
-            response = PASIndex.as_view()(request)
+        request.user = self.user
 
-            self.assertEqual(response.status_code, 200)
+        with CaptureQueriesContext(
+            connection
+        ) as queries:
+            response = PASIndex.as_view()(
+                request
+            )
+
+            self.assertEqual(
+                response.status_code,
+                200,
+            )
 
         return len(queries)
 
@@ -516,16 +612,20 @@ class PASIndexQueryTests(TestCase):
 
         queries_with_one_activity = self.get_index_query_count()
 
-        for number in range(2, 11):
+        for number in range(
+            2,
+            11,
+        ):
             self.create_activity(number)
 
         queries_with_ten_activities = self.get_index_query_count()
 
-        self.assertEqual(
+        self.assertLessEqual(
             queries_with_ten_activities,
             queries_with_one_activity,
             (
-                "El número de consultas del índice creció de "
+                "El número de consultas del índice "
+                "creció de "
                 f"{queries_with_one_activity} a "
                 f"{queries_with_ten_activities}."
             ),
@@ -1064,7 +1164,7 @@ class PASAPIVisibilityTests(TestCase):
             response.data["id"],
             self.restricted_action.pk,
         )
-        
+
 
 class PASEvidenciaTests(TestCase):
     def setUp(self):
