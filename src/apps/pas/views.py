@@ -3151,12 +3151,11 @@ class ExecutionEvidenceBaseView(CreateView):
             form
         )
 
-        if self.request.headers.get(
-            "HX-Request"
-        ):
+        if self.request.headers.get("HX-Request"):
             header = hx_trigger_header(
+                "pas:refresh-activity",
                 "pas:refresh-activities",
-                "pas:close-modal",
+                "pas:refresh-summary",
             )
 
             return HttpResponse(

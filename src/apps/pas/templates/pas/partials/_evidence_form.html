@@ -1,6 +1,7 @@
 <form hx-post="{{ form_action }}"
       hx-target="#pas-modal-content"
       hx-swap="innerHTML"
+      data-activity-detail-url="{% url 'pas:activity-detail' activity.pk %}"
       class="space-y-6"
       enctype="multipart/form-data">
   {% csrf_token %}
