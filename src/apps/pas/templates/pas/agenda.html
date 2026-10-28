@@ -505,6 +505,8 @@
       )
     );
 
+    let agendaNeedsRefresh = false;
+
 
     function closePasModal() {
 
@@ -515,9 +517,7 @@
         return;
       }
 
-
       modal.close();
-
 
       if (modalContent) {
         modalContent.innerHTML = '';
@@ -525,44 +525,69 @@
 
     }
 
-document.body.addEventListener(
-  'pas:refresh-activity',
-  function () {
 
-    if (!modalContent) {
-      return;
+    if (modal) {
+      modal.addEventListener(
+        'close',
+        function () {
+
+          if (!agendaNeedsRefresh) {
+            return;
+          }
+
+          window.location.reload();
+
+        }
+      );
     }
 
-    const activityDetail = (
-      modalContent.querySelector(
-        '[data-activity-detail-url]'
-      )
-    );
 
-    if (!activityDetail) {
-      return;
-    }
-
-    const detailUrl = (
-      activityDetail.dataset
-      .activityDetailUrl
-    );
-
-    if (!detailUrl) {
-      return;
-    }
-
-    htmx.ajax(
-      'GET',
-      detailUrl,
-      {
-        target: '#pas-modal-content',
-        swap: 'innerHTML',
+    document.body.addEventListener(
+      'pas:refresh-agenda',
+      function () {
+        agendaNeedsRefresh = true;
       }
     );
 
-  }
-);
+
+    document.body.addEventListener(
+      'pas:refresh-activity',
+      function () {
+
+        if (!modalContent) {
+          return;
+        }
+
+        const activityDetail = (
+          modalContent.querySelector(
+            '[data-activity-detail-url]'
+          )
+        );
+
+        if (!activityDetail) {
+          return;
+        }
+
+        const detailUrl = (
+          activityDetail.dataset
+          .activityDetailUrl
+        );
+
+        if (!detailUrl) {
+          return;
+        }
+
+        htmx.ajax(
+          'GET',
+          detailUrl,
+          {
+            target: '#pas-modal-content',
+            swap: 'innerHTML',
+          }
+        );
+
+      }
+    );
 
 
     document.body.addEventListener(
@@ -576,13 +601,11 @@ document.body.addEventListener(
           return;
         }
 
-
         const target = (
           event.detail
           .requestConfig
           .target
         );
-
 
         if (
           target
@@ -628,7 +651,6 @@ document.body.addEventListener(
             '[data-close-modal]'
           )
         );
-
 
         if (closeButton) {
           closePasModal();
