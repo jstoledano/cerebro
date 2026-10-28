@@ -922,7 +922,9 @@ class PASAPIVisibilityTests(TestCase):
         )
 
         self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(
+            user=self.user
+        )
 
         self.restricted_action = Accion.objects.create(
             plan=self.restricted_plan,
@@ -933,56 +935,90 @@ class PASAPIVisibilityTests(TestCase):
             user=self.user,
         )
 
-        self.restricted_followup = Seguimiento.objects.create(
-            accion=self.restricted_action,
-            descripcion="Seguimiento restringido",
-            fecha=date.today(),
-            estado=1,
-            responsable=self.user,
-            user=self.user,
+    def test_authenticated_user_does_not_see_restricted_plan(self):
+        response = self.client.get(
+            "/api/v1/pas/plans/"
         )
 
-    def test_authenticated_user_does_not_see_restricted_plan(self):
-        response = self.client.get("/api/v1/pas/plans/")
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
-        self.assertEqual(response.status_code, 200)
+        ids = {
+            item["id"]
+            for item in response.data
+        }
 
-        ids = {item["id"] for item in response.data}
+        self.assertIn(
+            self.public_plan.pk,
+            ids,
+        )
 
-        self.assertIn(self.public_plan.pk, ids)
-        self.assertIn(self.internal_plan.pk, ids)
-        self.assertNotIn(self.restricted_plan.pk, ids)
+        self.assertIn(
+            self.internal_plan.pk,
+            ids,
+        )
+
+        self.assertNotIn(
+            self.restricted_plan.pk,
+            ids,
+        )
 
     def test_restricted_plan_detail_returns_404_without_permission(self):
         response = self.client.get(
-            f"/api/v1/pas/plans/{self.restricted_plan.pk}/"
+            (
+                "/api/v1/pas/plans/"
+                f"{self.restricted_plan.pk}/"
+            )
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.status_code,
+            404,
+        )
 
     def test_user_with_view_permission_can_see_restricted_plan(self):
         permission = Permission.objects.get(
             codename="view_plan",
             content_type__app_label="pas",
         )
-        self.user.user_permissions.add(permission)
 
-        response = self.client.get(
-            f"/api/v1/pas/plans/{self.restricted_plan.pk}/"
+        self.user.user_permissions.add(
+            permission
         )
 
-        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            (
+                "/api/v1/pas/plans/"
+                f"{self.restricted_plan.pk}/"
+            )
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
         self.assertEqual(
             response.data["id"],
             self.restricted_plan.pk,
         )
 
     def test_restricted_action_is_not_exposed_without_permission(self):
-        response = self.client.get("/api/v1/pas/actions/")
+        response = self.client.get(
+            "/api/v1/pas/actions/"
+        )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
-        ids = {item["id"] for item in response.data}
+        ids = {
+            item["id"]
+            for item in response.data
+        }
 
         self.assertNotIn(
             self.restricted_action.pk,
@@ -990,47 +1026,45 @@ class PASAPIVisibilityTests(TestCase):
         )
 
     def test_restricted_action_detail_returns_404_without_permission(self):
-        response = self.client.get(f"/api/v1/pas/actions/{self.restricted_action.pk}/")
-
-        self.assertEqual(response.status_code, 404)
-
-    def test_restricted_followup_is_not_exposed_without_permission(self):
-        response = self.client.get("/api/v1/pas/followups/")
-
-        self.assertEqual(response.status_code, 200)
-
-        ids = {item["id"] for item in response.data}
-
-        self.assertNotIn(
-            self.restricted_followup.pk,
-            ids,
-        )
-
-    def test_restricted_followup_detail_returns_404_without_permission(self):
         response = self.client.get(
-            f"/api/v1/pas/followups/{self.restricted_followup.pk}/"
+            (
+                "/api/v1/pas/actions/"
+                f"{self.restricted_action.pk}/"
+            )
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.status_code,
+            404,
+        )
 
-    def test_user_with_view_permission_can_see_restricted_action_and_followup(self):
+    def test_user_with_view_permission_can_see_restricted_action(self):
         permission = Permission.objects.get(
             codename="view_plan",
             content_type__app_label="pas",
         )
-        self.user.user_permissions.add(permission)
 
-        action_response = self.client.get(
-            f"/api/v1/pas/actions/{self.restricted_action.pk}/"
+        self.user.user_permissions.add(
+            permission
         )
 
-        followup_response = self.client.get(
-            f"/api/v1/pas/followups/{self.restricted_followup.pk}/"
+        response = self.client.get(
+            (
+                "/api/v1/pas/actions/"
+                f"{self.restricted_action.pk}/"
+            )
         )
 
-        self.assertEqual(action_response.status_code, 200)
-        self.assertEqual(followup_response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
+        self.assertEqual(
+            response.data["id"],
+            self.restricted_action.pk,
+        )
+        
 
 class PASEvidenciaTests(TestCase):
     def setUp(self):

@@ -592,6 +592,35 @@ class Accion(TrackingFields):
     def responsable_display(self):
         return user_display_name(self.responsable)
 
+    def _ejecuciones_estado(self):
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        )
+
+        if "ciclos" in prefetched:
+            ejecuciones = []
+
+            for ciclo in prefetched["ciclos"]:
+                ciclo_prefetched = getattr(
+                    ciclo,
+                    "_prefetched_objects_cache",
+                    {},
+                )
+
+                if "ejecuciones" in ciclo_prefetched:
+                    ejecuciones.extend(ciclo_prefetched["ejecuciones"])
+
+                else:
+                    ejecuciones.extend(ciclo.ejecuciones.all())
+
+            return ejecuciones
+
+        return list(
+            Ejecucion.objects.filter(ciclo__accion=self).select_related("ciclo")
+        )
+
     @property
     def get_estado(self):
         """
@@ -605,15 +634,7 @@ class Accion(TrackingFields):
 
         hoy = django.utils.timezone.localdate()
 
-        ejecuciones = list(
-            Ejecucion.objects.filter(ciclo__accion=self)
-            .select_related("ciclo")
-            .only(
-                "completada",
-                "ciclo_id",
-                "ciclo__fecha_fin",
-            )
-        )
+        ejecuciones = self._ejecuciones_estado()
 
         es_recurrente_abierta = self.fecha_fin is None and self.periodicidad not in {
             PERIODICIDAD_UNICA,
@@ -654,16 +675,7 @@ class Accion(TrackingFields):
 
         hoy = django.utils.timezone.localdate()
 
-        ejecuciones = list(
-            Ejecucion.objects.filter(ciclo__accion=self)
-            .select_related("ciclo")
-            .only(
-                "completada",
-                "fecha_completada",
-                "ciclo__fecha_inicio",
-                "ciclo__fecha_fin",
-            )
-        )
+        ejecuciones = self._ejecuciones_estado()
 
         es_recurrente_abierta = self.fecha_fin is None and self.periodicidad not in {
             PERIODICIDAD_UNICA,

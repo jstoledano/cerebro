@@ -1923,7 +1923,11 @@ class PlanSummaryView(DetailView):
 
         plan = self.object
 
-        activities = list(plan.accion_set.select_related("responsable").order_by("id"))
+        activities = list(
+            plan.accion_set.select_related("responsable")
+            .prefetch_related("ciclos__ejecuciones")
+            .order_by("id")
+        )
 
         total_activities = len(activities)
 
