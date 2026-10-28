@@ -3156,6 +3156,7 @@ class ExecutionEvidenceBaseView(CreateView):
                 "pas:refresh-activity",
                 "pas:refresh-activities",
                 "pas:refresh-summary",
+                "pas:refresh-agenda",
             )
 
             return HttpResponse(
@@ -3316,6 +3317,7 @@ class ExecutionCompleteView(View):
                 "pas:refresh-activity",
                 "pas:refresh-activities",
                 "pas:refresh-summary",
+                "pas:refresh-agenda",
             )
 
             return HttpResponse(
