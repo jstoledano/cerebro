@@ -23,9 +23,12 @@ from apps.pas.views import (
     ActivityCreateView,
     ActivityUpdateView,
     ActivityDeleteView,
-    FollowUpCreateView,
 )
-from apps.pas.models import Plan, Accion, Seguimiento, Evidencia
+from apps.pas.models import (
+    Plan,
+    Accion,
+    Evidencia,
+)
 from apps.pas.views import PlanSummaryView
 from apps.pas.views import PlanActivitiesView
 from apps.pas.views import PlanClosureView
@@ -229,39 +232,6 @@ class PASAPIPermissionTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    def test_cannot_create_followup_in_closed_plan(self):
-        accion = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad API",
-            responsable=self.user,
-            fecha_inicio=date.today(),
-            fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        permission = Permission.objects.get(
-            codename="add_seguimiento",
-            content_type__app_label="pas",
-        )
-        self.user.user_permissions.add(permission)
-
-        self.plan.eliminacion = True
-        self.plan.save(update_fields=["eliminacion"])
-
-        response = self.client.post(
-            "/api/v1/pas/followups/",
-            {
-                "accion": accion.pk,
-                "descripcion": "Seguimiento de prueba",
-                "fecha": date.today().isoformat(),
-                "estado": 1,
-                "responsable": self.user.pk,
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, 400)
-
     def test_activity_rejects_invalid_date_range(self):
         permission = Permission.objects.get(
             codename="add_accion",
@@ -369,7 +339,6 @@ class PASClosedPlanTests(TestCase):
                 "add_accion",
                 "change_accion",
                 "delete_accion",
-                "add_seguimiento",
             ],
         )
         self.user.user_permissions.add(*permissions)
@@ -429,19 +398,6 @@ class PASClosedPlanTests(TestCase):
                 pk=self.action.pk,
             )
 
-    def test_cannot_add_followup_to_closed_plan(self):
-        request = self.factory.get(
-            f"/pas/activities/{self.action.pk}/followups/add/"
-        )
-        request.user = self.user
-
-        response = FollowUpCreateView.as_view()(
-            request,
-            pk=self.action.pk,
-        )
-
-        self.assertEqual(response.status_code, 409)
-
 
 class PASAccionStateTests(TestCase):
     def setUp(self):
@@ -458,16 +414,6 @@ class PASAccionStateTests(TestCase):
             user=self.user,
         )
 
-    def test_activity_without_followup_has_no_operational_state(self):
-        action = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad sin seguimiento",
-            fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        self.assertIsNone(action.estado_operativo)
-
     def test_activity_due_today_reports_due_today(self):
         action = Accion.objects.create(
             plan=self.plan,
@@ -476,28 +422,9 @@ class PASAccionStateTests(TestCase):
             user=self.user,
         )
 
-        self.assertEqual(action.salud_plazo, "Vence hoy")
-
-    def test_operational_state_comes_from_latest_followup(self):
-        action = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad con seguimiento",
-            fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion="Esperando respuesta",
-            fecha=date.today(),
-            estado=3,
-            responsable=self.user,
-            user=self.user,
-        )
-
         self.assertEqual(
-            action.estado_operativo,
-            "En espera de una respuesta",
+            action.salud_plazo,
+            "Vence hoy",
         )
 
     def test_overdue_activity_reports_overdue(self):
@@ -508,7 +435,10 @@ class PASAccionStateTests(TestCase):
             user=self.user,
         )
 
-        self.assertEqual(action.salud_plazo, "Vencida")
+        self.assertEqual(
+            action.salud_plazo,
+            "Vencida",
+        )
 
     def test_activity_without_due_date_reports_no_due_date(self):
         action = Accion.objects.create(
@@ -523,50 +453,6 @@ class PASAccionStateTests(TestCase):
             "Sin fecha de término",
         )
 
-    def test_closed_activity_reports_closed_in_time(self):
-        action = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad cerrada",
-            fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion="Actividad registrada como cerrada",
-            fecha=date.today(),
-            estado=99,
-            responsable=self.user,
-            user=self.user,
-        )
-
-        self.assertEqual(
-            action.salud_plazo,
-            "Cerrada en tiempo",
-        )
-
-    def test_closed_activity_reports_closed_late(self):
-        action = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad cerrada fuera de tiempo",
-            fecha_fin=date(2026, 1, 1),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion="Cierre registrado",
-            fecha=date.today(),
-            estado=99,
-            responsable=self.user,
-            user=self.user,
-        )
-
-        self.assertEqual(
-            action.salud_plazo,
-            "Cerrada fuera de tiempo",
-        )
-
     def test_priority_defaults_to_normal(self):
         action = Accion.objects.create(
             plan=Plan.objects.create(
@@ -578,7 +464,10 @@ class PASAccionStateTests(TestCase):
             accion="Actividad priorizada",
         )
 
-        self.assertEqual(action.prioridad, "normal")
+        self.assertEqual(
+            action.prioridad,
+            "normal",
+        )
 
 
 class PASIndexQueryTests(TestCase):
@@ -598,22 +487,16 @@ class PASIndexQueryTests(TestCase):
             user=self.user,
         )
 
-    def create_activity_with_followup(self, number):
-        action = Accion.objects.create(
+    def create_activity(
+        self,
+        number,
+    ):
+        Accion.objects.create(
             plan=self.plan,
             accion=f"Actividad {number}",
             responsable=self.user,
             fecha_inicio=date.today(),
             fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion=f"Seguimiento {number}",
-            fecha=date.today(),
-            estado=1,
-            responsable=self.user,
             user=self.user,
         )
 
@@ -629,12 +512,12 @@ class PASIndexQueryTests(TestCase):
         return len(queries)
 
     def test_index_queries_do_not_grow_with_number_of_activities(self):
-        self.create_activity_with_followup(1)
+        self.create_activity(1)
 
         queries_with_one_activity = self.get_index_query_count()
 
         for number in range(2, 11):
-            self.create_activity_with_followup(number)
+            self.create_activity(number)
 
         queries_with_ten_activities = self.get_index_query_count()
 
@@ -666,20 +549,15 @@ class PASPlanSummaryQueryTests(TestCase):
             user=self.user,
         )
 
-    def create_activity_with_followup(self, number):
-        action = Accion.objects.create(
+    def create_activity(
+        self,
+        number,
+    ):
+        Accion.objects.create(
             plan=self.plan,
             accion=f"Actividad {number}",
             fecha_inicio=date.today(),
             fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion=f"Seguimiento {number}",
-            fecha=date.today(),
-            estado=1,
             user=self.user,
         )
 
@@ -699,12 +577,12 @@ class PASPlanSummaryQueryTests(TestCase):
         return len(queries)
 
     def test_summary_queries_do_not_grow_with_number_of_activities(self):
-        self.create_activity_with_followup(1)
+        self.create_activity(1)
 
         queries_with_one = self.get_summary_query_count()
 
         for number in range(2, 11):
-            self.create_activity_with_followup(number)
+            self.create_activity(number)
 
         queries_with_ten = self.get_summary_query_count()
 
@@ -731,31 +609,12 @@ class PASPlanActivitiesQueryTests(TestCase):
             user=self.user,
         )
 
-    def create_activity_with_followups(self, number):
-        action = Accion.objects.create(
+    def create_activity(self, number):
+        Accion.objects.create(
             plan=self.plan,
             accion=f"Actividad {number}",
-            responsable=self.user,
             fecha_inicio=date.today(),
             fecha_fin=date.today(),
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion=f"Primer seguimiento {number}",
-            fecha=date.today(),
-            estado=1,
-            responsable=self.user,
-            user=self.user,
-        )
-
-        Seguimiento.objects.create(
-            accion=action,
-            descripcion=f"Segundo seguimiento {number}",
-            fecha=date.today(),
-            estado=3,
-            responsable=self.user,
             user=self.user,
         )
 
@@ -775,12 +634,12 @@ class PASPlanActivitiesQueryTests(TestCase):
         return len(queries)
 
     def test_activity_queries_do_not_grow_with_number_of_activities(self):
-        self.create_activity_with_followups(1)
+        self.create_activity(1)
 
         queries_with_one = self.get_activities_query_count()
 
         for number in range(2, 11):
-            self.create_activity_with_followups(number)
+            self.create_activity(number)
 
         queries_with_ten = self.get_activities_query_count()
 
