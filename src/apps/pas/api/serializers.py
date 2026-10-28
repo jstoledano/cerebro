@@ -67,35 +67,156 @@ class PlanSerializer(serializers.ModelSerializer):
         ]
 
 
-class AccionSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+class AccionSerializer(
+    serializers.ModelSerializer
+):
+    user = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
 
-    def validate(self, attrs):
+    def validate(
+        self,
+        attrs,
+    ):
         plan = attrs.get(
             "plan",
-            getattr(self.instance, "plan", None),
+            getattr(
+                self.instance,
+                "plan",
+                None,
+            ),
         )
 
-        if plan and (not plan.permite_modificaciones):
+        if (
+            plan
+            and not plan.permite_modificaciones
+        ):
             raise serializers.ValidationError(
-                "El plan se encuentra cerrado o con recurrencia registrada."
+                (
+                    "El plan se encuentra cerrado "
+                    "o con recurrencia registrada."
+                )
             )
 
         fecha_inicio = attrs.get(
             "fecha_inicio",
-            getattr(self.instance, "fecha_inicio", None),
-        )
-        fecha_fin = attrs.get(
-            "fecha_fin",
-            getattr(self.instance, "fecha_fin", None),
+            getattr(
+                self.instance,
+                "fecha_inicio",
+                None,
+            ),
         )
 
-        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+        fecha_fin = attrs.get(
+            "fecha_fin",
+            getattr(
+                self.instance,
+                "fecha_fin",
+                None,
+            ),
+        )
+
+        periodicidad = attrs.get(
+            "periodicidad",
+            getattr(
+                self.instance,
+                "periodicidad",
+                None,
+            ),
+        )
+
+        ambitos = attrs.get(
+            "ambitos",
+            getattr(
+                self.instance,
+                "ambitos",
+                [],
+            ),
+        ) or []
+
+        puesto_responsable = attrs.get(
+            "puesto_responsable",
+            getattr(
+                self.instance,
+                "puesto_responsable",
+                "",
+            ),
+        )
+
+        responsable = attrs.get(
+            "responsable",
+            getattr(
+                self.instance,
+                "responsable",
+                None,
+            ),
+        )
+
+        if (
+            fecha_inicio
+            and fecha_fin
+            and fecha_inicio > fecha_fin
+        ):
             raise serializers.ValidationError(
                 {
                     "fecha_fin": (
-                        "La fecha de término no puede ser anterior "
-                        "a la fecha de inicio."
+                        "La fecha de término no puede "
+                        "ser anterior a la fecha de inicio."
+                    )
+                }
+            )
+
+        if (
+            periodicidad
+            == "continua"
+        ):
+            errors = {}
+
+            if not fecha_inicio:
+                errors[
+                    "fecha_inicio"
+                ] = (
+                    "Una actividad continua debe "
+                    "tener fecha de inicio."
+                )
+
+            if not fecha_fin:
+                errors[
+                    "fecha_fin"
+                ] = (
+                    "Una actividad continua debe "
+                    "tener fecha de término."
+                )
+
+            if errors:
+                raise serializers.ValidationError(
+                    errors
+                )
+
+        if (
+            len(ambitos) > 1
+            and not puesto_responsable
+        ):
+            raise serializers.ValidationError(
+                {
+                    "puesto_responsable": (
+                        "Para una actividad con varios "
+                        "ámbitos selecciona el responsable "
+                        "normativo."
+                    )
+                }
+            )
+
+        if (
+            len(ambitos) <= 1
+            and not puesto_responsable
+            and not responsable
+        ):
+            raise serializers.ValidationError(
+                {
+                    "responsable": (
+                        "Selecciona un responsable operativo "
+                        "o un responsable normativo."
                     )
                 }
             )
@@ -104,20 +225,25 @@ class AccionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Accion
+
         fields = [
             "id",
             "plan",
             "accion",
             "prioridad",
             "responsable",
-            "recursos",
+            "puesto_responsable",
+            "periodicidad",
+            "ambitos",
             "evidencia",
+            "formato_evidencia",
             "fecha_inicio",
             "fecha_fin",
             "user",
             "created",
             "modified",
         ]
+
         read_only_fields = [
             "id",
             "created",

@@ -525,6 +525,45 @@
 
     }
 
+document.body.addEventListener(
+  'pas:refresh-activity',
+  function () {
+
+    if (!modalContent) {
+      return;
+    }
+
+    const activityDetail = (
+      modalContent.querySelector(
+        '[data-activity-detail-url]'
+      )
+    );
+
+    if (!activityDetail) {
+      return;
+    }
+
+    const detailUrl = (
+      activityDetail.dataset
+      .activityDetailUrl
+    );
+
+    if (!detailUrl) {
+      return;
+    }
+
+    htmx.ajax(
+      'GET',
+      detailUrl,
+      {
+        target: '#pas-modal-content',
+        swap: 'innerHTML',
+      }
+    );
+
+  }
+);
+
 
     document.body.addEventListener(
       'htmx:beforeRequest',

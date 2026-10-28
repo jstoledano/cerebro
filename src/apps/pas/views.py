@@ -3275,11 +3275,9 @@ class ExecutionCompleteView(View):
             pk=kwargs["pk"],
         )
 
-        if not (
-            usuario_puede_gestionar_ejecucion(
-                request.user,
-                execution,
-            )
+        if not usuario_puede_gestionar_ejecucion(
+            request.user,
+            execution,
         ):
             return HttpResponse(
                 (
@@ -3315,11 +3313,17 @@ class ExecutionCompleteView(View):
         if request.headers.get(
             "HX-Request"
         ):
+            header = hx_trigger_header(
+                "pas:refresh-activity",
+                "pas:refresh-activities",
+                "pas:refresh-summary",
+            )
+
             return HttpResponse(
                 "",
                 status=204,
                 headers={
-                    "HX-Refresh": "true",
+                    "HX-Trigger": header,
                 },
             )
 
