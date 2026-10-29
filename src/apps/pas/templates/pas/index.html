@@ -4,400 +4,328 @@
 {% block title %}Planes de Acción{% endblock %}
 
 {% block content %}
+
 <section class="space-y-10">
+
   <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-lg">
+
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
       <div class="flex items-center gap-4">
+
         <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Zm0 0c2.883 0 5.647.508 8.207 1.44a23.91 23.91 0 0 1-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.52 4.136 1.153 6.06M12 12.75a2.25 2.25 0 0 0 2.248-2.354M12 12.75a2.25 2.25 0 0 1-2.248-2.354M12 8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 0 0-.399-2.25M12 8.25c-.995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 0 1 .4-2.253M12 8.25a2.25 2.25 0 0 0-2.248 2.146M12 8.25a2.25 2.25 0 0 1 2.248 2.146M8.683 5a6.032 6.032 0 0 1-1.155-1.002c.07-.63.27-1.222.574-1.747m.581 2.749A3.75 3.75 0 0 1 15.318 5m0 0c.427-.283.815-.62 1.155-.999a4.471 4.471 0 0 0-.575-1.752M4.921 6a24.048 24.048 0 0 0-.392 3.314c1.668.546 3.416.914 5.223 1.082M19.08 6c.205 1.08.337 2.187.392 3.314a23.882 23.882 0 0 1-5.223 1.082" />
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke-width="1.5"
+               stroke="currentColor"
+               class="size-10">
+
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Zm0 0c2.883 0 5.647.508 8.207 1.44a23.91 23.91 0 0 1-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.52 4.136 1.153 6.06M12 12.75a2.25 2.25 0 0 0 2.248-2.354M12 12.75a2.25 2.25 0 0 1-2.248-2.354M12 8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 0 0-.399-2.25M12 8.25c-.995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 0 1 .4-2.253M12 8.25a2.25 2.25 0 0 0-2.248 2.146M12 8.25a2.25 2.25 0 0 1 2.248 2.146M8.683 5a6.032 6.032 0 0 1-1.155-1.002c.07-.63.27-1.222.574-1.747m.581 2.749A3.75 3.75 0 0 1 15.318 5m0 0c.427-.283.815-.62 1.155-.999a4.471 4.471 0 0 0-.575-1.752M4.921 6a24.048 24.048 0 0 0-.392 3.314c1.668.546 3.416.914 5.223 1.082M19.08 6c.205 1.08.337 2.187.392 3.314a23.882 23.882 0 0 1-5.223 1.082" />
+
           </svg>
+
         </div>
+
+
         <div>
-          <h1 class="text-3xl font-bold text-base-content">Control de Planes de Acción</h1>
+
+          <h1 class="text-3xl font-bold text-base-content">
+            Control de Planes de Acción
+          </h1>
+
           <p class="mt-1 max-w-2xl text-sm text-base-content/70">
-            Seguimiento centralizado de actividades y planes que impulsa la mejora continua y el cumplimiento de los
-            compromisos establecidos por la organización.
+            Seguimiento centralizado de planes que impulsa la mejora continua
+            y el cumplimiento de los compromisos establecidos por la organización.
           </p>
+
         </div>
+
       </div>
+
+
       <div class="flex flex-col items-stretch gap-3 text-right">
+
         <div class="flex items-center justify-end gap-2">
-          <span class="badge badge-outline badge-primary badge-lg">PAS</span>
+
+          <span class="badge badge-outline badge-primary badge-lg">
+            PAS
+          </span>
+
           {% now "d/m/Y H:i" as current_timestamp %}
-          <span class="text-sm text-base-content/60">Última actualización · {{ current_timestamp }}</span>
+
+          <span class="text-sm text-base-content/60">
+            Última actualización · {{ current_timestamp }}
+          </span>
+
         </div>
+
+
         {% if user.is_authenticated %}
-        <a href="{% url 'pas:add' %}" class="btn btn-primary btn-sm w-full">
-          Agregar plan de acción
-        </a>
+
+          <a href="{% url 'pas:add' %}"
+             class="btn btn-primary btn-sm w-full">
+            Agregar plan de acción
+          </a>
+
         {% endif %}
+
       </div>
+
     </div>
+
   </header>
 
-  <div id="pas-list-container" class="mx-auto max-w-5xl">
-    <div role="tablist" class="tabs tabs-boxed w-full justify-center" id="pas-tabs">
-      <button role="tab" class="tab tab-lg tab-active" data-target="actions-panel">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75zm0 5.25h.007v.008H3.75zm0 5.25h.007v.008H3.75z" />
-        </svg>
-        Actividades
-      </button>
-      <button role="tab" class="tab tab-lg" data-target="plans-panel">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
-        </svg>
-        Planes
-      </button>
-    </div>
-  </div>
 
-  <section id="actions-panel" class="space-y-6">
+  <section class="space-y-6">
+
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3 text-base-content">
-        <div class="rounded-xl bg-primary/10 p-3 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75zm0 5.25h.007v.008H3.75zm0 5.25h.007v.008H3.75z" />
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-2xl font-semibold">Lista de Actividades</h2>
-          <p class="text-sm text-base-content/70">Monitorea el avance puntual de cada actividad comprometida en los
-            planes.</p>
-        </div>
-      </div>
-      <span class="badge badge-lg badge-primary badge-outline">{{ action_list|length }} actividades</span>
-    </div>
 
-    <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
-      <div class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead class="bg-base-200/60 text-sm text-base-content/70">
-            <tr>
-              <th class="text-center">Plan</th>
-              <th class="text-left">Actividad</th>
-              <th class="text-center">Fecha compromiso</th>
-              <th class="text-center">Responsable</th>
-              <th class="text-center">Estado</th>
-            </tr>
-          </thead>
-          <tbody class="text-sm">
-            {% for action in action_list %}
-            <tr class="align-top">
-              <td class="text-center">
-                <a class="link link-primary font-medium" href="{% url 'pas:detalle' action.plan.id %}">{{ action.plan.folio }}</a>
-              </td>
-              <td class="space-y-2">
-                <div class="prose prose-sm max-w-none text-base-content/80">{{ action.accion|safe }}</div>
-                {% if action.evidencia %}
-                <p class="text-xs text-base-content/60"><span class="font-semibold text-base-content/80">Evidencia
-                    solicitada:</span> {{ action.evidencia }}</p>
-                {% endif %}
-              </td>
-              <td class="text-center text-base-content/80">{{ action.fecha_fin|date:"d/m/Y" }}</td>
-              <td class="text-center text-base-content/80">{{ action.responsable_display|default:'—' }}</td>
-              <td class="text-center">
-                {% if action.get_estado == 'Cerrada' %}
-                <div class="tooltip" data-tip="Cerrada">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 text-info">
-                    <path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.491 4.491 0 0 1 3.497-1.307Zm4.467 4.237a.75.75 0 0 0-1.14-.075l-2.724 3.035-1.17-1.17a.75.75 0 0 0-1.06 1.06l1.751 1.751a.75.75 0 0 0 1.115-.055l3.176-3.54a.75.75 0 0 0 .052-1.006Z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                {% elif action.get_estado == 'Abierta en Tiempo' %}
-                <span class="badge badge-warning badge-outline text-warning-content">En tiempo</span>
-                {% elif action.get_estado == 'Abierta Fuera de Tiempo' %}
-                <div class="tooltip" data-tip="Fuera de tiempo">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 text-error">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                  </svg>
-                </div>
-                {% else %}
-                <span class="badge badge-neutral badge-outline">Sin estado</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5"
-                  class="py-10 text-center text-base-content/60">
-                No hay actividades registradas.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section id="plans-panel" class="hidden space-y-6">
-    <div class="flex items-center justify-between gap-4">
       <div class="flex items-center gap-3 text-base-content">
+
         <div class="rounded-xl bg-secondary/10 p-3 text-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke-width="1.5"
+               stroke="currentColor"
+               class="size-6">
+
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+
           </svg>
+
         </div>
+
+
         <div>
-          <h2 class="text-2xl font-semibold">Planes registrados</h2>
-          <p class="text-sm text-base-content/70">Consulta el resumen de cada plan con su avance operativo.</p>
+
+          <h2 class="text-2xl font-semibold">
+            Planes registrados
+          </h2>
+
+          <p class="text-sm text-base-content/70">
+            Consulta el resumen de cada plan con su avance operativo.
+          </p>
+
         </div>
+
       </div>
-      <span class="badge badge-lg badge-secondary badge-outline">{{ plan_list|length }} planes</span>
+
+
+      <span class="badge badge-lg badge-secondary badge-outline">
+        {{ plan_list|length }} planes
+      </span>
+
     </div>
 
+
     <div class="rounded-3xl border border-base-300 bg-base-100 shadow-sm">
+
       <div class="overflow-x-auto">
+
         <table class="table table-zebra">
+
           <thead class="bg-base-200/60 text-sm text-base-content/70">
+
             <tr>
-              <th class="text-center">Folio</th>
-              <th class="text-center">Tipo</th>
-              <th class="text-left">Descripción</th>
-              <th class="text-center">Actividades</th>
-              <th class="text-center">Fecha de llenado</th>
+
+              <th class="text-center">
+                Folio
+              </th>
+
+              <th class="text-center">
+                Tipo
+              </th>
+
+              <th class="text-left">
+                Descripción
+              </th>
+
+              <th class="text-center">
+                Actividades
+              </th>
+
+              <th class="text-center">
+                Fecha de llenado
+              </th>
+
             </tr>
+
           </thead>
+
+
           <tbody class="text-sm">
+
             {% for plan in plan_list %}
-            <tr class="align-top">
-              <td class="text-center">
-                <a class="link link-secondary font-medium" href="{% url 'pas:detalle' plan.id %}">{{ plan.folio }}</a>
-              </td>
-              <td class="text-center text-base-content/80">
-                <span class="badge badge-outline badge-info badge-lg min-h-[3.5rem] items-center px-4 py-2 text-sm">{{ plan.siglas }}</span>
-              </td>
-              <td class="space-y-3">
-                <div class="flex items-center gap-2 text-base-content">
-                  <a class="link link-hover flex items-center gap-2 text-base-content hover:text-primary transition-colors" href="{% url 'pas:detalle' plan.id %}">
-                    <span class="font-semibold text-base-content">{{ plan.nombre }}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
+
+              <tr class="align-top">
+
+                <td class="text-center">
+
+                  <a class="link link-secondary font-medium"
+                     href="{% url 'pas:detalle' plan.id %}">
+                    {{ plan.folio }}
                   </a>
-                </div>
-                <div class="prose prose-sm max-w-none text-base-content/70">
-                  {% if plan.documento == 1 %}
-                  {{ plan.desc_cnc|truncatewords_html:30|safe }}
-                  {% else %}
-                  {{ plan.desc_pcm|truncatewords_html:30|safe }}
-                  {% endif %}
-                </div>
-              </td>
-              <td class="text-center text-base-content/80">
-                <div class="flex flex-wrap items-center justify-center gap-2">
-                  <span class="badge badge-success badge-sm gap-1" title="Actividades cerradas">
-                    <span class="font-semibold">{{ plan.cerradas|default_if_none:0 }}</span>
-                    <span>Cerradas</span>
+
+                </td>
+
+
+                <td class="text-center text-base-content/80">
+
+                  <span class="badge badge-outline badge-info badge-lg min-h-[3.5rem] items-center px-4 py-2 text-sm">
+                    {{ plan.siglas }}
                   </span>
-                  <span class="badge badge-warning badge-sm text-warning-content gap-1" title="Actividades en tiempo">
-                    <span class="font-semibold">{{ plan.abiertas_en_tiempo|default_if_none:0 }}</span>
-                    <span>En tiempo</span>
-                  </span>
-                  <span class="badge badge-error badge-sm gap-1" title="Actividades fuera de tiempo">
-                    <span class="font-semibold">{{ plan.abiertas_fuera_de_tiempo|default_if_none:0 }}</span>
-                    <span>Fuera de tiempo</span>
-                  </span>
-                  <span class="badge badge-outline badge-primary badge-sm gap-1" title="Total de actividades">
-                    <span class="font-semibold">{{ plan.accion_set.count }}</span>
-                    <span>Total</span>
-                  </span>
-                </div>
-              </td>
-              <td class="text-center text-base-content/80">{{ plan.fecha_llenado|date:"d/m/Y" }}</td>
-            </tr>
+
+                </td>
+
+
+                <td class="space-y-3">
+
+                  <div class="flex items-center gap-2 text-base-content">
+
+                    <a class="link link-hover flex items-center gap-2 text-base-content transition-colors hover:text-primary"
+                       href="{% url 'pas:detalle' plan.id %}">
+
+                      <span class="font-semibold text-base-content">
+                        {{ plan.nombre }}
+                      </span>
+
+
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           fill="none"
+                           viewBox="0 0 24 24"
+                           stroke-width="1.5"
+                           stroke="currentColor"
+                           class="size-5">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+
+                      </svg>
+
+                    </a>
+
+                  </div>
+
+
+                  <div class="prose prose-sm max-w-none text-base-content/70">
+
+                    {% if plan.documento == 1 %}
+
+                      {{ plan.desc_cnc|truncatewords_html:30|safe }}
+
+                    {% else %}
+
+                      {{ plan.desc_pcm|truncatewords_html:30|safe }}
+
+                    {% endif %}
+
+                  </div>
+
+                </td>
+
+
+                <td class="text-center text-base-content/80">
+
+                  <div class="flex flex-wrap items-center justify-center gap-2">
+
+                    <span class="badge badge-success badge-sm gap-1"
+                          title="Actividades cerradas">
+
+                      <span class="font-semibold">
+                        {{ plan.cerradas|default_if_none:0 }}
+                      </span>
+
+                      <span>
+                        Cerradas
+                      </span>
+
+                    </span>
+
+
+                    <span class="badge badge-warning badge-sm gap-1 text-warning-content"
+                          title="Actividades en tiempo">
+
+                      <span class="font-semibold">
+                        {{ plan.abiertas_en_tiempo|default_if_none:0 }}
+                      </span>
+
+                      <span>
+                        En tiempo
+                      </span>
+
+                    </span>
+
+
+                    <span class="badge badge-error badge-sm gap-1"
+                          title="Actividades fuera de tiempo">
+
+                      <span class="font-semibold">
+                        {{ plan.abiertas_fuera_de_tiempo|default_if_none:0 }}
+                      </span>
+
+                      <span>
+                        Fuera de tiempo
+                      </span>
+
+                    </span>
+
+
+                    <span class="badge badge-outline badge-primary badge-sm gap-1"
+                          title="Total de actividades">
+
+                      <span class="font-semibold">
+                        {{ plan.total_actividades|default_if_none:0 }}
+                      </span>
+
+                      <span>
+                        Total
+                      </span>
+
+                    </span>
+
+                  </div>
+
+                </td>
+
+
+                <td class="text-center text-base-content/80">
+                  {{ plan.fecha_llenado|date:"d/m/Y" }}
+                </td>
+
+              </tr>
+
             {% empty %}
-            <tr>
-              <td colspan="6" class="py-10 text-center text-base-content/60">No hay planes registrados.</td>
-            </tr>
+
+              <tr>
+
+                <td colspan="5"
+                    class="py-10 text-center text-base-content/60">
+                  No hay planes registrados.
+                </td>
+
+              </tr>
+
             {% endfor %}
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
+
   </section>
+
 </section>
 
-<dialog id="pas-modal" class="modal">
-  <div class="modal-box max-w-4xl space-y-4" id="pas-modal-content"></div>
-  <form method="dialog" class="modal-backdrop">
-    <button class="hidden">Cerrar</button>
-  </form>
-</dialog>
-
-<dialog id="profiles-user-modal" class="modal">
-  <div class="modal-box max-w-xl space-y-4" id="profiles-user-modal-content"></div>
-  <form method="dialog" class="modal-backdrop">
-    <button class="hidden">Cerrar</button>
-  </form>
-</dialog>
-
-<script>
-  (function () {
-    const tabList = document.getElementById('pas-tabs');
-    const panels = {
-      'actions-panel': document.getElementById('actions-panel'),
-      'plans-panel': document.getElementById('plans-panel')
-    };
-
-    function setActiveTab(targetId) {
-      Object.entries(panels).forEach(([id, panel]) => {
-        if (!panel) return;
-        const isActive = id === targetId;
-        panel.classList.toggle('hidden', !isActive);
-      });
-
-      tabList.querySelectorAll('.tab').forEach((tab) => {
-        const isTarget = tab.dataset.target === targetId;
-        tab.classList.toggle('tab-active', isTarget);
-      });
-    }
-
-    if (tabList) {
-      tabList.addEventListener('click', (event) => {
-        const button = event.target.closest('.tab');
-        if (!button || !button.dataset.target) return;
-        event.preventDefault();
-        setActiveTab(button.dataset.target);
-      });
-    }
-
-    setActiveTab('actions-panel');
-
-    const modal = document.getElementById('pas-modal');
-    const modalContent = document.getElementById('pas-modal-content');
-    const userModal = document.getElementById('profiles-user-modal');
-    const userModalContent = document.getElementById('profiles-user-modal-content');
-
-    function closePasModal() {
-      if (!modal.open) return;
-      modal.close();
-      modalContent.innerHTML = '';
-    }
-
-    function closeDialog(modalId) {
-      if (!modalId || modalId === 'pas-modal') {
-        closePasModal();
-        return;
-      }
-      if (modalId === 'profiles-user-modal') {
-        if (userModal.open) {
-          userModal.close();
-          userModalContent.innerHTML = '';
-        }
-        return;
-      }
-      const dialog = document.getElementById(modalId);
-      if (dialog && dialog.open) dialog.close();
-    }
-
-    function loadPDF(url) {
-      const frame = document.getElementById('pdfFrame');
-      if (frame) {
-        frame.src = `${url}#view=FitH`;
-      }
-    }
-
-    function loadActionContent(url) {
-      const container = document.getElementById('actionModalContent');
-      if (!container) return;
-      container.innerHTML = '<div class="flex items-center justify-center py-10 text-base-content/60">Cargando información…</div>';
-      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then((response) => response.text())
-        .then((html) => {
-          container.innerHTML = html;
-        })
-        .catch(() => {
-          container.innerHTML = '<div class="alert alert-error">No fue posible cargar la información. Intenta nuevamente.</div>';
-        });
-    }
-
-    document.addEventListener('click', (event) => {
-      const openButton = event.target.closest('[data-modal-target]');
-      if (openButton) {
-        const modalId = openButton.dataset.modalTarget;
-        const dialog = document.getElementById(modalId);
-        if (!dialog) return;
-        const actionUrl = openButton.dataset.actionUrl;
-        if (modalId === 'actionModal' && actionUrl) {
-          loadActionContent(actionUrl);
-        }
-        dialog.showModal();
-        return;
-      }
-
-      const pdfButton = event.target.closest('[data-pdf-url]');
-      if (pdfButton) {
-        const pdfUrl = pdfButton.dataset.pdfUrl;
-        const dialog = document.getElementById('pdfModal');
-        if (dialog && pdfUrl) {
-          loadPDF(pdfUrl);
-          dialog.showModal();
-        }
-        return;
-      }
-
-      const closeBtn = event.target.closest('[data-close-modal]');
-      if (closeBtn) {
-        closeDialog(closeBtn.dataset.closeModal);
-      }
-    });
-
-    document.body.addEventListener('htmx:beforeRequest', function (evt) {
-      if (evt.detail && evt.detail.requestConfig) {
-        const target = evt.detail.requestConfig.target;
-        if (target && target.id === 'pas-modal-content' && !modal.open) {
-          modal.showModal();
-        }
-        if (target && target.id === 'profiles-user-modal-content' && !userModal.open) {
-          userModal.showModal();
-        }
-      }
-    });
-
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
-      if (evt.target === modalContent && !modal.open) {
-        modal.showModal();
-      }
-      if (evt.target === userModalContent && !userModal.open) {
-        userModal.showModal();
-      }
-    });
-
-    document.body.addEventListener('click', function (evt) {
-      const closeTrigger = evt.target.closest('[data-close-modal]');
-      if (closeTrigger) {
-        const modalId = closeTrigger.dataset.closeModal || 'pas-modal';
-        if (modalId === 'pas-modal') {
-          closePasModal();
-        } else {
-          closeDialog(modalId);
-        }
-      }
-    });
-
-    document.body.addEventListener('pas:user-created', function (evt) {
-      const detail = evt.detail || {};
-      if (!detail.id) return;
-      const select = modalContent.querySelector('#id_responsable');
-      if (!select) return;
-      const value = String(detail.id);
-      let option = Array.from(select.options).find((opt) => opt.value === value);
-      if (!option) {
-        option = document.createElement('option');
-        option.value = value;
-        option.textContent = detail.label || detail.email || 'Nuevo usuario';
-        select.appendChild(option);
-      }
-      select.value = value;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
-    document.body.addEventListener('pas:close-modal', closePasModal);
-    document.body.addEventListener('profiles:close-modal', function () {
-      closeDialog('profiles-user-modal');
-    });
-  })();
-</script>
 {% endblock content %}

@@ -260,10 +260,6 @@ def usuario_puede_gestionar_ejecucion(
     )
 
 
-@method_decorator(
-    login_required,
-    name="dispatch",
-)
 class PASIndex(ListView):
     model = Plan
     template_name = "pas/index.html"
@@ -277,10 +273,12 @@ class PASIndex(ListView):
         plan_actions_prefetch = Prefetch(
             "accion_set",
             queryset=(
-                Accion.objects.select_related(
+                Accion.objects
+                .select_related(
                     "responsable",
                     "responsable__profile",
-                ).prefetch_related(
+                )
+                .prefetch_related(
                     "ciclos__ejecuciones",
                 )
             ),
@@ -288,65 +286,17 @@ class PASIndex(ListView):
         )
 
         plan_list = (
-            Plan.objects.visible_to(self.request.user)
-            .prefetch_related(plan_actions_prefetch)
-            .order_by("-fecha_llenado")
-        )
-
-        def state_priority(
-            estado,
-        ):
-            if estado == "Abierta Fuera de Tiempo":
-                return 0
-
-            if estado == "Cerrada":
-                return 3
-
-            if estado == "Abierta en Tiempo":
-                return 2
-
-            return 1
-
-        action_items = []
-
-        action_qs = (
-            Accion.objects.filter(plan__in=plan_list)
-            .select_related(
-                "plan",
-                "responsable",
-                "responsable__profile",
+            Plan.objects
+            .visible_to(
+                self.request.user
             )
             .prefetch_related(
-                "ciclos__ejecuciones",
+                plan_actions_prefetch
+            )
+            .order_by(
+                "-fecha_llenado"
             )
         )
-
-        for action in action_qs:
-            estado = action.get_estado
-
-            if estado == "Cerrada":
-                continue
-
-            priority = state_priority(estado)
-
-            action_items.append(
-                (
-                    priority,
-                    action.fecha_fin or date.max,
-                    action.pk,
-                    action,
-                )
-            )
-
-        action_items.sort(
-            key=lambda item: (
-                item[0],
-                item[1],
-                item[2],
-            )
-        )
-
-        action_list = [item[3] for item in action_items]
 
         for plan in plan_list:
             cerradas = 0
@@ -367,17 +317,21 @@ class PASIndex(ListView):
 
             plan.cerradas = cerradas
 
-            plan.abiertas_en_tiempo = abiertas_en_tiempo
+            plan.abiertas_en_tiempo = (
+                abiertas_en_tiempo
+            )
 
-            plan.abiertas_fuera_de_tiempo = abiertas_fuera_de_tiempo
+            plan.abiertas_fuera_de_tiempo = (
+                abiertas_fuera_de_tiempo
+            )
 
             plan.total_actividades = (
-                cerradas + abiertas_en_tiempo + abiertas_fuera_de_tiempo
+                cerradas
+                + abiertas_en_tiempo
+                + abiertas_fuera_de_tiempo
             )
 
         context["plan_list"] = plan_list
-
-        context["action_list"] = action_list
 
         return context
 
