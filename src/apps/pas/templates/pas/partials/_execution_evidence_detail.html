@@ -51,7 +51,7 @@
 
       {% if evidence.archivo %}
         <a
-          href="{% url 'pas:evidence-download' evidence.pk %}"
+          href="{{ evidence.archivo.url }}"
           target="_blank"
           rel="noopener"
           class="btn btn-outline btn-sm"
