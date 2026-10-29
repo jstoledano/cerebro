@@ -4,9 +4,19 @@
       class="space-y-6"
       enctype="multipart/form-data">
   {% csrf_token %}
+
   <header class="space-y-1">
-    <h3 class="text-xl font-semibold text-base-content">{% if form.instance.pk %}Editar actividad{% else %}Agregar actividad{% endif %}</h3>
-    <p class="text-sm text-base-content/70">Define la actividad que formará parte del plan de acción.</p>
+    <h3 class="text-xl font-semibold text-base-content">
+      {% if form.instance.pk %}
+        Editar actividad
+      {% else %}
+        Agregar actividad
+      {% endif %}
+    </h3>
+
+    <p class="text-sm text-base-content/70">
+      Define la actividad que formará parte del plan.
+    </p>
   </header>
 
   {{ form.media }}
@@ -20,62 +30,247 @@
   {% endif %}
 
   <div class="grid gap-6">
+
     <div class="form-control">
       {{ form.accion.label_tag }}
       {{ form.accion }}
-      {% for error in form.accion.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+      {% for error in form.accion.errors %}
+        <p class="mt-1 text-xs text-error">
+          {{ error }}
+        </p>
+      {% endfor %}
     </div>
-    <div class="grid gap-6 md:grid-cols-2">
+
+
+<div class="grid gap-6 md:grid-cols-2">
+
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ form.puesto_responsable.label }}
+      </span>
+    </label>
+
+    {{ form.puesto_responsable }}
+
+    {% if form.puesto_responsable.help_text %}
+      <p class="mt-1 text-xs text-base-content/60">
+        {{ form.puesto_responsable.help_text }}
+      </p>
+    {% endif %}
+
+    {% for error in form.puesto_responsable.errors %}
+      <p class="mt-1 text-xs text-error">
+        {{ error }}
+      </p>
+    {% endfor %}
+  </div>
+
+
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text font-semibold">
+        {{ form.responsable.label }}
+      </span>
+    </label>
+
+    {{ form.responsable }}
+
+    {% if form.responsable.help_text %}
+      <p class="mt-1 text-xs text-base-content/60">
+        {{ form.responsable.help_text }}
+      </p>
+    {% endif %}
+
+    {% for error in form.responsable.errors %}
+      <p class="mt-1 text-xs text-error">
+        {{ error }}
+      </p>
+    {% endfor %}
+  </div>
+
+</div>
+
+    <div class="grid gap-6 md:grid-cols-3">
+
       <div class="form-control">
         <label class="label">
-          <span class="label-text font-semibold">{{ form.responsable.label }}</span>
+          <span class="label-text font-semibold">
+            {{ form.periodicidad.label }}
+          </span>
         </label>
-        <div class="flex items-center gap-2">
-          {{ form.responsable }}
-          <button type="button"
-                  class="btn btn-ghost btn-square"
-                  title="Agregar usuario"
-                  data-profiles-modal-trigger
-                  hx-get="{% url 'profiles:user-quick-add' %}"
-                  hx-target="#profiles-user-modal-content"
-                  hx-swap="innerHTML">
-            <span class="sr-only">Agregar usuario</span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 15 0A17.933 17.933 0 0 1 12 21.75c-2.68 0-5.22-.584-7.5-1.632Z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M18 8.25V12m1.875-1.875H22.5" />
-            </svg>
-          </button>
-        </div>
-        {% if form.responsable.help_text %}<p class="mt-1 text-xs text-base-content/60">{{ form.responsable.help_text }}</p>{% endif %}
-        {% for error in form.responsable.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+        {{ form.periodicidad }}
+
+        {% if form.periodicidad.help_text %}
+          <p class="mt-1 text-xs text-base-content/60">
+            {{ form.periodicidad.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in form.periodicidad.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
       </div>
+
+
       <div class="form-control">
-        {{ form.recursos.label_tag }}
-        {{ form.recursos }}
-        {% for error in form.recursos.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+        <label class="label">
+          <span class="label-text font-semibold">
+            {{ form.formato_evidencia.label }}
+          </span>
+        </label>
+
+        {{ form.formato_evidencia }}
+
+        {% if form.formato_evidencia.help_text %}
+          <p class="mt-1 text-xs text-base-content/60">
+            {{ form.formato_evidencia.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in form.formato_evidencia.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
       </div>
+
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">
+            {{ form.prioridad.label }}
+          </span>
+        </label>
+
+        {{ form.prioridad }}
+
+        {% if form.prioridad.help_text %}
+          <p class="mt-1 text-xs text-base-content/60">
+            {{ form.prioridad.help_text }}
+          </p>
+        {% endif %}
+
+        {% for error in form.prioridad.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
+      </div>
+
     </div>
+
+
+    <div class="form-control">
+
+      <label class="label">
+        <span class="label-text font-semibold">
+          {{ form.ambitos.label }}
+        </span>
+      </label>
+
+      <div class="rounded-lg border border-base-300 p-4">
+
+        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+
+          {% for checkbox in form.ambitos %}
+
+            <label class="flex cursor-pointer items-center gap-3">
+
+              {{ checkbox.tag }}
+
+              <span class="text-sm">
+                {{ checkbox.choice_label }}
+              </span>
+
+            </label>
+
+          {% endfor %}
+
+        </div>
+
+      </div>
+
+      {% if form.ambitos.help_text %}
+        <p class="mt-1 text-xs text-base-content/60">
+          {{ form.ambitos.help_text }}
+        </p>
+      {% endif %}
+
+      {% for error in form.ambitos.errors %}
+        <p class="mt-1 text-xs text-error">
+          {{ error }}
+        </p>
+      {% endfor %}
+
+    </div>
+
+
     <div class="grid gap-6 md:grid-cols-2">
+
       <div class="form-control">
         {{ form.fecha_inicio.label_tag }}
         {{ form.fecha_inicio }}
-        {% for error in form.fecha_inicio.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+        {% for error in form.fecha_inicio.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
       </div>
+
+
       <div class="form-control">
         {{ form.fecha_fin.label_tag }}
         {{ form.fecha_fin }}
-        {% for error in form.fecha_fin.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+        {% for error in form.fecha_fin.errors %}
+          <p class="mt-1 text-xs text-error">
+            {{ error }}
+          </p>
+        {% endfor %}
       </div>
+
     </div>
+
+
     <div class="form-control">
       {{ form.evidencia.label_tag }}
       {{ form.evidencia }}
-      {% for error in form.evidencia.errors %}<p class="mt-1 text-xs text-error">{{ error }}</p>{% endfor %}
+
+      {% if form.evidencia.help_text %}
+        <p class="mt-1 text-xs text-base-content/60">
+          {{ form.evidencia.help_text }}
+        </p>
+      {% endif %}
+
+      {% for error in form.evidencia.errors %}
+        <p class="mt-1 text-xs text-error">
+          {{ error }}
+        </p>
+      {% endfor %}
     </div>
+
   </div>
 
+
   <div class="flex flex-wrap items-center gap-3">
-    <button type="submit" class="btn btn-primary">Guardar actividad</button>
-    <button type="button" class="btn btn-ghost" data-close-modal="{{ modal_id|default:'pas-modal' }}">Cancelar</button>
+
+    <button type="submit"
+            class="btn btn-primary">
+      Guardar actividad
+    </button>
+
+    <button type="button"
+            class="btn btn-ghost"
+            data-close-modal="{{ modal_id|default:'pas-modal' }}">
+      Cancelar
+    </button>
+
   </div>
+
 </form>

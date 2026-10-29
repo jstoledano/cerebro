@@ -2,32 +2,122 @@ from django.urls import path
 
 from .views import (
     PASIndex,
+    AgendaView,
     PASAdd,
     PASDetail,
     PlanSummaryView,
     PlanActivitiesView,
     PlanUpdateView,
     PlanClosureView,
+    PlanSourceDocumentView,
     ActivityCreateView,
+    ActivityDetailView,
     ActivityUpdateView,
     ActivityDeleteView,
-    FollowUpCreateView,
-    FollowUpListView,
+    EvidenceDownloadView,
+    ExecutionEvidenceDetailView,
+    ExecutionEvidenceCreateView,
+    ExecutionCompleteView,
+    CalendarEventsView,
 )
 
-app_name = 'pas'
+app_name = "pas"
+
 
 urlpatterns = [
-    path('', PASIndex.as_view(), name='index'),
-    path('add/', PASAdd.as_view(), name='add'),
-    path('detalle/<int:pk>/', PASDetail.as_view(), name='detalle'),
-    path('<int:pk>/summary/', PlanSummaryView.as_view(), name='plan-summary'),
-    path('<int:pk>/activities/', PlanActivitiesView.as_view(), name='plan-activities'),
-    path('<int:pk>/edit/', PlanUpdateView.as_view(), name='plan-edit'),
-    path('<int:pk>/closure/', PlanClosureView.as_view(), name='plan-closure'),
-    path('<int:pk>/activities/add/', ActivityCreateView.as_view(), name='activity-add'),
-    path('activities/<int:pk>/edit/', ActivityUpdateView.as_view(), name='activity-edit'),
-    path('activities/<int:pk>/delete/', ActivityDeleteView.as_view(), name='activity-delete'),
-    path('activities/<int:pk>/followups/', FollowUpListView.as_view(), name='followup-list'),
-    path('activities/<int:pk>/followups/add/', FollowUpCreateView.as_view(), name='followup-add'),
+    path(
+        "",
+        AgendaView.as_view(),
+        name="index",
+    ),
+    path(
+        "agenda/",
+        AgendaView.as_view(),
+        name="agenda",
+    ),
+    path(
+        "calendar/events/",
+        CalendarEventsView.as_view(),
+        name="calendar-events",
+    ),
+    path(
+        "plans/",
+        PASIndex.as_view(),
+        name="plans",
+    ),
+    path(
+        "add/",
+        PASAdd.as_view(),
+        name="add",
+    ),
+    path(
+        "detalle/<int:pk>/",
+        PASDetail.as_view(),
+        name="detalle",
+    ),
+    path(
+        "detalle/<int:pk>/documento-fuente/",
+        PlanSourceDocumentView.as_view(),
+        name="plan-source-document",
+    ),
+    path(
+        "<int:pk>/summary/",
+        PlanSummaryView.as_view(),
+        name="plan-summary",
+    ),
+    path(
+        "<int:pk>/activities/",
+        PlanActivitiesView.as_view(),
+        name="plan-activities",
+    ),
+    path(
+        "<int:pk>/edit/",
+        PlanUpdateView.as_view(),
+        name="plan-edit",
+    ),
+    path(
+        "<int:pk>/closure/",
+        PlanClosureView.as_view(),
+        name="plan-closure",
+    ),
+    path(
+        "<int:pk>/activities/add/",
+        ActivityCreateView.as_view(),
+        name="activity-add",
+    ),
+    path(
+        "activities/<int:pk>/detail/",
+        ActivityDetailView.as_view(),
+        name="activity-detail",
+    ),
+    path(
+        "activities/<int:pk>/edit/",
+        ActivityUpdateView.as_view(),
+        name="activity-edit",
+    ),
+    path(
+        "activities/<int:pk>/delete/",
+        ActivityDeleteView.as_view(),
+        name="activity-delete",
+    ),
+    path(
+        "evidences/<int:pk>/download/",
+        EvidenceDownloadView.as_view(),
+        name="evidence-download",
+    ),
+    path(
+        "executions/<int:pk>/evidence/",
+        ExecutionEvidenceDetailView.as_view(),
+        name="execution-evidence",
+    ),
+    path(
+        "executions/<int:pk>/evidence/add/",
+        ExecutionEvidenceCreateView.as_view(),
+        name="execution-evidence-add",
+    ),
+    path(
+        "executions/<int:pk>/complete/",
+        ExecutionCompleteView.as_view(),
+        name="execution-complete",
+    ),
 ]

@@ -275,7 +275,10 @@ EMAIL_TIMEOUT = 15
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
-TINYMCE_DEFAULT_CONFIG = {"height": 300}
+TINYMCE_DEFAULT_CONFIG = {
+    "height": 300,
+    "license_key": "gpl",
+}
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
 RECAPTCHA_PUBLIC_KEY = env("RECAPTCHA_PUBLIC_KEY", default="")

@@ -1,15 +1,43 @@
 # coding: utf-8
 
-#         app: us.nspaces.ccc.profiles
-#      módulo: apps.profile.admin
-# descripción: Admin area
-#       autor: Javier Sanchez Toledano
-#       fecha: miércoles, 9 de agosto de 2017
-
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from apps.profiles.models import Profile
+
+from apps.profiles.models import (
+    Profile,
+    UnidadOrganizacional,
+)
+
+
+@admin.register(UnidadOrganizacional)
+class UnidadOrganizacionalAdmin(admin.ModelAdmin):
+    list_display = (
+        "clave",
+        "nombre",
+        "site",
+        "superior",
+        "activa",
+    )
+
+    list_filter = (
+        "site",
+        "activa",
+    )
+
+    search_fields = (
+        "clave",
+        "nombre",
+    )
+
+    ordering = (
+        "clave",
+    )
+
+    autocomplete_fields = (
+        "superior",
+    )
+
 
 admin.site.unregister(User)
 
@@ -17,27 +45,107 @@ admin.site.unregister(User)
 class ProfileInline(admin.StackedInline):
     model = Profile
     can_delete = False
-    verbose_name_plural = 'Profile'
-    fk_name = 'user'
+    verbose_name_plural = "Perfil"
+    fk_name = "user"
+
+    fields = (
+        "state",
+        "site",
+        "position",
+        "siglas",
+        "unidad_organizacional",
+        "order",
+        "recibe_notificaciones",
+    )
+
+    autocomplete_fields = (
+        "unidad_organizacional",
+    )
 
 
 class ProfileAdmin(UserAdmin):
-    inlines = (ProfileInline, )
-    list_display = ('username', 'email',  'get_site', 'get_position','is_staff',)
-    list_select_related = ('profile',)
-    list_filter = ('profile__site', 'profile__position')
-    icon = '<i class="material-icons">face</i>'
+    inlines = (
+        ProfileInline,
+    )
 
-    def get_inline_instances(self, request, obj=None):
+    list_display = (
+        "username",
+        "email",
+        "get_site",
+        "get_position",
+        "get_unidad_organizacional",
+        "is_staff",
+    )
+
+    list_select_related = (
+        "profile",
+        "profile__unidad_organizacional",
+    )
+
+    list_filter = (
+        "profile__site",
+        "profile__position",
+        "profile__unidad_organizacional",
+    )
+
+    icon = (
+        '<i class="material-icons">'
+        "face"
+        "</i>"
+    )
+
+    def get_inline_instances(
+        self,
+        request,
+        obj=None,
+    ):
         if not obj:
-            return list()
-        return super(UserAdmin, self).get_inline_instances(request, obj)
+            return []
 
-    def get_site(self, user):           # pylint: disable=R0201
-        return user.profile.get_site_display()
+        return super().get_inline_instances(
+            request,
+            obj,
+        )
 
-    def get_position(self, user):
-        return user.profile.get_position_display()
+    @admin.display(
+        description="Sede",
+    )
+    def get_site(
+        self,
+        user,
+    ):
+        return (
+            user.profile
+            .get_site_display()
+        )
+
+    @admin.display(
+        description="Puesto",
+    )
+    def get_position(
+        self,
+        user,
+    ):
+        return (
+            user.profile
+            .get_position_display()
+        )
+
+    @admin.display(
+        description="Unidad organizacional",
+    )
+    def get_unidad_organizacional(
+        self,
+        user,
+    ):
+        return (
+            user.profile
+            .unidad_organizacional
+            or "—"
+        )
 
 
-admin.site.register(User, ProfileAdmin)
+admin.site.register(
+    User,
+    ProfileAdmin,
+)

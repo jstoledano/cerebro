@@ -62,15 +62,392 @@ PUESTOS = (
     (RA, 'Rama Administrativa')
 )
 
+ETIQUETAS_UNIDAD_ORGANIZACIONAL = {
+    "00": "VEL",
+
+    "0010": "COL",
+    "0020": "AJL",
+    "0030": "ALL",
+    "0040": "CSL",
+    "0099": "RA",
+
+    "10": "VSL",
+
+    "1010": "COA",
+    "1011": "JRH",
+    "1012": "JRF",
+    "1013": "JRM",
+    "1099": "RA",
+
+    "20": "VOL",
+    "2099": "RA",
+
+    "30": "VCL",
+    "3099": "RA",
+
+    "50": "VRL",
+
+    "5010": "JOSA",
+    "5020": "JOCE",
+    "5030": "JAP",
+    "5040": "JDP",
+    "5050": "JCC",
+    "5099": "RA",
+
+    "01": "VED",
+    "02": "VED",
+    "03": "VED",
+
+    "11": "VSD",
+    "12": "VSD",
+    "13": "VSD",
+
+    "21": "VOD",
+    "22": "VOD",
+    "23": "VOD",
+
+    "31": "VCD",
+    "32": "VCD",
+    "33": "VCD",
+
+    "51": "VRD",
+    "52": "VRD",
+    "53": "VRD",
+
+    "5110": "JOSAD",
+    "5210": "JOSAD",
+    "5310": "JOSAD",
+}
+
+
+class UnidadOrganizacional(models.Model):
+    clave = models.CharField(
+        max_length=10,
+        unique=True,
+        verbose_name="Clave",
+        help_text=(
+            "Clave jerárquica de la unidad. "
+            "Ejemplos: 00, 50, 5099."
+        ),
+    )
+
+    nombre = models.CharField(
+        max_length=150,
+        verbose_name="Nombre",
+    )
+
+    superior = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        related_name="subordinadas",
+        blank=True,
+        null=True,
+        verbose_name="Unidad superior",
+    )
+
+    site = models.PositiveSmallIntegerField(
+        choices=SITIO,
+        blank=True,
+        null=True,
+        verbose_name="Sede",
+    )
+
+    activa = models.BooleanField(
+        default=True,
+        verbose_name="Activa",
+    )
+
+    class Meta:
+        ordering = [
+            "clave",
+        ]
+        verbose_name = "Unidad organizacional"
+        verbose_name_plural = (
+            "Unidades organizacionales"
+        )
+
+    def __str__(self):
+        return (
+            f"{self.clave} - "
+            f"{self.nombre}"
+        )
+
+    def obtener_descendientes(
+        self,
+        incluir_self=False,
+    ):
+        unidades = []
+
+        if incluir_self:
+            unidades.append(
+                self
+            )
+
+        pendientes = list(
+            self.subordinadas
+            .filter(
+                activa=True
+            )
+            .order_by(
+                "clave"
+            )
+        )
+
+        visitadas = {
+            self.pk,
+        }
+
+        while pendientes:
+            unidad = pendientes.pop(0)
+
+            if unidad.pk in visitadas:
+                continue
+
+            visitadas.add(
+                unidad.pk
+            )
+
+            unidades.append(
+                unidad
+            )
+
+            pendientes.extend(
+                unidad.subordinadas
+                .filter(
+                    activa=True
+                )
+                .order_by(
+                    "clave"
+                )
+            )
+
+        return unidades
+
+    def depende_de(
+        self,
+        unidad,
+    ):
+        actual = self.superior
+
+        visitadas = set()
+
+        while actual is not None:
+            if actual.pk in visitadas:
+                return False
+
+            visitadas.add(
+                actual.pk
+            )
+
+            if actual.pk == unidad.pk:
+                return True
+
+            actual = actual.superior
+
+        return False
+
+    @property
+    def etiqueta_funcional(self):
+        return ETIQUETAS_UNIDAD_ORGANIZACIONAL.get(
+            self.clave,
+            self.clave,
+        )
+
+    @property
+    def nombre_funcional(self):
+        etiqueta = self.etiqueta_funcional
+
+        if etiqueta == self.clave:
+            return self.nombre
+
+        return f"{etiqueta} — {self.nombre}"
+
+    def obtener_usuarios(
+        self,
+        incluir_self=True,
+        activos=True,
+    ):
+        unidades = (
+            self.obtener_descendientes(
+                incluir_self=incluir_self
+            )
+        )
+
+        queryset = (
+            User.objects
+            .filter(
+                profile__unidad_organizacional__in=(
+                    unidades
+                )
+            )
+            .select_related(
+                "profile",
+                "profile__unidad_organizacional",
+            )
+            .order_by(
+                "profile__unidad_organizacional__clave",
+                "profile__order",
+                "first_name",
+                "last_name",
+                "username",
+            )
+        )
+
+        if activos:
+            queryset = queryset.filter(
+                is_active=True
+            )
+
+        return queryset
+
 
 class Profile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    state = models.PositiveSmallIntegerField(choices=ENTIDADES, default=TLAXCALA)
-    site = models.PositiveSmallIntegerField(choices=SITIO, default=0)
-    position = models.CharField(choices=PUESTOS, max_length=5, default=RA)
-    order = models.PositiveSmallIntegerField(default=99, blank=True, null=True)
-    recibe_notificaciones = models.BooleanField(default=False)
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+    )
+
+    state = models.PositiveSmallIntegerField(
+        choices=ENTIDADES,
+        default=TLAXCALA,
+    )
+
+    site = models.PositiveSmallIntegerField(
+        choices=SITIO,
+        default=0,
+    )
+
+    position = models.CharField(
+        choices=PUESTOS,
+        max_length=5,
+        default=RA,
+    )
+
+    siglas = models.CharField(
+        max_length=4,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Siglas",
+        help_text=(
+            "Identificador corto del usuario. "
+            "Ejemplo: JST."
+        ),
+    )
+
+    unidad_organizacional = models.ForeignKey(
+        UnidadOrganizacional,
+        on_delete=models.SET_NULL,
+        related_name="miembros",
+        blank=True,
+        null=True,
+        verbose_name="Unidad organizacional",
+        help_text=(
+            "Ubicación del usuario dentro de la "
+            "estructura organizacional."
+        ),
+    )
+
+    order = models.PositiveSmallIntegerField(
+        default=99,
+        blank=True,
+        null=True,
+    )
+
+    recibe_notificaciones = models.BooleanField(
+        default=False,
+    )
+
+    @property
+    def es_supervisor_agenda(self):
+        if not self.unidad_organizacional_id:
+            return False
+
+        return self.unidad_organizacional.subordinadas.filter(
+            activa=True,
+        ).exists()
+
+    def obtener_usuarios_agenda(self):
+        """
+        Devuelve las personas cuyas tareas debe mostrar
+        la agenda del usuario.
+
+        Un responsable sin unidades subordinadas ve
+        únicamente sus propias tareas.
+
+        Un responsable cuya unidad tiene subordinadas
+        ve sus propias tareas y las de toda la estructura
+        organizacional descendiente.
+        """
+
+        if not self.es_supervisor_agenda:
+            return User.objects.filter(
+                pk=self.user_id,
+                is_active=True,
+            ).select_related(
+                "profile",
+                "profile__unidad_organizacional",
+            )
+
+        return self.unidad_organizacional.obtener_usuarios(
+            incluir_self=True,
+            activos=True,
+        )
+
+    @property
+    def nombre_calendario(self):
+        if self.siglas:
+            return self.siglas
+
+        nombre = (
+            self.user.get_full_name()
+            or self.user.username
+        ).strip()
+
+        if len(nombre) <= 10:
+            return nombre
+
+        return nombre[:10]
+
+    def save(
+        self,
+        *args,
+        **kwargs,
+    ):
+        if self.siglas:
+            self.siglas = (
+                self.siglas
+                .strip()
+                .upper()
+                or None
+            )
+        else:
+            self.siglas = None
+
+        return super().save(
+            *args,
+            **kwargs,
+        )
+
+    def __str__(self):
+        nombre = (
+            self.user.get_full_name()
+            or self.user.username
+        )
+
+        if self.unidad_organizacional:
+            return (
+                f"{nombre} - "
+                f"{self.unidad_organizacional}"
+            )
+
+        return nombre
 
 
 @receiver(post_save, sender=User)

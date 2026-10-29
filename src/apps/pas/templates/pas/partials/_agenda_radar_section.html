@@ -1,0 +1,511 @@
+<section id="radar-{{ nivel }}"
+         class="scroll-mt-6 space-y-4">
+
+  <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+
+    <div>
+
+      <div class="flex flex-wrap items-center gap-3">
+
+        {% if nivel == "urgente" %}
+
+          <span class="badge badge-error">
+            Urgente
+          </span>
+
+        {% elif nivel == "atencion" %}
+
+          <span class="badge badge-warning">
+            Atención
+          </span>
+
+        {% else %}
+
+          <span class="badge badge-info badge-outline">
+            Vigilar
+          </span>
+
+        {% endif %}
+
+
+        <h2 class="text-2xl font-bold">
+          {{ titulo }}
+        </h2>
+
+      </div>
+
+
+      <p class="mt-2 text-sm text-base-content/60">
+        {{ descripcion }}
+      </p>
+
+    </div>
+
+
+    <div class="flex flex-col items-start gap-2 md:items-end">
+
+      {% if nivel == "urgente" %}
+
+        <span class="text-sm text-base-content/50">
+          {{ total_vencidas }} ejecuciones vencidas ·
+          {{ total_vencen_hoy }} vencen hoy
+        </span>
+
+      {% elif nivel == "atencion" %}
+
+        <span class="text-sm text-base-content/50">
+          Horizonte de próximos 7 días
+        </span>
+
+      {% else %}
+
+        <span class="text-sm text-base-content/50">
+          Horizonte de próximos 14 días
+        </span>
+
+      {% endif %}
+
+
+      <a href="#agenda-calendario"
+         class="
+           btn
+           btn-ghost
+           btn-sm
+           gap-2
+           text-base-content/60
+           hover:text-primary
+         "
+         aria-label="Volver al calendario">
+
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.5"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="size-5">
+
+          <path stroke="none"
+                d="M0 0h24v24H0z"
+                fill="none" />
+
+          <path d="M12 5l0 14" />
+
+          <path d="M18 11l-6 -6" />
+
+          <path d="M6 11l6 -6" />
+
+        </svg>
+
+        <span>
+          Volver al calendario
+        </span>
+
+      </a>
+
+    </div>
+
+  </div>
+
+
+  <div class="
+    rounded-3xl
+    border
+    bg-base-100
+    shadow-sm
+
+    {% if nivel == 'urgente' %}
+      border-error/30
+    {% elif nivel == 'atencion' %}
+      border-warning/30
+    {% else %}
+      border-info/30
+    {% endif %}
+  ">
+
+    {% if items %}
+
+      <div class="divide-y divide-base-200">
+
+        {% for execution in items %}
+
+          <div class="
+            p-5
+            {% if execution.es_mia %}
+              bg-primary/5
+            {% endif %}
+          ">
+
+            <div class="
+              flex
+              flex-col
+              gap-5
+              lg:flex-row
+              lg:items-start
+              lg:justify-between
+            ">
+
+              <div class="min-w-0 flex-1">
+
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+
+                  {% if execution.es_mia %}
+
+                    <span class="badge badge-primary">
+                      YO
+                    </span>
+
+                  {% endif %}
+
+
+                  {% if execution.responsable_normativo_display != "—" %}
+
+                    <span class="badge badge-outline"
+                          title="Responsable normativo">
+
+                      Normativo:
+                      {{ execution.responsable_normativo_display }}
+
+                    </span>
+
+                  {% endif %}
+
+
+                  {% if execution.responsable_operativo_display != "—" %}
+
+                    <span class="badge badge-ghost"
+                          title="Responsable operativo">
+
+                      Operativo:
+                      {{ execution.responsable_operativo_display }}
+
+                    </span>
+
+                  {% endif %}
+
+
+                  {% if execution.accion.prioridad == "critica" %}
+
+                    <span class="badge badge-error badge-outline">
+                      Crítica
+                    </span>
+
+                  {% elif execution.accion.prioridad == "urgente" %}
+
+                    <span class="badge badge-warning badge-outline">
+                      Urgente
+                    </span>
+
+                  {% endif %}
+
+
+                  {% if execution.radar_motivo == "vencida" %}
+
+                    <span class="badge badge-error">
+                      Vencida
+                    </span>
+
+                  {% elif execution.radar_motivo == "vence_hoy" %}
+
+                    <span class="badge badge-warning">
+                      Vence hoy
+                    </span>
+
+                  {% elif execution.radar_motivo == "continua_inmediata" %}
+
+                    <span class="badge badge-error">
+                      Vence mañana
+                    </span>
+
+                  {% elif execution.radar_motivo == "continua_proxima" %}
+
+                    <span class="badge badge-warning badge-outline">
+                      Próxima a vencer
+                    </span>
+
+                  {% elif execution.radar_motivo == "critica_activa" %}
+
+                    <span class="badge badge-error">
+                      Crítica en ejecución
+                    </span>
+
+                  {% elif execution.radar_motivo == "urgente_activa" %}
+
+                    <span class="badge badge-warning">
+                      Urgente en ejecución
+                    </span>
+
+                  {% elif execution.radar_motivo == "proxima_7_dias" %}
+
+                    <span class="badge badge-warning badge-outline">
+                      Próxima
+                    </span>
+
+                  {% elif execution.radar_motivo == "activa" %}
+
+                    <span class="badge badge-info badge-outline">
+                      En curso
+                    </span>
+
+                  {% elif execution.radar_motivo == "proxima_14_dias" %}
+
+                    <span class="badge badge-info badge-outline">
+                      Próximamente
+                    </span>
+
+                  {% endif %}
+
+                </div>
+
+
+                <div class="
+                  prose
+                  prose-sm
+                  max-w-none
+                  font-medium
+                  text-base-content
+                ">
+                  {{ execution.accion.accion|safe }}
+                </div>
+
+
+                <div class="
+                  mt-3
+                  flex
+                  flex-wrap
+                  gap-x-4
+                  gap-y-1
+                  text-xs
+                  text-base-content/55
+                ">
+
+                  <span>
+                    {{ execution.plan.nombre }}
+                  </span>
+
+
+                  {% if execution.radar_ambitos_display %}
+
+                    <span>
+                      {{ execution.radar_ambitos_display }}
+                    </span>
+
+                  {% endif %}
+
+
+                  <span>
+                    {{ execution.accion.get_periodicidad_display }}
+                  </span>
+
+                </div>
+
+
+                <div class="
+                  mt-4
+                  grid
+                  gap-3
+                  sm:grid-cols-2
+                  xl:grid-cols-3
+                ">
+
+                  {% if execution.radar_vencidas_count %}
+
+                    <div class="
+                      rounded-xl
+                      border
+                      border-error/20
+                      bg-error/5
+                      px-4
+                      py-3
+                    ">
+
+                      <p class="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wide
+                        text-error
+                      ">
+                        Pendiente vencido
+                      </p>
+
+                      <p class="mt-1 text-sm font-semibold">
+
+                        {{ execution.radar_vencidas_count }}
+
+                        {% if execution.radar_vencidas_count == 1 %}
+                          ejecución vencida
+                        {% else %}
+                          ejecuciones vencidas
+                        {% endif %}
+
+                      </p>
+
+                    </div>
+
+                  {% endif %}
+
+
+                  {% if execution.radar_vencen_hoy_count %}
+
+                    <div class="
+                      rounded-xl
+                      border
+                      border-warning/20
+                      bg-warning/5
+                      px-4
+                      py-3
+                    ">
+
+                      <p class="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wide
+                      ">
+                        Hoy
+                      </p>
+
+                      <p class="mt-1 text-sm font-semibold">
+
+                        {{ execution.radar_vencen_hoy_count }}
+
+                        {% if execution.radar_vencen_hoy_count == 1 %}
+                          ejecución vence hoy
+                        {% else %}
+                          ejecuciones vencen hoy
+                        {% endif %}
+
+                      </p>
+
+                    </div>
+
+                  {% endif %}
+
+
+                  {% if execution.radar_proxima_accion %}
+
+                    <div class="
+                      rounded-xl
+                      border
+                      border-base-300
+                      bg-base-200/40
+                      px-4
+                      py-3
+                    ">
+
+                      <p class="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wide
+                        text-base-content/55
+                      ">
+                        Próxima acción
+                      </p>
+
+                      <p class="mt-1 text-sm font-semibold">
+                        {{ execution.radar_proxima_accion.fecha_inicio|date:"d/m/Y" }}
+                      </p>
+
+
+                      {% if execution.radar_proxima_accion.ciclo.etiqueta %}
+
+                        <p class="mt-1 text-xs text-base-content/55">
+                          {{ execution.radar_proxima_accion.ciclo.etiqueta }}
+                        </p>
+
+                      {% endif %}
+
+                    </div>
+
+                  {% endif %}
+
+
+                  {% if execution.radar_activas %}
+
+                    <div class="
+                      rounded-xl
+                      border
+                      border-info/20
+                      bg-info/5
+                      px-4
+                      py-3
+                    ">
+
+                      <p class="
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-wide
+                        text-info
+                      ">
+                        En curso
+                      </p>
+
+                      {% if execution.accion.periodicidad == "continua" %}
+
+                        <p class="mt-1 text-sm font-semibold">
+                          Termina el
+                          {{ execution.fecha_fin|date:"d/m/Y" }}
+                        </p>
+
+                      {% else %}
+
+                        <p class="mt-1 text-sm font-semibold">
+                          Actividad actualmente activa
+                        </p>
+
+                      {% endif %}
+
+                    </div>
+
+                  {% endif %}
+
+                </div>
+
+              </div>
+
+
+              <div class="
+                flex
+                shrink-0
+                flex-wrap
+                items-center
+                gap-2
+                lg:flex-col
+                lg:items-stretch
+              ">
+
+                <button type="button"
+                        class="btn btn-primary btn-sm"
+                        hx-get="{% url 'pas:activity-detail' execution.accion.pk %}"
+                        hx-target="#pas-modal-content"
+                        hx-swap="innerHTML">
+                  Ver detalle
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        {% endfor %}
+
+      </div>
+
+    {% else %}
+
+      <div class="p-8 text-center text-sm text-base-content/55">
+        {{ mensaje_vacio }}
+      </div>
+
+    {% endif %}
+
+  </div>
+
+</section>

@@ -1,0 +1,798 @@
+{% extends 'cerebro/base.html' %}
+
+{% block title %}Agenda{% endblock %}
+
+
+{% block head %}
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/skeleton.css">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/theme.css">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/palette.css">
+
+{% endblock head %}
+
+
+{% block content %}
+
+<section class="space-y-8">
+
+  {# ====================================================== #}
+  {# ENCABEZADO                                             #}
+  {# ====================================================== #}
+
+  <header class="rounded-3xl border border-base-300 bg-base-100 p-8 shadow-sm">
+
+    <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+
+      <div class="flex items-center gap-4">
+
+        <div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke-width="1.5"
+               stroke="currentColor"
+               class="size-9">
+
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-15 12h13.5A1.5 1.5 0 0 0 20.25 18.75V6.75a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+
+          </svg>
+
+        </div>
+
+
+        <div>
+
+          <h1 class="text-3xl font-bold">
+            Agenda
+          </h1>
+
+          <p class="mt-1 max-w-2xl text-sm text-base-content/65">
+
+            {% if es_supervisor_agenda %}
+
+              Consulta de un vistazo las actividades
+              bajo tu responsabilidad operativa y normativa.
+
+            {% else %}
+
+              Prioriza las actividades que requieren
+              tu atención.
+
+            {% endif %}
+
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="flex flex-wrap items-center gap-3">
+
+        {% if es_supervisor_agenda %}
+
+          <span class="badge badge-outline">
+            {{ total_usuarios_agenda }}
+            {% if total_usuarios_agenda == 1 %}
+              persona
+            {% else %}
+              personas
+            {% endif %}
+          </span>
+
+        {% endif %}
+
+
+        <span class="text-sm text-base-content/60">
+          {{ hoy|date:"d/m/Y" }}
+        </span>
+
+
+        <a href="{% url 'pas:plans' %}"
+           class="btn btn-outline btn-sm">
+          Planes
+        </a>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  {# ====================================================== #}
+  {# CALENDARIO + RADAR                                     #}
+  {# ====================================================== #}
+
+  <section id="agenda-calendario">
+
+    <div class="grid gap-6 xl:grid-cols-9">
+
+      <div class="xl:col-span-7">
+
+        <div class="h-full rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm">
+
+          <div class="mb-5">
+
+            <h2 class="text-xl font-semibold">
+              Calendario de tareas
+            </h2>
+
+            <p class="text-sm text-base-content/60">
+
+              {% if es_supervisor_agenda %}
+
+                Programación bajo tu responsabilidad
+                operativa y normativa.
+
+              {% else %}
+
+                Consulta la programación completa
+                de tus actividades.
+
+              {% endif %}
+
+            </p>
+
+          </div>
+
+
+          <div id="pas-calendar"
+               class="min-h-96">
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="grid gap-4 sm:grid-cols-3 xl:col-span-2 xl:grid-cols-1">
+
+        {# ================================================== #}
+        {# URGENTE                                            #}
+        {# ================================================== #}
+
+        <a href="#radar-urgente"
+           class="
+             group
+             flex
+             min-h-52
+             flex-col
+             items-center
+             justify-center
+             rounded-2xl
+             border
+             border-error/30
+             bg-error/5
+             p-5
+             text-center
+             shadow-sm
+             transition
+             hover:-translate-y-0.5
+             hover:border-error/50
+             hover:shadow-md
+           ">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="1.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-[3.25rem] text-error">
+
+            <path stroke="none"
+                  d="M0 0h24v24H0z"
+                  fill="none" />
+
+            <path d="M8 16v-4a4 4 0 0 1 8 0v4" />
+
+            <path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" />
+
+            <path d="M6 17a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1l0 -2" />
+
+          </svg>
+
+
+          <p class="mt-3 text-[2.5rem] font-bold leading-none text-base-content">
+            {{ total_urgentes }}
+          </p>
+
+
+          <p class="mt-3 text-sm font-semibold text-error">
+            Urgente
+          </p>
+
+
+          <p class="mt-1 text-xs text-base-content/55">
+            Requieren atención inmediata
+          </p>
+
+        </a>
+
+
+        {# ================================================== #}
+        {# ATENCIÓN                                           #}
+        {# ================================================== #}
+
+        <a href="#radar-atencion"
+           class="
+             group
+             flex
+             min-h-52
+             flex-col
+             items-center
+             justify-center
+             rounded-2xl
+             border
+             border-warning/30
+             bg-warning/5
+             p-5
+             text-center
+             shadow-sm
+             transition
+             hover:-translate-y-0.5
+             hover:border-warning/50
+             hover:shadow-md
+           ">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="1.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-[3.25rem] text-warning">
+
+            <path stroke="none"
+                  d="M0 0h24v24H0z"
+                  fill="none" />
+
+            <path d="M12 3l2 3l2 15h-8l2 -15l2 -3" />
+
+            <path d="M8 9l8 0" />
+
+            <path d="M3 11l2 -2l-2 -2" />
+
+            <path d="M21 11l-2 -2l2 -2" />
+
+          </svg>
+
+
+          <p class="mt-3 text-[2.5rem] font-bold leading-none text-base-content">
+            {{ total_requieren_atencion }}
+          </p>
+
+
+          <p class="mt-3 text-sm font-semibold">
+            Atención
+          </p>
+
+
+          <p class="mt-1 text-xs text-base-content/55">
+            Próxima acción en 7 días
+          </p>
+
+        </a>
+
+
+        {# ================================================== #}
+        {# VIGILAR                                            #}
+        {# ================================================== #}
+
+        <a href="#radar-vigilar"
+           class="
+             group
+             flex
+             min-h-52
+             flex-col
+             items-center
+             justify-center
+             rounded-2xl
+             border
+             border-info/30
+             bg-info/5
+             p-5
+             text-center
+             shadow-sm
+             transition
+             hover:-translate-y-0.5
+             hover:border-info/50
+             hover:shadow-md
+           ">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="1.25"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="size-[3.25rem] text-info">
+
+            <path stroke="none"
+                  d="M0 0h24v24H0z"
+                  fill="none" />
+
+            <path d="M21 12h-8a1 1 0 1 0 -1 1v8a9 9 0 0 0 9 -9" />
+
+            <path d="M16 9a5 5 0 1 0 -7 7" />
+
+            <path d="M20.486 9a9 9 0 1 0 -11.482 11.495" />
+
+          </svg>
+
+
+          <p class="mt-3 text-[2.5rem] font-bold leading-none text-base-content">
+            {{ total_vigilar }}
+          </p>
+
+
+          <p class="mt-3 text-sm font-semibold text-info">
+            Vigilar
+          </p>
+
+
+          <p class="mt-1 text-xs text-base-content/55">
+            En curso o próximas en 14 días
+          </p>
+
+        </a>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  {# ====================================================== #}
+  {# RADAR                                                 #}
+  {# ====================================================== #}
+
+{% include "pas/partials/_agenda_radar_section.html" with nivel="urgente" titulo="Requiere atención inmediata" descripcion="Actividades con ejecuciones vencidas, que vencen hoy o que requieren intervención inmediata." items=urgentes mensaje_vacio="No hay actividades que requieran atención inmediata." %}
+{% include "pas/partials/_agenda_radar_section.html" with nivel="atencion" titulo="Requiere atención" descripcion="Actividades cuya próxima acción ocurre dentro de los siguientes 7 días." items=requieren_atencion mensaje_vacio="No hay actividades que requieran atención durante los próximos 7 días." %}
+{% include "pas/partials/_agenda_radar_section.html" with nivel="vigilar" titulo="Mantener en el radar" descripcion="Actividades en curso o cuya próxima acción ocurre dentro de los siguientes 14 días." items=vigilar mensaje_vacio="No hay actividades que requieran vigilancia durante los próximos 14 días." %}
+
+</section>
+
+
+{# ======================================================== #}
+{# MODAL                                                    #}
+{# ======================================================== #}
+
+<dialog id="pas-modal"
+        class="modal">
+
+  <div id="pas-modal-content"
+       class="modal-box max-w-4xl space-y-4">
+  </div>
+
+  <form method="dialog"
+        class="modal-backdrop">
+
+    <button>
+      Cerrar
+    </button>
+
+  </form>
+
+</dialog>
+
+{% endblock content %}
+
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/all/global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/themes/classic/global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.3/locales/es/global.js"></script>
+
+
+<script>
+  document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+      const calendarElement = (
+        document.getElementById(
+          'pas-calendar'
+        )
+      );
+
+      if (
+        !calendarElement
+        || typeof FullCalendar === 'undefined'
+      ) {
+        return;
+      }
+
+
+      function applyEventStyle(
+        info
+      ) {
+        const estado = (
+          info.event
+          .extendedProps
+          .estado
+        );
+
+        const esMia = (
+          info.event
+          .extendedProps
+          .esMia
+        );
+
+
+        if (estado === 'vencida') {
+          info.el.style.backgroundColor = (
+            'var(--fallback-er, oklch(var(--er)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-er, oklch(var(--er)))'
+          );
+
+          info.el.style.color = 'white';
+        }
+
+        else if (estado === 'vence_hoy') {
+          info.el.style.backgroundColor = (
+            'var(--fallback-wa, oklch(var(--wa)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-wa, oklch(var(--wa)))'
+          );
+        }
+
+        else if (estado === 'inicia_hoy') {
+          info.el.style.backgroundColor = (
+            'var(--fallback-in, oklch(var(--in)))'
+          );
+
+          info.el.style.borderColor = (
+            'var(--fallback-in, oklch(var(--in)))'
+          );
+        }
+
+        else if (estado === 'terminada') {
+          info.el.style.opacity = '0.55';
+
+          info.el.style.textDecoration = (
+            'line-through'
+          );
+        }
+
+
+        if (esMia) {
+          info.el.style.fontWeight = '700';
+        }
+
+
+        info.el.style.cursor = 'pointer';
+
+
+        info.el.title = [
+          info.event.title,
+          info.event.extendedProps.plan,
+          info.event.extendedProps.estadoDisplay
+        ]
+          .filter(Boolean)
+          .join(' · ');
+      }
+
+
+      function openActivityDetail(
+        event
+      ) {
+        const detailUrl = (
+          event
+          .extendedProps
+          .activityDetailUrl
+        );
+
+        if (!detailUrl) {
+          return;
+        }
+
+        const modal = (
+          document.getElementById(
+            'pas-modal'
+          )
+        );
+
+        const modalContent = (
+          document.getElementById(
+            'pas-modal-content'
+          )
+        );
+
+        if (
+          !modal
+          || !modalContent
+        ) {
+          return;
+        }
+
+        if (!modal.open) {
+          modal.showModal();
+        }
+
+        htmx.ajax(
+          'GET',
+          detailUrl,
+          {
+            target: '#pas-modal-content',
+            swap: 'innerHTML',
+          }
+        );
+      }
+
+
+      const calendar = (
+        new FullCalendar.Calendar(
+          calendarElement,
+          {
+            initialView: (
+              'dayGridMonth'
+            ),
+
+            locale: 'es',
+
+            firstDay: 1,
+
+            height: 'auto',
+
+            contentHeight: 'auto',
+
+            fixedWeekCount: false,
+
+            showNonCurrentDates: true,
+
+            editable: false,
+
+            selectable: false,
+
+            navLinks: false,
+
+            dayMaxEvents: 3,
+
+
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            },
+
+
+            buttons: {
+              today: {
+                text: 'Hoy'
+              }
+            },
+
+
+            events: {
+              url: (
+                "{% url 'pas:calendar-events' %}"
+              ),
+              method: 'GET',
+            },
+
+
+            eventDidMount: (
+              applyEventStyle
+            ),
+
+
+            eventClick: function (
+              info
+            ) {
+              info.jsEvent.preventDefault();
+
+              openActivityDetail(
+                info.event
+              );
+            }
+
+          }
+        )
+      );
+
+
+      calendar.render();
+
+    }
+  );
+</script>
+
+<script>
+  (function () {
+
+    const modal = (
+      document.getElementById(
+        'pas-modal'
+      )
+    );
+
+    const modalContent = (
+      document.getElementById(
+        'pas-modal-content'
+      )
+    );
+
+    let agendaNeedsRefresh = false;
+
+
+    function closePasModal() {
+
+      if (
+        !modal
+        || !modal.open
+      ) {
+        return;
+      }
+
+      modal.close();
+
+      if (modalContent) {
+        modalContent.innerHTML = '';
+      }
+
+    }
+
+
+    if (modal) {
+      modal.addEventListener(
+        'close',
+        function () {
+
+          if (!agendaNeedsRefresh) {
+            return;
+          }
+
+          window.location.reload();
+
+        }
+      );
+    }
+
+
+    document.body.addEventListener(
+      'pas:refresh-agenda',
+      function () {
+        agendaNeedsRefresh = true;
+      }
+    );
+
+
+    document.body.addEventListener(
+      'pas:refresh-activity',
+      function () {
+
+        if (!modalContent) {
+          return;
+        }
+
+        const activityDetail = (
+          modalContent.querySelector(
+            '[data-activity-detail-url]'
+          )
+        );
+
+        if (!activityDetail) {
+          return;
+        }
+
+        const detailUrl = (
+          activityDetail.dataset
+          .activityDetailUrl
+        );
+
+        if (!detailUrl) {
+          return;
+        }
+
+        htmx.ajax(
+          'GET',
+          detailUrl,
+          {
+            target: '#pas-modal-content',
+            swap: 'innerHTML',
+          }
+        );
+
+      }
+    );
+
+
+    document.body.addEventListener(
+      'htmx:beforeRequest',
+      function (event) {
+
+        if (
+          !event.detail
+          || !event.detail.requestConfig
+        ) {
+          return;
+        }
+
+        const target = (
+          event.detail
+          .requestConfig
+          .target
+        );
+
+        if (
+          target
+          && target.id === 'pas-modal-content'
+          && modal
+          && !modal.open
+        ) {
+          modal.showModal();
+        }
+
+      }
+    );
+
+
+    document.body.addEventListener(
+      'htmx:afterSwap',
+      function (event) {
+
+        if (
+          event.target === modalContent
+          && modal
+          && !modal.open
+        ) {
+          modal.showModal();
+        }
+
+      }
+    );
+
+
+    document.body.addEventListener(
+      'pas:close-modal',
+      closePasModal
+    );
+
+
+    document.body.addEventListener(
+      'click',
+      function (event) {
+
+        const closeButton = (
+          event.target.closest(
+            '[data-close-modal]'
+          )
+        );
+
+        if (closeButton) {
+          closePasModal();
+        }
+
+      }
+    );
+
+  })();
+</script>
+
+{% endblock scripts %}

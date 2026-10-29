@@ -10,7 +10,14 @@ User = get_user_model()
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['id', 'state', 'site', 'position', 'recibe_notificaciones']
+        fields = [
+            "id",
+            "state",
+            "site",
+            "position",
+            "siglas",
+            "recibe_notificaciones",
+        ]
         read_only_fields = ['id']
 
 
