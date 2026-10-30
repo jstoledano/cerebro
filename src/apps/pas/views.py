@@ -2639,6 +2639,121 @@ class ExecutionEvidenceCreateView(ExecutionEvidenceBaseView):
     pass
 
 
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class ExecutionEvidenceUpdateView(UpdateView):
+    model = Evidencia
+    form_class = EvidenciaForm
+    template_name = "pas/partials/_evidence_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        visible_plans = Plan.objects.visible_to(
+            request.user
+        )
+
+        self.evidence = get_object_or_404(
+            Evidencia.objects.select_related(
+                "ejecucion",
+                "ejecucion__ciclo",
+                "ejecucion__ciclo__accion",
+                "ejecucion__ciclo__accion__plan",
+                "ejecucion__ciclo__accion__plan__user",
+                "ejecucion__responsable",
+            ).filter(
+                ejecucion__ciclo__accion__plan__in=visible_plans,
+            ),
+            pk=kwargs["pk"],
+        )
+
+        self.execution = self.evidence.ejecucion
+
+        if not usuario_puede_gestionar_evidencia(
+            request.user,
+            self.execution,
+            "editar",
+        ):
+            return HttpResponse(
+                "No tienes permiso para editar esta evidencia.",
+                status=403,
+            )
+
+        if not self.execution.plan.permite_modificaciones:
+            return HttpResponse(
+                "El plan se encuentra cerrado "
+                "o no admite modificaciones.",
+                status=409,
+            )
+
+        if self.execution.completada:
+            return HttpResponse(
+                "La ejecución está terminada. Debes reabrirla "
+                "antes de editar sus evidencias.",
+                status=409,
+            )
+
+        return super().dispatch(
+            request,
+            *args,
+            **kwargs,
+        )
+
+    def get_object(self, queryset=None):
+        return self.evidence
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context.update(
+            {
+                "execution": self.execution,
+                "activity": self.execution.accion,
+                "evidence": self.object,
+                "form_action": self.request.path,
+                "modal_id": "pas-modal",
+                "is_edit": True,
+            }
+        )
+
+        return context
+
+    def get_success_url(self):
+        return reverse(
+            "pas:detalle",
+            args=[self.execution.plan.pk],
+        )
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get("HX-Request"):
+            return HttpResponse(
+                "",
+                status=204,
+                headers={
+                    "HX-Trigger": hx_trigger_header(
+                        "pas:refresh-activity",
+                        "pas:refresh-activities",
+                        "pas:refresh-summary",
+                        "pas:refresh-agenda",
+                    ),
+                },
+            )
+
+        return response
+
+    def form_invalid(self, form):
+        if self.request.headers.get("HX-Request"):
+            return self.render_to_response(
+                self.get_context_data(form=form),
+                status=422,
+            )
+
+        return super().form_invalid(form)
+
+
+
 class ExecutionEvidenceDetailView(
     DetailView
 ):
