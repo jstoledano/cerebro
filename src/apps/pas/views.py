@@ -1233,7 +1233,7 @@ class CalendarEventsView(View):
         )
 
         return JsonResponse(eventos, safe=False)
-    
+
 
 class PASAdd(PermissionRequiredMixin, CreateView):
     permission_required = "pas.add_plan"
