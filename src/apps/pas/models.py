@@ -1520,10 +1520,19 @@ class Ejecucion(TrackingFields):
 
     @property
     def evidencia(self):
-        try:
-            return self.evidencia_registrada
-        except Evidencia.DoesNotExist:
-            return None
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        )
+
+        if "evidencias" in prefetched:
+            return next(
+                iter(prefetched["evidencias"]),
+                None,
+            )
+
+        return self.evidencias.first()
 
     def marcar_completada(self, fecha=None):
         self.completada = True
