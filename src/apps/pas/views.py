@@ -2497,9 +2497,10 @@ class ExecutionEvidenceBaseView(CreateView):
             pk=kwargs["pk"],
         )
 
-        if not usuario_puede_gestionar_ejecucion(
+        if not usuario_puede_gestionar_evidencia(
             request.user,
             self.execution,
+            "crear",
         ):
             return HttpResponse(
                 "No tienes permiso para registrar evidencia "
@@ -2535,7 +2536,7 @@ class ExecutionEvidenceBaseView(CreateView):
             *args,
             **kwargs,
         )
-
+    
     def get_success_url(self):
         return reverse(
             "pas:detalle",
