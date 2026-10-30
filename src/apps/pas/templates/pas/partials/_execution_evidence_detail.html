@@ -68,17 +68,15 @@
     {% endfor %}
   </div>
 
-  {% if execution.plan.permite_modificaciones and not execution.completada %}
-    {% if perms.pas.add_evidencia and activity.formato_evidencia != "ninguno" %}
-      <button
-        type="button"
-        class="btn btn-primary btn-sm"
-        hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-        hx-target="#pas-modal-content"
-        hx-swap="innerHTML"
-      >
-        Registrar evidencia
-      </button>
-    {% endif %}
+  {% if can_add_evidence %}
+    <button
+      type="button"
+      class="btn btn-primary btn-sm"
+      hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
+      hx-target="#pas-modal-content"
+      hx-swap="innerHTML"
+    >
+      Registrar evidencia
+    </button>
   {% endif %}
 </div>

@@ -2536,7 +2536,7 @@ class ExecutionEvidenceBaseView(CreateView):
             *args,
             **kwargs,
         )
-    
+
     def get_success_url(self):
         return reverse(
             "pas:detalle",
@@ -2631,11 +2631,12 @@ class ExecutionEvidenceBaseView(CreateView):
         return response
 
 
-class ExecutionEvidenceCreateView(
-    PermissionRequiredMixin,
-    ExecutionEvidenceBaseView,
-):
-    permission_required = "pas.add_evidencia"
+@method_decorator(
+    login_required,
+    name="dispatch",
+)
+class ExecutionEvidenceCreateView(ExecutionEvidenceBaseView):
+    pass
 
 
 class ExecutionEvidenceDetailView(
@@ -2673,18 +2674,51 @@ class ExecutionEvidenceDetailView(
         context = super().get_context_data(**kwargs)
 
         execution = self.object
+        activity = execution.accion
         evidences = list(execution.evidencias.all())
+
+        admite_modificaciones = (
+            execution.plan.permite_modificaciones
+            and not execution.completada
+        )
+
+        can_add_evidence = (
+            admite_modificaciones
+            and activity.formato_evidencia != FORMATO_SIN_EVIDENCIA
+            and usuario_puede_gestionar_evidencia(
+                self.request.user,
+                execution,
+                "crear",
+            )
+        )
+
+        can_edit_evidence = (
+            admite_modificaciones
+            and usuario_puede_gestionar_evidencia(
+                self.request.user,
+                execution,
+                "editar",
+            )
+        )
+
+        can_delete_evidence = (
+            admite_modificaciones
+            and usuario_puede_gestionar_evidencia(
+                self.request.user,
+                execution,
+                "eliminar",
+            )
+        )
 
         context.update(
             {
                 "execution": execution,
-                "activity": execution.accion,
+                "activity": activity,
                 "evidences": evidences,
-                "evidence": (
-                    evidences[0]
-                    if evidences
-                    else None
-                ),
+                "evidence": evidences[0] if evidences else None,
+                "can_add_evidence": can_add_evidence,
+                "can_edit_evidence": can_edit_evidence,
+                "can_delete_evidence": can_delete_evidence,
             }
         )
 
