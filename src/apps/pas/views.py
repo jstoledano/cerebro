@@ -260,6 +260,39 @@ def usuario_puede_gestionar_ejecucion(
     )
 
 
+def usuario_puede_gestionar_evidencia(
+    user,
+    execution,
+    operacion,
+):
+    permisos = {
+        "crear": "pas.add_evidencia",
+        "editar": "pas.change_evidencia",
+        "eliminar": "pas.delete_evidencia",
+    }
+
+    permiso = permisos.get(operacion)
+
+    if (
+        permiso is None
+        or not user
+        or not user.is_authenticated
+        or not user.is_active
+    ):
+        return False
+
+    if user.is_superuser:
+        return True
+
+    if execution.responsable_id == user.pk:
+        return True
+
+    return user.has_perm(permiso) and usuario_puede_gestionar_ejecucion(
+        user,
+        execution,
+    )
+
+
 class PASIndex(ListView):
     model = Plan
     template_name = "pas/index.html"
