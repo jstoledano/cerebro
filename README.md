@@ -1,138 +1,418 @@
-# Cerebro - Integrated Management System
+# Cuadro de Mando Integral
 
-Cerebro is a comprehensive, Django-based web application designed to serve as the central hub for an organization's internal management processes. It provides an integrated suite of tools for Quality Management (QMS), corrective/preventive action plans, and innovation management, turning complex operational requirements into a streamlined, auditable, and collaborative digital workflow.
+### Información operativa, documental, geográfica y de seguimiento en una sola plataforma.
 
-## Core Features
+**CMI** es una plataforma web desarrollada para concentrar herramientas de información y seguimiento utilizadas por la Junta Local Ejecutiva del INE en Tlaxcala.
 
-The application is built on a modular architecture, with each module handling a specific business function:
+El proyecto integra gestión documental, seguimiento de planes y actividades, información geográfica electoral, indicadores operativos y capacidades de consulta fuera de línea dentro de una misma arquitectura.
 
-### 1. 📄 Document Management (`docs` app)
-The heart of the Quality Management System (QMS), this module provides a centralized and version-controlled repository for all official company documents.
-- **Structured Library:** Documents are organized by process and type, creating a logical and easily searchable knowledge base.
-- **Version Control:** A full revision history is maintained for every document. When a file is updated, a new `Revision` is created, logging the changes and linking to the new file, ensuring full traceability.
-- **Feedback Loop:** A "Report" feature allows users to flag issues with documents (e.g., errors, outdated content), creating a ticket for review and ensuring the QMS remains accurate and reliable.
+`cerebro` es el nombre del repositorio y del proyecto Django que soporta al CMI.
 
-### 2. 📈 Action Plan Tracking (`pas` app)
-This module provides a formal system for managing, tracking, and documenting corrective and preventive action plans.
-- **Formal Plans:** Create detailed action plans, such as a "Cédula de No Conformidad" (CNC) or a "Plan de Cambios y Mejoras" (PCM).
-- **Task Delegation:** Break down high-level plans into specific, actionable tasks (`Accion`), each with an assigned responsible party and due dates.
-- **Progress Monitoring:** Track the status of each action with detailed `Seguimiento` (follow-up) entries, creating a complete audit trail from problem identification to resolution.
+---
 
-### 3.💡 Idea & Innovation Management (`ideas` app)
-This module serves as a digital suggestion box, empowering employees to contribute to the organization's growth and improvement.
-- **Idea Submission:** Users can submit proposals, from simple ideas to fully-fledged projects, including descriptions, supporting documents, and evidence.
-- **Formal Review:** A `Resolve` system ensures that every submission is formally reviewed by management. The outcome (e.g., Viable, Not Viable, On Hold) is documented and communicated.
-- **Fosters Culture:** Encourages a bottom-up approach to innovation and makes employees active participants in the company's evolution.
+## Una plataforma, varios problemas reales
 
-### 4. 👤 User & Profile Management (`profiles` app)
-This module extends Django's built-in authentication system to map the organization's structure directly into the application.
-- **Custom Profiles:** Each user has a profile detailing their specific role, position, and site (e.g., "Vocal del RFE de Junta Local").
-- **Contextual Permissions:** Provides the foundation for role-based access control, ensuring users can only see and do what is relevant to their position.
+El CMI parte de una idea sencilla: información relacionada con una misma operación institucional debería poder consultarse, relacionarse y utilizarse desde un mismo entorno.
 
-## Technical Architecture
+Actualmente la plataforma cubre cinco grandes capacidades:
 
-- **Backend:** Django
-- **Database:** PostgreSQL
-- **Frontend:** Django Templates with `django-crispy-forms` and Bootstrap.
-- **Deployment:** The project is configured for production deployment using Nginx (as a reverse proxy) and Supervisor (for process management). Docker and Vagrant files are also included for containerized or virtualized environments.
+**Documentación · Planes · Cartografía · Indicadores · Movilidad**
 
-## Getting Started
+Cada módulo resuelve un problema específico y comparte infraestructura, autenticación, permisos, información organizacional y una interfaz común.
 
-Follow these instructions to set up a local development environment.
+---
 
-### Prerequisites
+# Documentación del SGC
 
-- Python 3.x
-- Pip
-- PostgreSQL server
+## El documento vigente, su historia y su integridad
 
-### 1. Installation
+El módulo `docs` funciona como repositorio documental del Sistema de Gestión de la Calidad.
 
-First, clone the repository and navigate into the project directory:
-```bash
-git clone <your-repo-url>
-cd cerebro
+Los documentos se organizan por proceso y tipo, conservando cada revisión como una entidad independiente. Esto permite consultar tanto el documento vigente como su historial completo.
+
+### Capacidades principales
+
+- Lista Maestra de Documentos.
+- Clasificación por procesos y tipos documentales.
+- Control de revisiones.
+- Historial de cambios.
+- Archivos asociados a cada revisión.
+- Checksum **SHA-256** para control de integridad.
+- Búsqueda documental.
+- Documentos de resultados.
+- Reporte de documentos con problemas.
+- Notificaciones de nuevas revisiones.
+- Alertas urgentes.
+- Suscripción a notificaciones.
+
+El modelo documental conserva la trazabilidad entre:
+
+```text
+Documento
+   └── Revisión 01
+   └── Revisión 02
+   └── Revisión 03
+          ├── archivo
+          ├── cambios
+          ├── fecha
+          ├── autor
+          └── SHA-256
 ```
 
-Next, it is highly recommended to create and activate a Python virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+La revisión es parte del dato. El archivo es únicamente uno de sus componentes.
+
+---
+
+# CMI Móvil
+
+## Documentación controlada incluso sin acceso a la red institucional
+
+CMI Móvil extiende la gestión documental hacia escenarios con conectividad limitada o inexistente.
+
+El sistema genera un paquete portátil que puede almacenarse en una memoria USB y consultarse localmente desde un navegador.
+
+La aplicación portátil permite:
+
+- sincronizar el directorio documental;
+- buscar y filtrar documentos;
+- trabajar sin conexión con el servidor;
+- comprobar la vigencia de una copia;
+- verificar que el archivo no haya sido alterado;
+- trasladar documentación controlada a sitios sin conectividad.
+
+La comprobación de integridad aprovecha la misma información criptográfica utilizada por el repositorio central.
+
+```text
+CMI
+ │
+ ├── documento vigente
+ ├── metadatos
+ └── checksum SHA-256
+          │
+          ▼
+     CMI Móvil
+          │
+          ├── consulta offline
+          ├── validación
+          └── copia controlada
 ```
 
-Install the required Python packages using `pip`:
-```bash
-pip install -r requirements.txt
+---
+
+# Agenda y seguimiento de planes
+
+## De un plan de acción a una agenda operativa
+
+El módulo `pas` transforma planes, programas, metas y proyectos en trabajo concreto que puede seguirse en el tiempo.
+
+Puede representar instrumentos muy distintos, desde un Plan de Acción del Sistema de Gestión de la Calidad hasta metas individuales o colectivas, actividades periódicas y proyectos transversales.
+
+Su estructura operativa se basa en cuatro niveles:
+
+```text
+Plan
+  └── Actividad
+        └── Ciclo
+              └── Ejecución
+                    └── Evidencia
 ```
 
-### 2. Configuration
+Una actividad describe **qué debe hacerse**.
 
-The application uses a `.env` file for environment-specific configuration. Create a file named `.env` inside the `src/` directory (`src/.env`).
+Una ejecución representa **cada ocasión concreta en la que debe hacerse**.
 
-Copy the following template into your `src/.env` file and fill in the values for your local environment.
+Esta separación permite modelar actividades únicas, mensuales, semanales, continuas o aplicables simultáneamente a diferentes ámbitos organizacionales.
 
-```env
-# --- General Settings ---
-# Set to True for development to get detailed error pages. MUST be False in production.
-DEBUG=True
+### Agenda PEC 2026-2027
 
-# Set to True if your development server uses HTTPS.
-SSL=False
+La Agenda constituye la vista operativa del sistema.
 
-# --- Database Settings ---
-# Connection string for your PostgreSQL database.
-# Format: postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB_NAME>
-DATABASE_URL=postgresql://cerebro_user:your_password@localhost:5432/cerebro_db
+En lugar de obligar a revisar individualmente todos los planes, presenta el trabajo desde la perspectiva de quien debe realizarlo.
 
-# --- Email Settings (Optional for local development) ---
-# Used for sending emails (e.g., password resets, notifications).
-EMAIL_HOST=
-EMAIL_PORT=587
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
+Incluye:
+
+- calendario de actividades;
+- próximas acciones;
+- actividades vencidas;
+- responsables normativos;
+- responsables operativos;
+- ciclos;
+- ámbitos de ejecución;
+- evidencias;
+- cierre y reapertura de ejecuciones;
+- avance de los planes.
+
+El radar clasifica el trabajo en tres horizontes:
+
+**Urgente · Atención · Vigilar**
+
+El objetivo es reducir la carga cognitiva asociada con el seguimiento de numerosos planes simultáneos y mostrar primero aquello que requiere una decisión o una acción.
+
+### Estado calculado desde la ejecución real
+
+El avance se obtiene a partir de las ejecuciones registradas y permite distinguir actividades:
+
+- cerradas;
+- abiertas en tiempo;
+- abiertas fuera de tiempo;
+- cerradas en tiempo;
+- cerradas fuera de tiempo.
+
+Un plan puede contener pocas actividades y, al mismo tiempo, decenas o cientos de ejecuciones cuando existen periodicidades o múltiples ámbitos.
+
+---
+
+# Cartografía electoral
+
+## Del archivo cartográfico al expediente de una sección
+
+El módulo `pusinex`, presentado en la interfaz como **Cartografía**, integra información geográfica electoral con información operativa asociada a distritos, municipios y secciones.
+
+Está construido sobre modelos espaciales de Django y permite trabajar con geometrías electorales dentro de PostgreSQL/PostGIS.
+
+Entre las entidades geográficas administradas se encuentran:
+
+```text
+Entidad
+ ├── Distrito Federal
+ ├── Distrito Local
+ ├── Municipio
+ └── Sección
+       ├── Localidades
+       ├── Manzanas
+       ├── PE / LN
+       └── PUSINEX
 ```
 
-### 3. Database Setup
+### Expedientes geográficos
 
-Before running the application, you need to prepare the PostgreSQL database.
+Cada sección puede funcionar como un expediente que concentra información como:
 
-First, create the database and a user with the credentials you specified in your `.env` file. Then, configure the user's default settings by running the following SQL commands:
+- distrito;
+- municipio;
+- tipo de sección;
+- ubicación;
+- distancias y tiempos de traslado;
+- Padrón Electoral;
+- Lista Nominal;
+- localidades;
+- manzanas;
+- archivos PUSINEX;
+- historial de actualizaciones.
 
-```sql
-ALTER ROLE your_db_user SET client_encoding TO 'utf8';
-ALTER ROLE your_db_user SET default_transaction_isolation TO 'read committed';
-ALTER ROLE your_db_user SET timezone TO 'Mexico/General';
+### PUSINEX
+
+El sistema administra los Planos Urbanos por Sección Individual con Números Exteriores y permite:
+
+- registrar nuevas versiones;
+- mantener trazabilidad por usuario y fecha;
+- consultar disponibilidad;
+- generar paquetes;
+- generar paquetes estatales;
+- generar paquetes por distrito.
+
+### Actualización del Marco Geográfico Electoral
+
+La aplicación mantiene infraestructura para registrar procesos de actualización geográfica y documentar cambios tales como:
+
+- modificación de geometrías;
+- altas;
+- bajas;
+- reactivaciones.
+
+Los procesos conservan actor, origen, estado, reporte y cambios realizados.
+
+### VNM 2026
+
+La cartografía incorpora herramientas específicas para la **VNM 2026**, incluyendo:
+
+- secciones seleccionadas;
+- seguimiento de cobertura;
+- actualización;
+- paquetes distritales;
+- generación automatizada de entregables.
+
+La lógica cartográfica y la preparación de productos operativos conviven así dentro del mismo sistema.
+
+---
+
+# Indicadores
+
+## Los datos operativos convertidos en información para decidir
+
+El CMI incorpora tableros especializados que procesan información operativa y la presentan mediante indicadores, distribuciones, tendencias y análisis históricos.
+
+Actualmente existen dos tableros principales.
+
+---
+
+## Evaluación de desempeño CECyRD
+
+Este módulo procesa información de trámites y permite evaluar el comportamiento de los tiempos asociados con la disponibilidad de credenciales.
+
+Incluye un proceso **ETL** para incorporar archivos de operación al modelo interno.
+
+Entre sus capacidades se encuentran:
+
+- carga de archivos de trámites;
+- procesamiento ETL;
+- seguimiento del progreso de la carga;
+- análisis histórico;
+- análisis semestral;
+- consultas por periodos personalizados;
+- volumen de trámites;
+- credenciales recibidas en tiempo;
+- credenciales recibidas con retraso;
+- porcentaje de cumplimiento;
+- distribución de tiempos;
+- relación entre volumen y desempeño;
+- revisión semanal;
+- generación de reportes PDF;
+- conclusiones para la revisión del SGC.
+
+El tablero permite pasar del archivo operativo a una lectura histórica y comparable del desempeño.
+
+```text
+Archivo operativo
+       │
+       ▼
+      ETL
+       │
+       ▼
+   PostgreSQL
+       │
+       ▼
+ Indicadores
+       │
+       ├── tendencia
+       ├── distribución
+       ├── cumplimiento
+       └── reporte
 ```
 
-Once the database is ready, run the Django migrations to create the application's tables:
-```bash
-python src/manage.py migrate
+---
+
+## Artículo 141
+
+El tablero de **Artículo 141** analiza información histórica de trámites relacionados con este procedimiento y proporciona distintas perspectivas sobre su comportamiento.
+
+Entre los análisis disponibles se encuentran:
+
+- resumen general;
+- trámites por mes;
+- distribución por sexo;
+- pirámide de edades;
+- flujo entre distritos;
+- desempeño de entrega;
+- distribución de días de entrega;
+- comparación por año.
+
+El mismo módulo incorpora un tablero específico para **Voto Anticipado**, con información por distrito y sección, así como componentes de georreferencia.
+
+Esto permite combinar análisis estadístico y dimensión territorial dentro de una misma herramienta.
+
+---
+
+# Una arquitectura integrada
+
+CMI está construido como un **monolito modular Django**.
+
+Cada dominio mantiene sus propios modelos, vistas, servicios, plantillas y rutas, mientras comparte una infraestructura común.
+
+```text
+                    ┌─────────────────────┐
+                    │        CMI          │
+                    └──────────┬──────────┘
+                               │
+        ┌──────────────┬───────┴───────┬──────────────┐
+        │              │               │              │
+        ▼              ▼               ▼              ▼
+  Documentación      Planes        Cartografía    Indicadores
+      docs             pas           pusinex       cecyrd
+        │               │               │           art141
+        │               │               │
+        ▼               ▼               ▼
+   CMI Móvil        Agenda PEC       PostGIS
 ```
 
-### 4. Running the Development Server
+### Backend
 
-You can now start the local development server:
-```bash
-python src/manage.py runserver
+- Python
+- Django
+- Django REST Framework
+- PostgreSQL
+- PostGIS
+- Redis
+- django-redis
+
+### Interfaz
+
+- Django Templates
+- Tailwind CSS / daisyUI
+- JavaScript
+- HTMX en flujos interactivos
+- visualizaciones especializadas en los tableros
+
+### Servicios
+
+- Nginx
+- caché Redis
+- archivos estáticos y media gestionados por el servidor web
+- generación de PDF con WeasyPrint
+- APIs REST con autenticación JWT y de sesión
+
+---
+
+# API
+
+Parte de las capacidades del CMI están disponibles mediante una API versionada.
+
+```text
+/api/v1/
 ```
 
-The application will be available at `http://127.0.0.1:8000`.
+Actualmente existen endpoints para distintos dominios, entre ellos:
 
-## Project Structure
+```text
+/api/v1/docs/
+/api/v1/pas/
+/api/v1/profiles/
+/api/v1/ideas/
+/api/v1/vozmac/
+```
 
-```
-cerebro/
-├── conf/              # Deployment configuration (Nginx, Supervisor).
-├── src/
-│   ├── .env           # (You create this) Environment variables.
-│   ├── manage.py      # Django's command-line utility.
-│   ├── apps/          # Contains the core Django applications (modules).
-│   │   ├── docs/
-│   │   ├── ideas/
-│   │   ├── pas/
-│   │   └── profiles/
-│   └── core/          # Core project package (settings, main URLs).
-├── requirements.txt   # Python dependencies.
-├── Dockerfile         # For building a Docker image.
-└── README.md          # This file.
-```
+Esto permite que determinadas funciones puedan ser consumidas por clientes distintos de la interfaz web principal.
+
+---
+
+# Componentes auxiliares
+
+El proyecto incluye además servicios de soporte que complementan los módulos principales.
+
+### Perfiles
+
+Extiende la autenticación de Django con información organizacional, puesto, adscripción y jerarquía. Esta información permite contextualizar permisos, responsabilidades y visibilidad dentro de otros módulos.
+
+### Ideas
+
+Proporciona un mecanismo sencillo para registrar propuestas y dar seguimiento a su valoración.
+
+### PMML
+
+Servicio ligero de suscripción utilizado para gestionar destinatarios de alertas y notificaciones documentales.
+
+### VozMAC
+
+Módulo especializado para procesamiento y visualización de información de satisfacción ciudadana de los Módulos de Atención Ciudadana, con análisis estatal, distrital y por MAC.
+
+---
+
+# El principio
+
+CMI intenta representar procesos institucionales reales mediante modelos suficientemente estructurados para ofrecer trazabilidad, automatización y análisis sin convertir la herramienta en el centro del proceso.
+
+La plataforma está diseñada alrededor de una premisa:
+
+> **La realidad debe modelar al sistema, no al revés.**
+
+Documentos, actividades, ejecuciones, evidencia, territorio e indicadores pertenecen a dominios diferentes. El valor del CMI aparece cuando esos dominios pueden convivir dentro de una misma plataforma sin perder su significado.
