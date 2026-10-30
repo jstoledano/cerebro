@@ -1499,12 +1499,24 @@ class Ejecucion(TrackingFields):
 
     @property
     def tiene_evidencia(self):
-        try:
-            evidencia = self.evidencia_registrada
-        except Evidencia.DoesNotExist:
-            return False
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        )
 
-        return bool(evidencia.archivo)
+        if "evidencias" in prefetched:
+            return any(
+                bool(evidencia.archivo)
+                for evidencia in prefetched["evidencias"]
+            )
+
+        return (
+            self.evidencias
+            .filter(archivo__isnull=False)
+            .exclude(archivo="")
+            .exists()
+        )
 
     @property
     def evidencia(self):
@@ -1554,10 +1566,10 @@ class Ejecucion(TrackingFields):
 
 
 class Evidencia(TrackingFields):
-    ejecucion = models.OneToOneField(
+    ejecucion = models.ForeignKey(
         Ejecucion,
         on_delete=models.CASCADE,
-        related_name="evidencia_registrada",
+        related_name="evidencias",
         blank=True,
         null=True,
         help_text=(
@@ -1643,7 +1655,6 @@ class Evidencia(TrackingFields):
             f"Evidencia {self.pk} - "
             f"Actividad {self.accion_id}"
         )
-
 
 class Seguimiento(TrackingFields, models.Model):
     accion = models.ForeignKey(Accion, on_delete=models.CASCADE)
