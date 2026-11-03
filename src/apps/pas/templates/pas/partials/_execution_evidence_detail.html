@@ -44,20 +44,50 @@
           <p class="whitespace-pre-line break-words">{{ evidence.descripcion }}</p>
         {% endif %}
 
-        {% if evidence.archivo %}
-          <a
-            href="{% url 'pas:evidence-download' evidence.pk %}"
-            target="_blank"
-            rel="noopener"
-            class="btn btn-outline btn-sm"
-          >
-            Ver archivo
-          </a>
-        {% else %}
+        {% if not evidence.archivo %}
           <p class="text-sm text-base-content/70">
             Este registro carece de archivo adjunto.
           </p>
         {% endif %}
+
+        <div class="flex flex-wrap items-center gap-2">
+          {% if evidence.archivo %}
+            <a
+              href="{% url 'pas:evidence-download' evidence.pk %}"
+              target="_blank"
+              rel="noopener"
+              class="btn btn-outline btn-sm"
+            >
+              Ver archivo
+            </a>
+          {% endif %}
+
+          {% if can_edit_evidence %}
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              aria-label="Editar evidencia {{ evidence.pk }}"
+              hx-get="{% url 'pas:evidence-edit' evidence.pk %}"
+              hx-target="#pas-modal-content"
+              hx-swap="innerHTML"
+            >
+              Editar
+            </button>
+          {% endif %}
+
+          {% if can_delete_evidence %}
+            <button
+              type="button"
+              class="btn btn-error btn-outline btn-sm"
+              aria-label="Eliminar evidencia {{ evidence.pk }}"
+              hx-get="{% url 'pas:evidence-delete' evidence.pk %}"
+              hx-target="#pas-modal-content"
+              hx-swap="innerHTML"
+            >
+              Eliminar
+            </button>
+          {% endif %}
+        </div>
       </article>
     {% empty %}
       <div class="alert">
