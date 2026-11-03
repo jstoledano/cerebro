@@ -71,14 +71,26 @@ class PASAccessTests(TestCase):
             302,
         )
 
-    def test_plan_list_requires_authentication(self):
+    def test_plan_list_public_access(self):
+        self.plan.visibilidad = "publica"
+        self.plan.save(update_fields=["visibilidad"])
+
+        for visibilidad in ("interna", "restringida"):
+            Plan.objects.create(
+                nombre=f"Plan {visibilidad}",
+                documento=1,
+                visibilidad=visibilidad,
+                user=self.user,
+            )
+
         response = self.client.get(
             reverse("pas:plans")
         )
 
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.status_code,
-            302,
+            {plan.pk for plan in response.context["plan_list"]},
+            {self.plan.pk},
         )
 
     def test_detail_public_access(self):
