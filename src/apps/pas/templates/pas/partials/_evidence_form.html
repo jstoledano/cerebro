@@ -59,15 +59,32 @@
       </div>
 
       <div class="form-control">
-        {{ form.archivo.label_tag }}
-        {{ form.archivo }}
+        {% if form.instance.pk and form.instance.archivo %}
+          <div class="mb-3 rounded-lg border border-base-300 p-3">
+            <p class="text-sm font-semibold">
+              Archivo actual
+            </p>
 
-        {% if is_edit and evidence.archivo %}
-          <p class="mt-1 text-xs text-base-content/70">
-            Puedes conservar el archivo actual dejando vacía
-            la selección de un nuevo archivo.
-          </p>
+            <a
+              href="{% url 'pas:evidence-download' form.instance.pk %}"
+              class="link link-primary text-sm"
+            >
+              Descargar archivo registrado
+            </a>
+
+            <p class="mt-1 text-xs text-base-content/70">
+              Este archivo se conservará si guardas sin seleccionar otro.
+            </p>
+          </div>
+
+          <label for="{{ form.archivo.id_for_label }}">
+            Reemplazar archivo (opcional)
+          </label>
+        {% else %}
+          {{ form.archivo.label_tag }}
         {% endif %}
+
+        {{ form.archivo }}
 
         {% for error in form.archivo.errors %}
           <p class="mt-1 text-xs text-error">{{ error }}</p>

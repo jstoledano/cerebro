@@ -544,7 +544,8 @@ class EvidenciaForm(forms.ModelForm):
             "archivo",
         ]
         widgets = {
-            "fecha": DateInput(
+            "fecha": forms.DateInput(
+                format="%Y-%m-%d",
                 attrs={"type": "date"},
             ),
             "archivo": forms.FileInput(
