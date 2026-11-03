@@ -109,4 +109,19 @@
       Registrar evidencia
     </button>
   {% endif %}
+  {% if eventos %}
+    <details class="border rounded-lg p-4">
+      <summary class="font-semibold cursor-pointer">Historial de evidencias</summary>
+      <ol class="space-y-3 mt-3">
+        {% for evento in eventos %}
+          <li class="text-sm">
+            <p>{{ evento.fecha|date:"d/m/Y H:i" }} · {{ evento.identidad }} · {{ evento.rol }} · {{ evento.operacion }} · Evidencia {{ evento.evidencia_id }}</p>
+            {% if evento.anterior %}<p>Anterior · {{ evento.anterior.descripcion }} · {{ evento.anterior.fecha }} · {{ evento.anterior.archivo }}</p>{% endif %}
+            {% if evento.posterior %}<p>Posterior · {{ evento.posterior.descripcion }} · {{ evento.posterior.fecha }} · {{ evento.posterior.archivo }}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </details>
+  {% endif %}
 </div>
+

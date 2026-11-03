@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from apps.pas.forms import EvidenciaForm
+from apps.pas.permissions import es_normativo_ejecucion
 
 from apps.pas.models import (
     Plan,
@@ -253,9 +254,15 @@ class AccionSerializer(
 
 
 class EvidenciaSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(
-        default=serializers.CurrentUserDefault()
-    )
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    historial = serializers.SerializerMethodField()
+
+    def get_historial(self, obj):
+        if getattr(self.context.get("view"), "action", None) == "list":
+            return []
+        return list(obj.ejecucion.eventos_evidencia.filter(evidencia_id=obj.pk).values(
+            "fecha", "identidad", "rol", "operacion", "anterior", "posterior",
+        ))
 
     ejecucion = serializers.PrimaryKeyRelatedField(
         queryset=Ejecucion.objects.all(),
@@ -274,12 +281,16 @@ class EvidenciaSerializer(serializers.ModelSerializer):
             "user",
             "created",
             "modified",
+            "modificada_por",
+            "historial",
         ]
         read_only_fields = [
             "id",
             "accion",
             "created",
             "modified",
+            "modificada_por",
+            "historial",
         ]
 
     def validate(self, attrs):
@@ -333,7 +344,10 @@ class EvidenciaSerializer(serializers.ModelSerializer):
                 "o no admite modificaciones."
             )
 
-        if ejecucion.completada:
+        if ejecucion.completada and not (
+            self.instance is not None
+            and es_normativo_ejecucion(request.user, ejecucion)
+        ):
             raise serializers.ValidationError(
                 "La ejecución está terminada. Debes reabrirla "
                 "antes de modificar sus evidencias."
@@ -393,3 +407,4 @@ class EvidenciaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["accion"] = None
         return super().create(validated_data)
+

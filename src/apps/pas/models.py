@@ -1575,6 +1575,10 @@ class Ejecucion(TrackingFields):
 
 
 class Evidencia(TrackingFields):
+    modificada_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="evidencias_modificadas", editable=False,
+    )
     ejecucion = models.ForeignKey(
         Ejecucion,
         on_delete=models.CASCADE,
@@ -1645,6 +1649,27 @@ class Evidencia(TrackingFields):
             f"Evidencia {self.pk} - "
             f"Ejecución {self.ejecucion_id}"
         )
+
+
+class EventoEvidencia(models.Model):
+    """Registro de auditoría que sobrevive a la baja de la evidencia."""
+
+    ejecucion = models.ForeignKey(
+        Ejecucion, on_delete=models.SET_NULL, null=True,
+        related_name="eventos_evidencia",
+    )
+    evidencia_id = models.PositiveIntegerField(db_index=True)
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    identidad = models.CharField(max_length=255)
+    rol = models.CharField(max_length=20)
+    operacion = models.CharField(max_length=10)
+    fecha = models.DateTimeField(auto_now_add=True)
+    anterior = models.JSONField(default=dict)
+    posterior = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ["-fecha", "-pk"]
+        default_permissions = ("view",)
 
 
 class Seguimiento(TrackingFields, models.Model):
@@ -1733,3 +1758,4 @@ def generar_ejecuciones_faltantes(plan):
             )
 
     return resultado
+
