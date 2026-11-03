@@ -1,4 +1,7 @@
-<form hx-post="{{ form_action }}"
+<form method="post"
+      action="{{ form_action }}"
+      hx-post="{{ form_action }}"
+      hx-encoding="multipart/form-data"
       hx-target="#pas-modal-content"
       hx-swap="innerHTML"
       data-activity-detail-url="{% url 'pas:activity-detail' activity.pk %}"
@@ -8,11 +11,14 @@
 
   <header class="space-y-1">
     <h3 class="text-xl font-semibold text-base-content">
-      Registrar evidencia
+      {% if is_edit %}
+        Editar evidencia
+      {% else %}
+        Registrar evidencia
+      {% endif %}
     </h3>
 
     <p class="text-sm text-base-content/70">
-      Actividad:
       <span class="font-semibold text-base-content">
         {{ activity.accion|striptags|truncatechars:80 }}
       </span>
@@ -20,14 +26,14 @@
 
     {% if activity.evidencia %}
       <p class="text-sm text-base-content/70">
-        <span class="font-semibold">Evidencia esperada:</span>
+        <span class="font-semibold">Evidencia esperada</span>
         {{ activity.evidencia }}
       </p>
     {% endif %}
   </header>
 
   {% if form.non_field_errors %}
-    <div class="alert alert-error">
+    <div class="alert alert-error" role="alert">
       {% for error in form.non_field_errors %}
         <span>{{ error }}</span>
       {% endfor %}
@@ -53,8 +59,33 @@
       </div>
 
       <div class="form-control">
-        {{ form.archivo.label_tag }}
+        {% if form.instance.pk and form.instance.archivo %}
+          <div class="mb-3 rounded-lg border border-base-300 p-3">
+            <p class="text-sm font-semibold">
+              Archivo actual
+            </p>
+
+            <a
+              href="{% url 'pas:evidence-download' form.instance.pk %}"
+              class="link link-primary text-sm"
+            >
+              Descargar archivo registrado
+            </a>
+
+            <p class="mt-1 text-xs text-base-content/70">
+              Este archivo se conservará si guardas sin seleccionar otro.
+            </p>
+          </div>
+
+          <label for="{{ form.archivo.id_for_label }}">
+            Reemplazar archivo (opcional)
+          </label>
+        {% else %}
+          {{ form.archivo.label_tag }}
+        {% endif %}
+
         {{ form.archivo }}
+
         {% for error in form.archivo.errors %}
           <p class="mt-1 text-xs text-error">{{ error }}</p>
         {% endfor %}
@@ -64,7 +95,11 @@
 
   <div class="flex flex-wrap items-center gap-3">
     <button type="submit" class="btn btn-primary">
-      Guardar evidencia
+      {% if is_edit %}
+        Guardar cambios
+      {% else %}
+        Guardar evidencia
+      {% endif %}
     </button>
 
     <button type="button"

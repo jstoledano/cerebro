@@ -1,0 +1,80 @@
+<form method="post"
+      action="{{ form_action }}"
+      hx-post="{{ form_action }}"
+      hx-target="#pas-modal-content"
+      hx-swap="innerHTML"
+      data-activity-detail-url="{% url 'pas:activity-detail' activity.pk %}"
+      class="space-y-6">
+  {% csrf_token %}
+
+  <header class="space-y-2">
+    <h3 class="text-xl font-semibold text-base-content">
+      Eliminar evidencia
+    </h3>
+
+    <p class="text-sm text-base-content/70">
+      {{ activity.accion|striptags }}
+    </p>
+  </header>
+
+  <div class="border rounded-lg p-4 space-y-3">
+    <h4 class="font-semibold">
+      Evidencia {{ evidence.pk }}
+    </h4>
+
+    <dl class="text-sm space-y-2">
+      <div>
+        <dt class="font-semibold">Ciclo</dt>
+        <dd>{{ execution.ciclo.etiqueta }}</dd>
+      </div>
+
+      <div>
+        <dt class="font-semibold">Ámbito</dt>
+        <dd>{{ execution.get_ambito_display }}</dd>
+      </div>
+
+      <div>
+        <dt class="font-semibold">Fecha registrada</dt>
+        <dd>{{ evidence.fecha }}</dd>
+      </div>
+    </dl>
+
+    {% if evidence.descripcion %}
+      <p class="whitespace-pre-line break-words">{{ evidence.descripcion }}</p>
+    {% endif %}
+
+    {% if evidence.archivo %}
+      <a href="{% url 'pas:evidence-download' evidence.pk %}"
+         target="_blank"
+         rel="noopener"
+         class="btn btn-outline btn-sm">
+        Consultar archivo
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="alert alert-warning" role="alert">
+    <span>
+      Se eliminará este registro de evidencia de la ejecución.
+      Esta acción es definitiva.
+    </span>
+  </div>
+
+  {% if form.errors %}
+    <div class="alert alert-error" role="alert">
+      {{ form.errors }}
+    </div>
+  {% endif %}
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button type="submit" class="btn btn-error">
+      Confirmar eliminación
+    </button>
+
+    <button type="button"
+            class="btn btn-ghost"
+            data-close-modal="{{ modal_id|default:'pas-modal' }}">
+      Cancelar
+    </button>
+  </div>
+</form>

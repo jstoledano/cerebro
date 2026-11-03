@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.pas.forms import EvidenciaForm
 
 from apps.pas.models import (
     Plan,
@@ -251,9 +252,7 @@ class AccionSerializer(
         ]
 
 
-class EvidenciaSerializer(
-    serializers.ModelSerializer
-):
+class EvidenciaSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
@@ -265,7 +264,6 @@ class EvidenciaSerializer(
 
     class Meta:
         model = Evidencia
-
         fields = [
             "id",
             "ejecucion",
@@ -277,7 +275,6 @@ class EvidenciaSerializer(
             "created",
             "modified",
         ]
-
         read_only_fields = [
             "id",
             "accion",
@@ -285,40 +282,40 @@ class EvidenciaSerializer(
             "modified",
         ]
 
-    def validate(
-        self,
-        attrs,
-    ):
+    def validate(self, attrs):
         ejecucion = attrs.get(
             "ejecucion",
-            getattr(
-                self.instance,
-                "ejecucion",
-                None,
-            ),
+            getattr(self.instance, "ejecucion", None),
         )
 
-        if not ejecucion:
+        if ejecucion is None:
             raise serializers.ValidationError(
                 {
                     "ejecucion": (
-                        "La evidencia debe estar "
-                        "asociada a una ejecución."
+                        "La evidencia debe estar asociada "
+                        "a una ejecución."
                     )
                 }
             )
 
-        plan = ejecucion.plan
-
-        request = self.context.get(
-            "request"
-        )
-
         if (
-            request
-            and not Plan.objects
-            .visible_to(request.user)
-            .filter(pk=plan.pk)
+            self.instance is not None
+            and ejecucion.pk != self.instance.ejecucion_id
+        ):
+            raise serializers.ValidationError(
+                {
+                    "ejecucion": (
+                        "La ejecución de una evidencia existente "
+                        "debe conservarse."
+                    )
+                }
+            )
+
+        request = self.context.get("request")
+
+        if request is None or not (
+            Plan.objects.visible_to(request.user)
+            .filter(pk=ejecucion.plan.pk)
             .exists()
         ):
             raise serializers.ValidationError(
@@ -330,24 +327,69 @@ class EvidenciaSerializer(
                 }
             )
 
-        if not plan.permite_modificaciones:
+        if not ejecucion.plan.permite_modificaciones:
             raise serializers.ValidationError(
-                (
-                    "El plan se encuentra cerrado "
-                    "o no admite modificaciones."
-                )
+                "El plan se encuentra cerrado "
+                "o no admite modificaciones."
+            )
+
+        if ejecucion.completada:
+            raise serializers.ValidationError(
+                "La ejecución está terminada. Debes reabrirla "
+                "antes de modificar sus evidencias."
+            )
+
+        if "archivo" in attrs and not attrs["archivo"]:
+            raise serializers.ValidationError(
+                {
+                    "archivo": (
+                        "Debes conservar el archivo actual "
+                        "o proporcionar uno nuevo."
+                    )
+                }
+            )
+
+        if self.instance is not None:
+            fecha_inicial = self.instance.fecha
+            descripcion_inicial = self.instance.descripcion
+        else:
+            fecha_inicial = (
+                Evidencia._meta.get_field("fecha").get_default()
+            )
+            descripcion_inicial = ""
+
+        archivos = {}
+
+        if "archivo" in attrs:
+            archivos["archivo"] = attrs["archivo"]
+
+        form = EvidenciaForm(
+            data={
+                "fecha": attrs.get("fecha", fecha_inicial),
+                "descripcion": attrs.get(
+                    "descripcion",
+                    descripcion_inicial,
+                ),
+            },
+            files=archivos,
+            instance=self.instance,
+            execution=ejecucion,
+        )
+
+        if not form.is_valid():
+            raise serializers.ValidationError(
+                {
+                    (
+                        "non_field_errors"
+                        if campo == "__all__"
+                        else campo
+                    ): list(errores)
+                    for campo, errores in form.errors.items()
+                }
             )
 
         return attrs
 
-    def create(
-        self,
-        validated_data,
-    ):
-        validated_data[
-            "accion"
-        ] = None
-
-        return super().create(
-            validated_data
-        )
+    def create(self, validated_data):
+        validated_data["accion"] = None
+        return super().create(validated_data)

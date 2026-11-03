@@ -1499,19 +1499,40 @@ class Ejecucion(TrackingFields):
 
     @property
     def tiene_evidencia(self):
-        try:
-            evidencia = self.evidencia_registrada
-        except Evidencia.DoesNotExist:
-            return False
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        )
 
-        return bool(evidencia.archivo)
+        if "evidencias" in prefetched:
+            return any(
+                bool(evidencia.archivo)
+                for evidencia in prefetched["evidencias"]
+            )
+
+        return (
+            self.evidencias
+            .filter(archivo__isnull=False)
+            .exclude(archivo="")
+            .exists()
+        )
 
     @property
     def evidencia(self):
-        try:
-            return self.evidencia_registrada
-        except Evidencia.DoesNotExist:
-            return None
+        prefetched = getattr(
+            self,
+            "_prefetched_objects_cache",
+            {},
+        )
+
+        if "evidencias" in prefetched:
+            return next(
+                iter(prefetched["evidencias"]),
+                None,
+            )
+
+        return self.evidencias.first()
 
     def marcar_completada(self, fecha=None):
         self.completada = True
@@ -1554,12 +1575,10 @@ class Ejecucion(TrackingFields):
 
 
 class Evidencia(TrackingFields):
-    ejecucion = models.OneToOneField(
+    ejecucion = models.ForeignKey(
         Ejecucion,
         on_delete=models.CASCADE,
-        related_name="evidencia_registrada",
-        blank=True,
-        null=True,
+        related_name="evidencias",
         help_text=(
             "Ejecución concreta a la que corresponde "
             "el archivo de evidencia."
@@ -1611,37 +1630,20 @@ class Evidencia(TrackingFields):
 
     @property
     def actividad(self):
-        if self.ejecucion_id:
-            return self.ejecucion.accion
-
-        return self.accion
+        return self.ejecucion.accion
 
     @property
     def plan(self):
-        actividad = self.actividad
-
-        if actividad:
-            return actividad.plan
-
-        return None
+        return self.ejecucion.plan
 
     @property
     def ambito(self):
-        if not self.ejecucion_id:
-            return None
-
         return self.ejecucion.ambito
 
     def __str__(self):
-        if self.ejecucion_id:
-            return (
-                f"Evidencia {self.pk} - "
-                f"Ejecución {self.ejecucion_id}"
-            )
-
         return (
             f"Evidencia {self.pk} - "
-            f"Actividad {self.accion_id}"
+            f"Ejecución {self.ejecucion_id}"
         )
 
 

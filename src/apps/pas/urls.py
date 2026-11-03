@@ -17,6 +17,8 @@ from .views import (
     EvidenceDownloadView,
     ExecutionEvidenceDetailView,
     ExecutionEvidenceCreateView,
+    ExecutionEvidenceUpdateView,
+    ExecutionEvidenceDeleteView,
     ExecutionCompleteView,
     CalendarEventsView,
 )
@@ -104,6 +106,16 @@ urlpatterns = [
         "evidences/<int:pk>/download/",
         EvidenceDownloadView.as_view(),
         name="evidence-download",
+    ),
+    path(
+        "evidences/<int:pk>/edit/",
+        ExecutionEvidenceUpdateView.as_view(),
+        name="evidence-edit",
+    ),
+    path(
+        "evidences/<int:pk>/delete/",
+        ExecutionEvidenceDeleteView.as_view(),
+        name="evidence-delete",
     ),
     path(
         "executions/<int:pk>/evidence/",
