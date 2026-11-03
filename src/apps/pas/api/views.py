@@ -2,7 +2,11 @@ from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 
-from apps.pas.views import usuario_puede_gestionar_evidencia
+from apps.pas.permissions import (
+    usuario_puede_gestionar_evidencia, ejecuciones_gestionables, es_normativo_ejecucion,
+)
+from apps.pas.evidence_services import guardar_evidencia, eliminar_evidencia
+from apps.pas.filters import EvidenciaFilterForm, filtrar_evidencias
 from django.db.models import Q
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import DjangoModelPermissions
@@ -58,7 +62,7 @@ class EvidenciaViewSet(
             self.request.user
         )
 
-        return (
+        queryset = (
             Evidencia.objects
             .filter(
                 ejecucion__ciclo__accion__plan__in=visible_plans,
@@ -72,6 +76,22 @@ class EvidenciaViewSet(
                 "user",
             )
         )
+
+        if self.action in {"list", "retrieve"}:
+            queryset = queryset.filter(ejecucion__in=ejecuciones_gestionables(self.request.user))
+        if self.action == "list":
+            form = EvidenciaFilterForm(self.request.query_params)
+            if not form.is_valid():
+                raise ValidationError(form.errors)
+            queryset = filtrar_evidencias(queryset, form.cleaned_data)
+        return queryset
+
+    def get_object(self):
+        evidence = super().get_object()
+        operacion = {"update": "editar", "partial_update": "editar", "destroy": "eliminar"}.get(self.action)
+        if operacion and not usuario_puede_gestionar_evidencia(self.request.user, evidence.ejecucion, operacion):
+            raise PermissionDenied("La evidencia está fuera de tu ámbito de supervisión.")
+        return evidence
 
     def validar_mutacion(self, execution, operacion):
         if not usuario_puede_gestionar_evidencia(
@@ -90,7 +110,9 @@ class EvidenciaViewSet(
                 "o no admite modificaciones."
             )
 
-        if execution.completada:
+        if execution.completada and not (
+            operacion == "editar" and es_normativo_ejecucion(self.request.user, execution)
+        ):
             raise ValidationError(
                 "La ejecución está terminada. Debes reabrirla "
                 "antes de modificar sus evidencias."
@@ -100,9 +122,8 @@ class EvidenciaViewSet(
         execution = serializer.validated_data["ejecucion"]
         self.validar_mutacion(execution, "crear")
 
-        serializer.save(
-            user=self.request.user,
-            accion=None,
+        serializer.instance = guardar_evidencia(
+            Evidencia(**serializer.validated_data, accion=None), self.request.user,
         )
 
     def perform_update(self, serializer):
@@ -110,12 +131,15 @@ class EvidenciaViewSet(
             serializer.instance.ejecucion,
             "editar",
         )
-        serializer.save()
+        for name, value in serializer.validated_data.items():
+            setattr(serializer.instance, name, value)
+        serializer.instance = guardar_evidencia(serializer.instance, self.request.user)
 
     def perform_destroy(self, instance):
         self.validar_mutacion(
             instance.ejecucion,
             "eliminar",
         )
-        instance.delete()
+        eliminar_evidencia(instance, self.request.user)
+
 

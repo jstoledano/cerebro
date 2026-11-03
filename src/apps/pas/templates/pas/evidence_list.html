@@ -1,0 +1,80 @@
+{% extends 'cerebro/base.html' %}
+{% block title %}Evidencias del equipo{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  <header class="flex flex-wrap justify-between items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-bold">Evidencias del equipo</h1>
+      <p>Consulta tus evidencias y las de las actividades bajo tu supervisión.</p>
+    </div>
+    <a href="{% url 'pas:agenda' %}" class="btn btn-outline">Volver a la agenda</a>
+  </header>
+  <form method="get" class="grid gap-4 md:grid-cols-3 border rounded-xl p-4">
+    {{ filter_form.non_field_errors }}
+    {% for field in filter_form %}
+      <div class="form-control">
+        {{ field.label_tag }} {{ field }} {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div class="flex gap-2">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a href="{% url 'pas:evidence-list' %}" class="btn btn-ghost">Limpiar</a>
+    </div>
+  </form>
+  <p>{{ page_obj.paginator.count }} evidencias encontradas</p>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Fecha</th><th>Plan y actividad</th><th>Responsable operativo</th><th>Estado</th><th>Evidencia</th><th>Consulta</th></tr></thead>
+      <tbody>
+        {% for evidence in evidences %}
+          <tr>
+            <td>{{ evidence.fecha|date:"d/m/Y" }}</td>
+            <td>{{ evidence.plan.nombre }}<br>{{ evidence.actividad.accion|striptags }}<br>Ejecución {{ evidence.ejecucion_id }} · {{ evidence.ejecucion.ciclo.etiqueta }} · {{ evidence.ejecucion.ambito_display }}</td>
+            <td>{{ evidence.ejecucion.responsable_display|default:"Sin asignar" }}</td>
+            <td>{{ evidence.ejecucion.estado_agenda_display }}</td>
+            <td>{{ evidence.descripcion|default:"Sin descripción" }}</td>
+            <td><button class="btn btn-outline btn-sm" hx-get="{% url 'pas:execution-evidence' evidence.ejecucion_id %}" hx-target="#pas-modal-content">Ver y gestionar</button></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No hay evidencias que coincidan con los filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+    <nav class="flex gap-4" aria-label="Paginación">
+      {% if page_obj.has_previous %}<a class="btn btn-outline" href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="btn btn-outline" href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+<dialog id="pas-modal" class="modal">
+  <div class="modal-box max-w-4xl">
+    <button type="button" data-close-modal="pas-modal" class="btn btn-sm btn-circle absolute right-2 top-2" aria-label="Cerrar">✕</button>
+    <div id="pas-modal-content" class="mt-6"></div>
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}
+{{ block.super }}
+<script>
+(() => {
+  const modal = document.getElementById('pas-modal');
+  const content = document.getElementById('pas-modal-content');
+  document.body.addEventListener('htmx:beforeRequest', event => {
+    if (event.detail.target === content && !modal.open) modal.showModal();
+  });
+  document.body.addEventListener('htmx:beforeSwap', event => {
+    if (event.detail.target === content && [403, 409, 422].includes(event.detail.xhr.status)) {
+      event.detail.shouldSwap = true;
+      event.detail.isError = false;
+    }
+  });
+  document.body.addEventListener('click', event => {
+    if (event.target.closest('[data-close-modal]')) modal.close();
+  });
+  document.body.addEventListener('pas:refresh-agenda', () => window.location.reload());
+})();
+</script>
+{% endblock %}

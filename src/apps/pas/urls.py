@@ -15,6 +15,7 @@ from .views import (
     ActivityUpdateView,
     ActivityDeleteView,
     EvidenceDownloadView,
+    EvidenceListView,
     ExecutionEvidenceDetailView,
     ExecutionEvidenceCreateView,
     ExecutionEvidenceUpdateView,
@@ -27,6 +28,7 @@ app_name = "pas"
 
 
 urlpatterns = [
+    path("evidences/", EvidenceListView.as_view(), name="evidence-list"),
     path(
         "",
         AgendaView.as_view(),
@@ -133,3 +135,4 @@ urlpatterns = [
         name="execution-complete",
     ),
 ]
+

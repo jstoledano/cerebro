@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Count, Prefetch, Q
 from django.http import (
+    HttpResponseRedirect,
     HttpResponse,
     FileResponse,
     Http404,
@@ -27,6 +28,11 @@ from django.views.generic import (
     TemplateView,
     View,
 )
+from .permissions import (
+    obtener_claves_normativas_agenda, usuario_puede_gestionar_evidencia,
+    ejecuciones_gestionables, es_normativo_ejecucion, usuarios_supervisados,
+)
+from .evidence_services import guardar_evidencia, eliminar_evidencia
 from .forms import (
     PlanForm,
     AccionForm,
@@ -63,116 +69,6 @@ def hx_trigger_header(*events):
         return ""
     payload = {event: "" for event in events}
     return json.dumps(payload)
-
-
-def obtener_claves_normativas_agenda(
-    perfil,
-):
-    """
-    Devuelve las claves organizacionales cuya
-    responsabilidad normativa debe ser visible
-    en la agenda del perfil.
-
-    Regla:
-
-    - Un usuario ve su propia unidad y sus
-      descendientes.
-    - Si pertenece a una unidad cabecera de Junta
-      Local de dos dígitos terminada en 0, también
-      supervisa funcionalmente los capítulos
-      equivalentes de las juntas distritales.
-
-    Ejemplo para la unidad 50:
-
-        50
-        5010
-        5020
-        5030
-        5040
-        5050
-        5099
-
-        51
-        5110
-        5199
-
-        52
-        5210
-        5299
-
-        53
-        5310
-        5399
-    """
-
-    if (
-        not perfil
-        or not perfil.unidad_organizacional_id
-    ):
-        return set()
-
-    unidad = (
-        perfil.unidad_organizacional
-    )
-
-    unidades = {
-        item.clave
-        for item
-        in unidad.obtener_descendientes(
-            incluir_self=True
-        )
-    }
-
-    clave = unidad.clave
-
-    # ------------------------------------------------------
-    # Cabecera funcional de Junta Local.
-    #
-    # Ejemplo:
-    #
-    # 50 -> 50, 51, 52, 53 y sus descendientes.
-    # 20 -> 20, 21, 22, 23 y sus descendientes.
-    # ------------------------------------------------------
-
-    if (
-        unidad.site == 0
-        and len(clave) == 2
-        and clave.endswith("0")
-    ):
-        prefijo_funcional = (
-            clave[0]
-        )
-
-        unidades_equivalentes = (
-            UnidadOrganizacional.objects
-            .filter(
-                activa=True,
-                clave__in=[
-                    f"{prefijo_funcional}0",
-                    f"{prefijo_funcional}1",
-                    f"{prefijo_funcional}2",
-                    f"{prefijo_funcional}3",
-                ],
-            )
-            .order_by(
-                "clave"
-            )
-        )
-
-        for unidad_equivalente in (
-            unidades_equivalentes
-        ):
-            for item in (
-                unidad_equivalente
-                .obtener_descendientes(
-                    incluir_self=True
-                )
-            ):
-                unidades.add(
-                    item.clave
-                )
-
-    return unidades
 
 
 def usuario_puede_gestionar_ejecucion(
@@ -257,39 +153,6 @@ def usuario_puede_gestionar_ejecucion(
     return (
         actividad.puesto_responsable
         in claves_normativas
-    )
-
-
-def usuario_puede_gestionar_evidencia(
-    user,
-    execution,
-    operacion,
-):
-    permisos = {
-        "crear": "pas.add_evidencia",
-        "editar": "pas.change_evidencia",
-        "eliminar": "pas.delete_evidencia",
-    }
-
-    permiso = permisos.get(operacion)
-
-    if (
-        permiso is None
-        or not user
-        or not user.is_authenticated
-        or not user.is_active
-    ):
-        return False
-
-    if user.is_superuser:
-        return True
-
-    if execution.responsable_id == user.pk:
-        return True
-
-    return user.has_perm(permiso) and usuario_puede_gestionar_ejecucion(
-        user,
-        execution,
     )
 
 
@@ -417,7 +280,7 @@ class AgendaView(TemplateView):
         )
 
         if perfil:
-            usuarios_agenda = list(perfil.obtener_usuarios_agenda())
+            usuarios_agenda = list(usuarios_supervisados(self.request.user))
         else:
             usuarios_agenda = [self.request.user]
 
@@ -846,7 +709,7 @@ class CalendarEventsView(View):
 
         if perfil:
             responsables = list(
-                perfil.obtener_usuarios_agenda()
+                usuarios_supervisados(request.user)
             )
             es_supervisor_agenda = perfil.es_supervisor_agenda
             claves_normativas = obtener_claves_normativas_agenda(
@@ -2424,7 +2287,7 @@ class EvidenceDownloadView(
             )
         )
 
-        return (
+        queryset = (
             Evidencia.objects
             .filter(
                 Q(
@@ -2448,6 +2311,10 @@ class EvidenceDownloadView(
                 "ejecucion__ciclo__accion__plan",
             )
         )
+
+        if self.request.user.is_authenticated:
+            queryset = queryset.filter(ejecucion__in=ejecuciones_gestionables(self.request.user))
+        return queryset
 
     def get(
         self,
@@ -2613,9 +2480,8 @@ class ExecutionEvidenceBaseView(CreateView):
             self.request.user
         )
 
-        response = super().form_valid(
-            form
-        )
+        self.object = guardar_evidencia(form.save(commit=False), self.request.user)
+        response = HttpResponseRedirect(self.get_success_url())
 
         if self.request.headers.get("HX-Request"):
             header = hx_trigger_header(
@@ -2691,7 +2557,7 @@ class ExecutionEvidenceUpdateView(UpdateView):
                 status=409,
             )
 
-        if self.execution.completada:
+        if self.execution.completada and not es_normativo_ejecucion(request.user, self.execution):
             return HttpResponse(
                 "La ejecución está terminada. Debes reabrirla "
                 "antes de editar sus evidencias.",
@@ -2735,7 +2601,8 @@ class ExecutionEvidenceUpdateView(UpdateView):
         )
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        self.object = guardar_evidencia(form.save(commit=False), self.request.user)
+        response = HttpResponseRedirect(self.get_success_url())
 
         if self.request.headers.get("HX-Request"):
             return HttpResponse(
@@ -2842,7 +2709,9 @@ class ExecutionEvidenceDeleteView(DeleteView):
         )
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        success_url = self.get_success_url()
+        eliminar_evidencia(self.object, self.request.user)
+        response = HttpResponseRedirect(success_url)
 
         if self.request.headers.get("HX-Request"):
             return HttpResponse(
@@ -2877,7 +2746,7 @@ class ExecutionEvidenceDetailView(
             )
         )
 
-        return (
+        queryset = (
             Ejecucion.objects
             .filter(
                 ciclo__accion__plan__in=(
@@ -2891,6 +2760,10 @@ class ExecutionEvidenceDetailView(
                 "responsable",
             )
         )
+
+        if self.request.user.is_authenticated:
+            queryset = queryset.filter(pk__in=ejecuciones_gestionables(self.request.user))
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2915,7 +2788,8 @@ class ExecutionEvidenceDetailView(
         )
 
         can_edit_evidence = (
-            admite_modificaciones
+            execution.plan.permite_modificaciones
+            and (not execution.completada or es_normativo_ejecucion(self.request.user, execution))
             and usuario_puede_gestionar_evidencia(
                 self.request.user,
                 execution,
@@ -2941,6 +2815,7 @@ class ExecutionEvidenceDetailView(
                 "can_add_evidence": can_add_evidence,
                 "can_edit_evidence": can_edit_evidence,
                 "can_delete_evidence": can_delete_evidence,
+                "eventos": execution.eventos_evidencia.all() if usuario_puede_gestionar_evidencia(self.request.user, execution, "editar") else [],
             }
         )
 
@@ -3161,3 +3036,51 @@ class ActivityDetailView(
 
         return context
 
+
+
+
+@method_decorator(login_required, name="dispatch")
+class EvidenceListView(ListView):
+    template_name = "pas/evidence_list.html"
+    context_object_name = "evidences"
+    paginate_by = 30
+
+    def get_queryset(self):
+        from .filters import EvidenciaFilterForm, filtrar_evidencias
+        from .forms import apply_tailwind_widgets
+        from django import forms
+        from django.contrib.auth import get_user_model
+
+        self.executions = ejecuciones_gestionables(self.request.user)
+        self.filter_form = EvidenciaFilterForm(self.request.GET)
+        # Las opciones pertenecen exclusivamente al universo autorizado.
+        self.filter_form.fields["actividad"] = forms.ModelChoiceField(
+            required=False,
+            queryset=Accion.objects.filter(ciclos__ejecuciones__in=self.executions).distinct(),
+        )
+        self.filter_form.fields["responsable"] = forms.ModelChoiceField(
+            required=False,
+            queryset=get_user_model().objects.filter(
+                pas_ejecuciones_responsables__in=self.executions,
+            ).distinct(),
+        )
+        self.filter_form.fields["actividad"].label_from_instance = lambda activity: strip_tags(activity.accion)[:120]
+        self.filter_form.fields["responsable"].label_from_instance = lambda user: user.get_full_name() or user.username
+        apply_tailwind_widgets(self.filter_form)
+        queryset = Evidencia.objects.filter(ejecucion__in=self.executions).select_related(
+            "ejecucion__ciclo__accion__plan", "ejecucion__responsable", "user", "modificada_por",
+        ).order_by("-fecha", "-pk")
+        if not self.filter_form.is_valid():
+            return queryset.none()
+        data = self.filter_form.cleaned_data.copy()
+        for field in ("actividad", "responsable"):
+            if data.get(field):
+                data[field] = data[field].pk
+        return filtrar_evidencias(queryset, data)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        context.update(filter_form=self.filter_form, filter_query=params.urlencode())
+        return context
