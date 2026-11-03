@@ -1166,18 +1166,28 @@ class PASAPIVisibilityTests(TestCase):
         )
 
 
-class PASEvidenciaTests(TestCase):
+from django.db import IntegrityError, transaction
+from apps.pas.models import CicloActividad, Ejecucion
+
+
+class EvidenciasFixtureMixin:
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="evidenceuser",
-            password="password",
-        )
+        super().setUp()
+
+        media = tempfile.TemporaryDirectory()
+        self.addCleanup(media.cleanup)
+
+        settings_override = override_settings(MEDIA_ROOT=media.name)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+
+        self.user = User.objects.create_user(username="responsable-evidencias")
+        self.other = User.objects.create_user(username="otro-responsable")
 
         self.plan = Plan.objects.create(
-            nombre="Plan de evidencia",
+            nombre="Plan de pruebas de evidencias",
             documento=1,
-            folio="EVID-001",
-            fecha_llenado=date.today(),
+            visibilidad="publica",
             user=self.user,
         )
 
@@ -1185,198 +1195,460 @@ class PASEvidenciaTests(TestCase):
             plan=self.plan,
             accion="Actividad con evidencia",
             responsable=self.user,
+            formato_evidencia="pdf",
+            fecha_inicio=date.today(),
             fecha_fin=date.today(),
-            user=self.user,
         )
-        self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
 
-    def test_activity_can_have_multiple_evidences(self):
-        Evidencia.objects.create(
+        ciclo = CicloActividad.objects.create(
             accion=self.action,
-            descripcion="Primera evidencia",
-            user=self.user,
+            numero=1,
+            etiqueta="Ciclo de prueba",
+            fecha_inicio=date.today(),
+            fecha_fin=date.today(),
         )
 
-        Evidencia.objects.create(
-            accion=self.action,
-            descripcion="Segunda evidencia",
-            user=self.user,
-        )
-
-        self.assertEqual(
-            self.action.evidencias.count(),
-            2,
-        )
-
-    def test_evidence_from_restricted_plan_is_not_visible_without_permission(self):
-        self.plan.visibilidad = "restringida"
-        self.plan.save(update_fields=["visibilidad"])
-
-        evidence = Evidencia.objects.create(
-            accion=self.action,
-            descripcion="Evidencia restringida",
-            user=self.user,
-        )
-
-        response = self.client.get(f"/api/v1/pas/evidences/{evidence.pk}/")
-
-        self.assertEqual(response.status_code, 404)
-
-    def test_user_with_view_permission_can_see_restricted_evidence(self):
-        self.plan.visibilidad = "restringida"
-        self.plan.save(update_fields=["visibilidad"])
-
-        evidence = Evidencia.objects.create(
-            accion=self.action,
-            descripcion="Evidencia restringida",
-            user=self.user,
-        )
-
-        permission = Permission.objects.get(
-            codename="view_plan",
-            content_type__app_label="pas",
-        )
-        self.user.user_permissions.add(permission)
-
-        response = self.client.get(f"/api/v1/pas/evidences/{evidence.pk}/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["id"], evidence.pk)
-
-
-class PASEvidenceDownloadTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-        cls.media_root = tempfile.TemporaryDirectory()
-
-        cls.override_media = override_settings(
-            MEDIA_ROOT=cls.media_root.name
-        )
-        cls.override_media.enable()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.override_media.disable()
-        cls.media_root.cleanup()
-
-        super().tearDownClass()
-
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username="evidence-download-user",
-            password="password",
-        )
-
-        self.plan = Plan.objects.create(
-            nombre="Plan para descarga de evidencia",
-            documento=1,
-            folio="EVID-DOWNLOAD-001",
-            fecha_llenado=date.today(),
-            visibilidad="publica",
-            user=self.user,
-        )
-
-        self.action = Accion.objects.create(
-            plan=self.plan,
-            accion="Actividad con archivo de evidencia",
+        self.execution = Ejecucion.objects.create(
+            ciclo=ciclo,
+            ambito="JL",
             responsable=self.user,
-            fecha_fin=date.today(),
-            user=self.user,
+        )
+
+        self.other_execution = Ejecucion.objects.create(
+            ciclo=ciclo,
+            ambito="D01",
+            responsable=self.other,
         )
 
         self.evidence = Evidencia.objects.create(
-            accion=self.action,
-            descripcion="Archivo de prueba",
-            archivo=SimpleUploadedFile(
-                "evidencia.txt",
-                b"contenido de evidencia",
-                content_type="text/plain",
-            ),
+            ejecucion=self.execution,
+            descripcion="Evidencia inicial",
+            archivo=self.archivo(),
             fecha=date.today(),
             user=self.user,
         )
 
-    def test_public_evidence_file_can_be_downloaded_anonymously(self):
-        response = self.client.get(
-            reverse(
-                "pas:evidence-download",
-                args=[self.evidence.pk],
+        self.api = APIClient()
+        self.api.force_authenticate(user=self.user)
+
+    @staticmethod
+    def archivo(nombre="evidencia.pdf"):
+        return SimpleUploadedFile(
+            nombre,
+            b"%PDF-1.4\n% Archivo de prueba\n%%EOF\n",
+            content_type="application/pdf",
+        )
+
+    def datos(self, **cambios):
+        datos = {
+            "descripcion": "Evidencia nueva",
+            "fecha": date.today().isoformat(),
+            "archivo": self.archivo(),
+        }
+        datos.update(cambios)
+        return datos
+
+    def restringir_plan(self):
+        self.plan.visibilidad = "restringida"
+        self.plan.save(update_fields=["visibilidad"])
+
+    def dar_permiso_consulta(self):
+        self.user.user_permissions.add(
+            Permission.objects.get(
+                content_type__app_label="pas",
+                codename="view_plan",
             )
         )
 
-        try:
-            self.assertEqual(response.status_code, 200)
-        finally:
-            response.close()
+
+class PASEvidenciaTests(EvidenciasFixtureMixin, TestCase):
+    def test_api_crea_varias_evidencias_en_la_misma_ejecucion(self):
+        for descripcion in ("Segunda evidencia", "Tercera evidencia"):
+            response = self.api.post(
+                "/api/v1/pas/evidences/",
+                self.datos(
+                    ejecucion=self.execution.pk,
+                    descripcion=descripcion,
+                ),
+                format="multipart",
+            )
+            self.assertEqual(response.status_code, 201, response.data)
+
+        self.assertEqual(self.execution.evidencias.count(), 3)
+        self.assertFalse(
+            self.execution.evidencias.exclude(accion__isnull=True).exists()
+        )
+
+    def test_api_edita_metadatos_y_conserva_archivo(self):
+        archivo_original = self.evidence.archivo.name
+
+        response = self.api.patch(
+            f"/api/v1/pas/evidences/{self.evidence.pk}/",
+            {"descripcion": "Descripción actualizada"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.descripcion, "Descripción actualizada")
+        self.assertEqual(self.evidence.archivo.name, archivo_original)
+        self.assertEqual(self.evidence.ejecucion_id, self.execution.pk)
+
+    def test_api_elimina_evidencia_sin_eliminar_ejecucion(self):
+        response = self.api.delete(
+            f"/api/v1/pas/evidences/{self.evidence.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(
+            Evidencia.objects.filter(pk=self.evidence.pk).exists()
+        )
+        self.assertTrue(
+            Ejecucion.objects.filter(pk=self.execution.pk).exists()
+        )
+
+    def test_api_rechaza_mutaciones_ajenas_aun_con_permisos_globales(self):
+        self.other.user_permissions.add(
+            *Permission.objects.filter(
+                content_type__app_label="pas",
+                codename__in=[
+                    "add_evidencia",
+                    "change_evidencia",
+                    "delete_evidencia",
+                ],
+            )
+        )
+        self.api.force_authenticate(user=self.other)
+
+        responses = [
+            self.api.post(
+                "/api/v1/pas/evidences/",
+                self.datos(ejecucion=self.execution.pk),
+                format="multipart",
+            ),
+            self.api.patch(
+                f"/api/v1/pas/evidences/{self.evidence.pk}/",
+                {"descripcion": "Cambio ajeno"},
+                format="json",
+            ),
+            self.api.delete(
+                f"/api/v1/pas/evidences/{self.evidence.pk}/"
+            ),
+        ]
+
+        for response in responses:
+            self.assertEqual(response.status_code, 403, response.data)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.descripcion, "Evidencia inicial")
+        self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_api_bloquea_mutaciones_con_ejecucion_o_plan_cerrado(self):
+        for bloqueo in ("ejecucion", "plan"):
+            with self.subTest(bloqueo=bloqueo):
+                self.execution.completada = bloqueo == "ejecucion"
+                self.execution.save(update_fields=["completada"])
+
+                self.plan.eliminacion = bloqueo == "plan"
+                self.plan.save(update_fields=["eliminacion"])
+
+                responses = [
+                    self.api.post(
+                        "/api/v1/pas/evidences/",
+                        self.datos(ejecucion=self.execution.pk),
+                        format="multipart",
+                    ),
+                    self.api.patch(
+                        f"/api/v1/pas/evidences/{self.evidence.pk}/",
+                        {"descripcion": "Cambio bloqueado"},
+                        format="json",
+                    ),
+                    self.api.delete(
+                        f"/api/v1/pas/evidences/{self.evidence.pk}/"
+                    ),
+                ]
+
+                for response in responses:
+                    self.assertEqual(response.status_code, 400, response.data)
+
+                self.evidence.refresh_from_db()
+                self.assertEqual(
+                    self.evidence.descripcion,
+                    "Evidencia inicial",
+                )
+                self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_api_rechaza_cambio_de_ejecucion_y_formato_incorrecto(self):
+        response = self.api.patch(
+            f"/api/v1/pas/evidences/{self.evidence.pk}/",
+            {"ejecucion": self.other_execution.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("ejecucion", response.data)
+
+        for nombre in ("evidencia.exe", "evidencia.docx"):
+            with self.subTest(nombre=nombre):
+                response = self.api.post(
+                    "/api/v1/pas/evidences/",
+                    self.datos(
+                        ejecucion=self.execution.pk,
+                        archivo=self.archivo(nombre),
+                    ),
+                    format="multipart",
+                )
+                self.assertEqual(response.status_code, 400, response.data)
+                self.assertIn("archivo", response.data)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.ejecucion_id, self.execution.pk)
+        self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_evidence_from_restricted_plan_is_not_visible_without_permission(self):
+        self.restringir_plan()
+
+        response = self.api.get(
+            f"/api/v1/pas/evidences/{self.evidence.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_with_view_permission_can_see_restricted_evidence(self):
+        self.restringir_plan()
+        self.dar_permiso_consulta()
+
+        response = self.api.get(
+            f"/api/v1/pas/evidences/{self.evidence.pk}/"
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["id"], self.evidence.pk)
+
+    def test_base_de_datos_exige_ejecucion(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Evidencia.objects.create(
+                    descripcion="Evidencia sin ejecución"
+                )
+
+
+class PASEvidenceDownloadTests(EvidenciasFixtureMixin, TestCase):
+    def descargar(self, evidencia):
+        response = self.client.get(
+            reverse("pas:evidence-download", args=[evidencia.pk])
+        )
+        self.addCleanup(response.close)
+        return response
+
+    def test_public_evidence_file_can_be_downloaded_anonymously(self):
+        response = self.descargar(self.evidence)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            b"%PDF-1.4",
+            b"".join(response.streaming_content),
+        )
 
     def test_internal_evidence_file_is_not_visible_anonymously(self):
         self.plan.visibilidad = "interna"
         self.plan.save(update_fields=["visibilidad"])
 
-        response = self.client.get(
-            reverse(
-                "pas:evidence-download",
-                args=[self.evidence.pk],
-            )
-        )
+        response = self.descargar(self.evidence)
 
         self.assertEqual(response.status_code, 404)
 
     def test_restricted_evidence_file_is_not_visible_without_permission(self):
-        self.plan.visibilidad = "restringida"
-        self.plan.save(update_fields=["visibilidad"])
-
+        self.restringir_plan()
         self.client.force_login(self.user)
 
-        response = self.client.get(
-            reverse(
-                "pas:evidence-download",
-                args=[self.evidence.pk],
-            )
-        )
+        response = self.descargar(self.evidence)
 
         self.assertEqual(response.status_code, 404)
 
     def test_user_with_view_plan_permission_can_download_restricted_evidence(self):
-        self.plan.visibilidad = "restringida"
-        self.plan.save(update_fields=["visibilidad"])
+        self.restringir_plan()
+        self.dar_permiso_consulta()
+        self.client.force_login(self.user)
 
-        permission = Permission.objects.get(
-            codename="view_plan",
-            content_type__app_label="pas",
+        response = self.descargar(self.evidence)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_evidence_without_file_returns_404(self):
+        evidencia = Evidencia.objects.create(
+            ejecucion=self.execution,
+            descripcion="Registro sin archivo",
         )
 
-        self.user.user_permissions.add(permission)
+        response = self.descargar(evidencia)
+
+        self.assertEqual(response.status_code, 404)
+
+
+class PASEvidenceWebCRUDTests(EvidenciasFixtureMixin, TestCase):
+    def test_responsable_completa_crud_sin_permisos_globales(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("pas:execution-evidence-add", args=[self.execution.pk]),
+            self.datos(descripcion="Segunda evidencia"),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertIn("pas:refresh-activity", response["HX-Trigger"])
+        self.assertEqual(self.execution.evidencias.count(), 2)
+
+        nueva = self.execution.evidencias.get(
+            descripcion="Segunda evidencia"
+        )
+        archivo_original = nueva.archivo.name
+
+        response = self.client.get(
+            reverse("pas:evidence-edit", args=[nueva.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Editar evidencia")
+
+        response = self.client.post(
+            reverse("pas:evidence-edit", args=[nueva.pk]),
+            {
+                "descripcion": "Evidencia corregida",
+                "fecha": date.today().isoformat(),
+            },
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 204)
+
+        nueva.refresh_from_db()
+        self.assertEqual(nueva.descripcion, "Evidencia corregida")
+        self.assertEqual(nueva.archivo.name, archivo_original)
+
+        response = self.client.get(
+            reverse("pas:evidence-delete", args=[nueva.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Confirmar eliminación")
+        self.assertTrue(Evidencia.objects.filter(pk=nueva.pk).exists())
+
+        response = self.client.post(
+            reverse("pas:evidence-delete", args=[nueva.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Evidencia.objects.filter(pk=nueva.pk).exists())
+        self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_consulta_incluye_solo_evidencias_de_la_ejecucion(self):
+        segunda = Evidencia.objects.create(
+            ejecucion=self.execution,
+            descripcion="Segunda del mismo ámbito",
+        )
+        ajena = Evidencia.objects.create(
+            ejecucion=self.other_execution,
+            descripcion="Evidencia de otro ámbito",
+        )
         self.client.force_login(self.user)
 
         response = self.client.get(
-            reverse(
-                "pas:evidence-download",
-                args=[self.evidence.pk],
-            )
+            reverse("pas:execution-evidence", args=[self.execution.pk])
         )
 
-        try:
-            self.assertEqual(response.status_code, 200)
-        finally:
-            response.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            {item.pk for item in response.context["evidences"]},
+            {self.evidence.pk, segunda.pk},
+        )
+        self.assertNotContains(response, ajena.descripcion)
+        self.assertTrue(response.context["can_add_evidence"])
+        self.assertTrue(response.context["can_edit_evidence"])
+        self.assertTrue(response.context["can_delete_evidence"])
 
-    def test_evidence_without_file_returns_404(self):
-        evidence = Evidencia.objects.create(
-            accion=self.action,
-            descripcion="Registro sin archivo",
-            fecha=date.today(),
-            user=self.user,
+    def test_web_rechaza_mutaciones_de_otro_responsable(self):
+        self.client.force_login(self.other)
+
+        responses = [
+            self.client.post(
+                reverse(
+                    "pas:execution-evidence-add",
+                    args=[self.execution.pk],
+                ),
+                self.datos(),
+            ),
+            self.client.post(
+                reverse("pas:evidence-edit", args=[self.evidence.pk]),
+                {
+                    "descripcion": "Cambio ajeno",
+                    "fecha": date.today().isoformat(),
+                },
+            ),
+            self.client.post(
+                reverse("pas:evidence-delete", args=[self.evidence.pk]),
+            ),
+        ]
+
+        for response in responses:
+            self.assertEqual(response.status_code, 403)
+
+        self.evidence.refresh_from_db()
+        self.assertEqual(self.evidence.descripcion, "Evidencia inicial")
+        self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_web_bloquea_mutaciones_con_ejecucion_o_plan_cerrado(self):
+        self.client.force_login(self.user)
+
+        for bloqueo in ("ejecucion", "plan"):
+            with self.subTest(bloqueo=bloqueo):
+                self.execution.completada = bloqueo == "ejecucion"
+                self.execution.save(update_fields=["completada"])
+
+                self.plan.eliminacion = bloqueo == "plan"
+                self.plan.save(update_fields=["eliminacion"])
+
+                responses = [
+                    self.client.post(
+                        reverse(
+                            "pas:execution-evidence-add",
+                            args=[self.execution.pk],
+                        ),
+                        self.datos(),
+                    ),
+                    self.client.post(
+                        reverse(
+                            "pas:evidence-edit",
+                            args=[self.evidence.pk],
+                        ),
+                        {
+                            "descripcion": "Cambio bloqueado",
+                            "fecha": date.today().isoformat(),
+                        },
+                    ),
+                    self.client.post(
+                        reverse(
+                            "pas:evidence-delete",
+                            args=[self.evidence.pk],
+                        ),
+                    ),
+                ]
+
+                for response in responses:
+                    self.assertEqual(response.status_code, 409)
+
+                self.evidence.refresh_from_db()
+                self.assertEqual(
+                    self.evidence.descripcion,
+                    "Evidencia inicial",
+                )
+                self.assertEqual(self.execution.evidencias.count(), 1)
+
+    def test_web_devuelve_errores_de_formato_en_formulario_htmx(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("pas:execution-evidence-add", args=[self.execution.pk]),
+            self.datos(archivo=self.archivo("evidencia.docx")),
+            HTTP_HX_REQUEST="true",
         )
 
-        response = self.client.get(
-            reverse(
-                "pas:evidence-download",
-                args=[evidence.pk],
-            )
-        )
-
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("archivo", response.context["form"].errors)
+        self.assertEqual(self.execution.evidencias.count(), 1)
