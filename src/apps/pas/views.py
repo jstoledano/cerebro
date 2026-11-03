@@ -2545,6 +2545,11 @@ class ExecutionEvidenceBaseView(CreateView):
             ],
         )
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["execution"] = self.execution
+        return kwargs
+
     def get_initial(self):
         initial = super().get_initial()
 
@@ -2701,6 +2706,11 @@ class ExecutionEvidenceUpdateView(UpdateView):
 
     def get_object(self, queryset=None):
         return self.evidence
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["execution"] = self.execution
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

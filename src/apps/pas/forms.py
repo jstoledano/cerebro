@@ -26,6 +26,8 @@ from .models import (
     AMBITO,
     CNC,
     PERIODICIDAD_CONTINUA,
+    FORMATO_EVIDENCIA,
+    FORMATO_SIN_EVIDENCIA,
 )
 
 
@@ -536,22 +538,114 @@ class PlanClosureForm(forms.Form):
 class EvidenciaForm(forms.ModelForm):
     class Meta:
         model = Evidencia
-        exclude = [
-            "user",
-            "accion",
-            "ejecucion",
+        fields = [
+            "descripcion",
+            "fecha",
+            "archivo",
         ]
         widgets = {
             "fecha": DateInput(
+                attrs={"type": "date"},
+            ),
+            "archivo": forms.FileInput(
                 attrs={
-                    "type": "date",
-                }
+                    "class": "file-input file-input-bordered w-full",
+                },
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, execution=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.execution = execution
+
+        if self.execution is None and self.instance.ejecucion_id:
+            self.execution = self.instance.ejecucion
+
+        if self.execution is not None:
+            self.instance.ejecucion = self.execution
 
         self.fields["archivo"].required = True
 
+        formatos = {
+            valor
+            for valor, _ in FORMATO_EVIDENCIA
+            if valor != FORMATO_SIN_EVIDENCIA
+        }
+
+        formato_esperado = (
+            self.execution.accion.formato_evidencia
+            if self.execution is not None
+            else ""
+        )
+
+        if formato_esperado in formatos:
+            formatos = {formato_esperado}
+
+        self.fields["archivo"].widget.attrs["accept"] = ",".join(
+            f".{formato}" for formato in sorted(formatos)
+        )
+
         apply_tailwind_widgets(self)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if self.execution is None or self.execution.pk is None:
+            raise forms.ValidationError(
+                "La evidencia debe estar vinculada a una ejecución válida."
+            )
+
+        return cleaned_data
+
+    def clean_archivo(self):
+        archivo = self.cleaned_data.get("archivo")
+
+        if not archivo:
+            raise forms.ValidationError(
+                "Debes adjuntar un archivo de evidencia."
+            )
+
+        # Una edición de metadatos conserva el archivo existente.
+        if self.add_prefix("archivo") not in self.files:
+            return archivo
+
+        formatos = {
+            valor
+            for valor, _ in FORMATO_EVIDENCIA
+            if valor != FORMATO_SIN_EVIDENCIA
+        }
+
+        nombre = archivo.name or ""
+        extension = (
+            nombre.rsplit(".", 1)[-1].lower()
+            if "." in nombre
+            else ""
+        )
+
+        if extension not in formatos:
+            permitidos = ", ".join(
+                formato.upper() for formato in sorted(formatos)
+            )
+            raise forms.ValidationError(
+                f"Selecciona un archivo con una extensión admitida. "
+                f"Formatos disponibles: {permitidos}."
+            )
+
+        if self.execution is not None:
+            actividad = self.execution.accion
+            formato_esperado = actividad.formato_evidencia
+
+            if formato_esperado == FORMATO_SIN_EVIDENCIA:
+                raise forms.ValidationError(
+                    "Esta actividad no admite nuevos archivos de evidencia."
+                )
+
+            if formato_esperado and extension != formato_esperado:
+                raise forms.ValidationError(
+                    "El archivo debe tener el formato "
+                    f"{actividad.get_formato_evidencia_display()} "
+                    "configurado en la actividad."
+                )
+
+        return archivo
