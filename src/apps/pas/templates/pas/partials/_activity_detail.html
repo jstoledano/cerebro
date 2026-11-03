@@ -466,47 +466,35 @@
                 {# ========================================== #}
 
                 <td>
+                  {% with total_evidencias=execution.evidencias.all|length %}
+                    <div class="flex flex-col items-start gap-1">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        aria-label="Consultar evidencias de la ejecución {{ execution.pk }}"
+                        hx-get="{% url 'pas:execution-evidence' execution.pk %}"
+                        hx-target="#pas-modal-content"
+                        hx-swap="innerHTML"
+                      >
+                        Evidencias ({{ total_evidencias }})
+                      </button>
 
-                  {% if activity.formato_evidencia == "ninguno" %}
-
-                    <span class="text-xs text-base-content/45">
-                      No requerida
-                    </span>
-
-                  {% elif execution.tiene_evidencia %}
-
-                    <button type="button"
-                            class="btn btn-ghost btn-xs"
-                            hx-get="{% url 'pas:execution-evidence' execution.pk %}"
-                            hx-target="#pas-modal-content"
-                            hx-swap="innerHTML">
-
-                      Evidencia ✓
-
-                    </button>
-
-                  {% elif can_modify and execution.puede_gestionar and perms.pas.add_evidencia %}
-
-                  <button type="button"
-                          class="btn btn-outline btn-xs"
-                          hx-get="{% url 'pas:execution-evidence-add' execution.pk %}"
-                          hx-target="#pas-modal-content"
-                          hx-swap="innerHTML">
-
-                    Registrar
-
-                  </button>
-
-                  {% else %}
-
-                    <span class="text-xs text-base-content/45">
-                      Pendiente
-                    </span>
-
-                  {% endif %}
-
+                      {% if activity.formato_evidencia == "ninguno" %}
+                        <span class="text-xs text-base-content/45">
+                          No requerida
+                        </span>
+                      {% elif execution.tiene_evidencia %}
+                        <span class="text-xs text-success">
+                          Archivo registrado
+                        </span>
+                      {% else %}
+                        <span class="text-xs text-base-content/45">
+                          Archivo pendiente
+                        </span>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
                 </td>
-
 
                 {# ========================================== #}
                 {# CERRAR / REABRIR                          #}
