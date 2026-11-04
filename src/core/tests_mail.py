@@ -191,6 +191,18 @@ class MailTests(TestCase):
         self.assertEqual(self.client.post("/pas/agenda/calendario-correo/", {"dias": ["5", "6"]}).status_code, 302)
         self.assertEqual(CalendarioNotificaciones.dias_envio(), [5, 6])
 
+    def test_empty_calendar_shows_error_and_preserves_saved_days(self):
+        self.operator.is_superuser = True
+        self.operator.save()
+        self.client.force_login(self.operator)
+        CalendarioNotificaciones.objects.create(dias=[0, 1, 2, 3, 4])
+        response = self.client.post("/pas/agenda/calendario-correo/", {})
+        self.assertContains(response, "Selecciona al menos un día de envío.")
+        self.assertContains(response, 'role="alert"')
+        self.assertContains(response, 'action="/pas/agenda/calendario-correo/"')
+        self.assertContains(response, "No se guardaron los cambios.")
+        self.assertEqual(CalendarioNotificaciones.dias_envio(), [0, 1, 2, 3, 4])
+
     def test_personal_switch_only_own_profile(self):
         self.client.force_login(self.operator)
         self.client.post("/pas/agenda/correo/", {"recibe_notificaciones": "on", "user": self.boss.pk})

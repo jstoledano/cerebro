@@ -12,9 +12,19 @@
     <p>Activa tu resumen de Alarma, Faro y Radar. Los avisos de vencimiento y atraso de tus ejecuciones se envían automáticamente.</p>
   {% endif %}
   {% if form %}
-  <form method="post" class="space-y-5">
+  <form method="post" action="{% if calendario %}{% url 'pas:calendario-correo' %}{% else %}{% url 'pas:agenda-correo' %}{% endif %}" class="space-y-5" novalidate>
     {% csrf_token %}
-    {{ form.non_field_errors }}
+    {% if form.errors %}
+    <div role="alert" class="alert alert-error">
+      <div>
+        <p class="font-semibold">No se guardaron los cambios.</p>
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        {% for field in form %}
+          {% for error in field.errors %}<p>{{ field.label }}: {{ error }}</p>{% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     {% for field in form %}
       <fieldset class="space-y-2">
         <legend class="font-semibold">{{ field.label }}</legend>

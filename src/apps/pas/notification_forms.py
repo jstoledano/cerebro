@@ -15,6 +15,7 @@ class AgendaCorreoForm(forms.ModelForm):
 class CalendarioCorreoForm(forms.ModelForm):
     dias = forms.TypedMultipleChoiceField(
         label="Días de envío", choices=DIAS, coerce=int, widget=forms.CheckboxSelectMultiple,
+        error_messages={"required": "Selecciona al menos un día de envío."},
     )
 
     class Meta:
