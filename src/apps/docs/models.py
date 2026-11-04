@@ -406,3 +406,15 @@ class Notificacion(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.fecha_envio}"
+
+
+
+class EntregaRevision(models.Model):
+    revision = models.ForeignKey(Revision, on_delete=models.CASCADE, related_name="entregas_correo")
+    destinatario = models.EmailField()
+    envio = models.ForeignKey("pmml.EnvioCorreo", on_delete=models.PROTECT, related_name="revisiones_documentales")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["revision", "destinatario"], name="docs_revision_destinatario_unico",
+        )]

@@ -1,0 +1,7 @@
+CMI — Documentos actualizados al {{ fecha_notificacion|date:"d/m/Y" }}
+{% for fila in filas %}
+{{ fila.nombre }} — revisión {{ fila.numero }}
+{{ fila.cambios }}
+{{ fila.url }}
+{% endfor %}
+Cuadro de Mando Integral — Junta Local Ejecutiva en Tlaxcala

@@ -21,7 +21,7 @@
             <tr>
                 <td><a href="{{ site_url }}{% url 'docs:detalle' pk=revision.documento.pk %}" target=_blank>{{ revision.documento.nombre }}</a></td>
                 <td>{{ revision.revision }}</td>
-                <td>{{ revision.cambios|safe }}</td>
+                <td>{{ revision.cambios|striptags|linebreaksbr }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -30,5 +30,6 @@
     <p>No hay revisiones pendientes de notificación en este momento.</p>
     {% endif %}
 
-    <p>Saludos cordiales,<br>El equipo de Cerebro</p>
+    <p>Saludos cordiales,<br>Cuadro de Mando Integral</p>
 {% endblock content %}
+

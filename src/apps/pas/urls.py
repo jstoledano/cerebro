@@ -1,4 +1,5 @@
 from django.urls import path
+from .notification_views import agenda_correo, calendario_correo
 
 from .views import (
     PASIndex,
@@ -28,6 +29,8 @@ app_name = "pas"
 
 
 urlpatterns = [
+    path("agenda/correo/", agenda_correo, name="agenda-correo"),
+    path("agenda/calendario-correo/", calendario_correo, name="calendario-correo"),
     path("evidences/", EvidenceListView.as_view(), name="evidence-list"),
     path(
         "",
@@ -135,4 +138,5 @@ urlpatterns = [
         name="execution-complete",
     ),
 ]
+
 

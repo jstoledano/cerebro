@@ -351,3 +351,10 @@ CARTO_BASEMAPS_API_KEY = os.environ.get(
     "CARTO_BASEMAPS_API_KEY",
     "",
 )
+
+
+# Los comandos de notificaciones simulan por defecto. Activar producción tras validar.
+NOTIFICACIONES_MODO = env("NOTIFICACIONES_MODO", default="simular")
+NOTIFICACIONES_CORREO_PRUEBA = env(
+    "NOTIFICACIONES_CORREO_PRUEBA", default="javier.sanchezt@ine.mx",
+)
