@@ -1,0 +1,12 @@
+[Unit]
+Description=Resumen diario de agenda PM2
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=javier
+Group=javier
+WorkingDirectory=/home/javier/Projects/cerebro/src
+ExecStart=/home/javier/.virtualenvs/cerebro/bin/python manage.py notificar_agenda
+TimeoutStartSec=15min
