@@ -1,0 +1,25 @@
+Agenda del {{ fecha|date:"d/m/Y" }}
+{{ nombre }}
+{% for seccion in secciones %}
+{{ seccion.nombre }}
+{% for item in seccion.grupos %}
+{{ item.actividad }} — {{ item.plan }}
+Prioridad {{ item.prioridad }}. Responsables {{ item.responsables }}.
+{{ item.total }} ejecuciones pendientes. {{ item.url }}
+{% for t in item.vencidas %}Vencida el {{ t.fecha|date:"d/m/Y" }} — {{ t.responsable }} — {{ t.ejecucion }} — {{ t.url }}
+{% endfor %}{% for t in item.vencen_hoy %}Vence hoy — {{ t.responsable }} — {{ t.ejecucion }} — {{ t.url }}
+{% endfor %}{% for t in item.activas %}En curso; vence el {{ t.fecha|date:"d/m/Y" }} — {{ t.responsable }} — {{ t.ejecucion }} — {{ t.url }}
+{% endfor %}{% if item.proxima %}Próxima ejecución; vence el {{ item.proxima.fecha|date:"d/m/Y" }} — {{ item.proxima.url }}
+{% endif %}{% empty %}Sin actividades en esta sección.
+{% endfor %}{% endfor %}
+{% if avisos %}SOLICITUDES DE EVIDENCIA
+{% for item in avisos %}
+{{ item.actividad }} — {{ item.plan }}
+{% if item.correo_normativo %}Por indicaciones de {{ item.normativo }}, {{ item.cargo }}, se solicita{% else %}Se solicita{% endif %} dar seguimiento a la ejecución asignada a su responsabilidad.
+{% if item.vencida %}El plazo concluyó el {{ item.fecha|date:"d/m/Y" }} y la ejecución continúa pendiente.{% else %}El plazo vence hoy, {{ item.fecha|date:"d/m/Y" }}.{% endif %}
+Evidencia solicitada: {{ item.evidencia }}
+Remita la evidencia {% if item.correo_normativo %}a {{ item.normativo }} ({{ item.correo_normativo }}){% else %}al responsable normativo de la actividad{% endif %} para su revisión y registro. Si ya la entregó, comuníquelo para actualizar el seguimiento.
+Prioridad {{ item.prioridad }}. {{ item.ejecucion }}
+{{ item.url }}
+{% endfor %}{% endif %}
+Cuadro de Mando Integral — Junta Local Ejecutiva en Tlaxcala

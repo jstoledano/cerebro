@@ -1,0 +1,11 @@
+[Unit]
+Description=Agenda PM2 a las 08:00 de Tlaxcala
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 America/Mexico_City
+AccuracySec=1s
+Persistent=false
+Unit=cerebro-agenda.service
+
+[Install]
+WantedBy=timers.target

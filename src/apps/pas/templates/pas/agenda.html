@@ -20,6 +20,9 @@
 {% block content %}
 
 <section class="space-y-8">
+  {% if request.user.is_authenticated %}
+    <a class="btn btn-outline btn-sm" href="{% url 'pas:agenda-correo' %}">Mi agenda por correo</a>
+  {% endif %}
 
   {# ====================================================== #}
   {# ENCABEZADO                                             #}
@@ -798,4 +801,5 @@
 </script>
 
 {% endblock scripts %}
+
 

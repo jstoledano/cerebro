@@ -1759,3 +1759,25 @@ def generar_ejecuciones_faltantes(plan):
 
     return resultado
 
+
+
+
+class CalendarioNotificaciones(models.Model):
+    """Calendario único de PM², administrado desde la aplicación."""
+    from core.notification_schedule import dias_laborables, validar_dias
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    dias = models.JSONField(default=dias_laborables, validators=[validar_dias])
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def dias_envio(cls):
+        from core.notification_schedule import dias_laborables
+        calendario = cls.objects.filter(pk=1).first()
+        return calendario.dias if calendario else dias_laborables()
+
+    def __str__(self):
+        return "Calendario de correos PM²"

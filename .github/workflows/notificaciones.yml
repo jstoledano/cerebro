@@ -1,0 +1,36 @@
+name: Pruebas de notificaciones
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/notificaciones.yml'
+      - 'src/apps/pas/**'
+      - 'src/apps/pmml/**'
+      - 'src/apps/profiles/models.py'
+      - 'src/apps/docs/models.py'
+      - 'src/apps/docs/migrations/**'
+      - 'src/apps/docs/management/commands/notificar_docs.py'
+      - 'src/apps/docs/templates/docs/*correo*'
+      - 'src/apps/docs/templates/docs/*notificacion*'
+      - 'src/core/*mail*'
+      - 'src/core/notification_schedule.py'
+permissions:
+  contents: read
+concurrency:
+  group: mail-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - run: python -m pip install 'Django==6.0.5' 'django-tinymce>=4,<6'
+      - name: Pruebas específicas sin SMTP real
+        working-directory: src
+        run: python manage.py test core.tests_mail --settings=core.settings_mail_test -v 2
+      - name: Comprobar migraciones
+        working-directory: src
+        run: python manage.py makemigrations --check --dry-run profiles pas pmml docs --settings=core.settings_mail_test

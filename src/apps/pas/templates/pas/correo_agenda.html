@@ -1,0 +1,32 @@
+{% extends 'docs/base_email.html' %}
+{% block title %}Agenda PM²{% endblock %}
+{% block content %}
+<h1>Agenda del {{ fecha|date:"d/m/Y" }}</h1>
+<p>{{ nombre }}, este es el resumen de seguimiento de tus actividades.</p>
+{% for seccion in secciones %}
+<h2>{{ seccion.nombre }}</h2>
+{% for item in seccion.grupos %}
+<h3>{{ item.actividad }}</h3>
+<p>{{ item.plan }} · Prioridad {{ item.prioridad }} · Responsables {{ item.responsables }}</p>
+<p>{{ item.total }} ejecuciones pendientes. <a href="{{ item.url }}">Consultar ejecución</a></p>
+<ul>
+{% for tarea in item.vencidas %}<li>Vencida el {{ tarea.fecha|date:"d/m/Y" }} — {{ tarea.responsable }} — <a href="{{ tarea.url }}">{{ tarea.ejecucion }}</a></li>{% endfor %}
+{% for tarea in item.vencen_hoy %}<li>Vence hoy — {{ tarea.responsable }} — <a href="{{ tarea.url }}">{{ tarea.ejecucion }}</a></li>{% endfor %}
+{% for tarea in item.activas %}<li>En curso; vence el {{ tarea.fecha|date:"d/m/Y" }} — {{ tarea.responsable }} — <a href="{{ tarea.url }}">{{ tarea.ejecucion }}</a></li>{% endfor %}
+{% if item.proxima %}<li>Próxima ejecución; vence el {{ item.proxima.fecha|date:"d/m/Y" }} — <a href="{{ item.proxima.url }}">{{ item.proxima.ejecucion }}</a></li>{% endif %}
+</ul>
+{% empty %}<p>Sin actividades en esta sección.</p>{% endfor %}
+{% endfor %}
+{% if avisos %}
+<h2>Solicitudes de evidencia</h2>
+{% for item in avisos %}
+<h3>{{ item.actividad }}</h3>
+<p>{% if item.correo_normativo %}Por indicaciones de {{ item.normativo }}, {{ item.cargo }}, se solicita{% else %}Se solicita{% endif %} dar seguimiento a la ejecución asignada a su responsabilidad en el plan {{ item.plan }}.</p>
+<p>{% if item.vencida %}El plazo concluyó el {{ item.fecha|date:"d/m/Y" }} y la ejecución continúa pendiente.{% else %}El plazo de cumplimiento vence hoy, {{ item.fecha|date:"d/m/Y" }}.{% endif %}</p>
+<p>Evidencia solicitada: {{ item.evidencia }}</p>
+<p>Remita la evidencia {% if item.correo_normativo %}a <a href="mailto:{{ item.correo_normativo }}">{{ item.normativo }}</a>{% else %}al responsable normativo de la actividad{% endif %} para su revisión y registro. Si ya la entregó, comuníquelo a esa persona para actualizar el seguimiento.</p>
+<p>Prioridad {{ item.prioridad }} · <a href="{{ item.url }}">Consultar {{ item.ejecucion }}</a></p>
+{% endfor %}
+{% endif %}
+<p>Cuadro de Mando Integral · Junta Local Ejecutiva en Tlaxcala</p>
+{% endblock %}
