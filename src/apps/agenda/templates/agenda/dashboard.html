@@ -12,38 +12,95 @@
   <header class="rounded-3xl bg-neutral text-neutral-content p-6 md:p-8 shadow-sm">
     <div class="flex flex-wrap items-end justify-between gap-5">
       <div><p class="text-xs tracking-[.18em] opacity-70">SEGUIMIENTO OPERATIVO</p><h1 class="text-3xl md:text-4xl font-bold mt-2">Agenda</h1><p class="mt-2 opacity-75">{{ today|date:'l, d F Y' }}</p></div>
-      <div class="flex flex-wrap gap-2"><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:list' %}?period=day">Agenda de hoy</a><a class="btn btn-sm btn-primary" href="{% url 'agenda:pdf' %}?period=day">PDF diario</a><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:pdf' %}?period=week">PDF semanal</a></div>
+      <div class="flex flex-wrap gap-2"><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:pending' %}">Todos los pendientes</a><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:list' %}?period=day">Agenda de hoy</a><a class="btn btn-sm btn-primary" href="{% url 'agenda:pdf' %}?period=day">PDF diario</a><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:pdf' %}?period=week">PDF semanal</a></div>
     </div>
     <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs opacity-70"><span>{{ source_count }} archivos fuente</span><span>{{ total_open }} tareas abiertas</span><span>Actualizada {{ generated_at }}</span></div>
   </header>
   {% include 'agenda/_nav.html' %}
   {% if not validation.valid %}<div class="alert alert-warning"><span>Hay IDs ausentes o duplicados. Consulta la sección validation de agenda.json.</span></div>{% endif %}
 
-  <section class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+  <section class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
     <article class="xl:col-span-8 rounded-2xl border border-base-300 bg-base-100 p-4 md:p-5 shadow-sm min-w-0">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-4"><div><p class="text-xs uppercase tracking-wide opacity-50">Exploración temporal</p><h2 class="text-xl font-semibold mt-1">Calendario de actividades</h2></div><a class="link link-primary text-sm" href="{% url 'agenda:list' %}?period=week">Ver agenda semanal</a></div>
       <div id="agenda-calendar"></div>
     </article>
 
-    <aside class="xl:col-span-4 grid grid-cols-2 gap-3">
-      <article class="rounded-2xl border border-base-300 bg-base-100 p-4"><p class="text-xs uppercase tracking-wide opacity-60">Abiertas</p><p class="text-3xl font-semibold mt-2 tabular-nums">{{ total_open }}</p><p class="text-xs opacity-50 mt-1">Tareas activas</p></article>
-      <article class="rounded-2xl border border-error/30 bg-error/5 p-4"><p class="text-xs uppercase tracking-wide text-error">Vencidas</p><p class="text-3xl font-semibold mt-2 tabular-nums">{{ overdue|length }}</p><p class="text-xs opacity-50 mt-1">Con deadline anterior a hoy</p></article>
-      <article class="rounded-2xl border border-warning/30 bg-warning/5 p-4"><p class="text-xs uppercase tracking-wide text-warning">Hoy</p><p class="text-3xl font-semibold mt-2 tabular-nums">{{ due_today|length }}</p><p class="text-xs opacity-50 mt-1">Programadas o con vencimiento</p></article>
-      <a href="{% url 'agenda:doing' %}" class="rounded-2xl border border-info/30 bg-info/5 p-4 transition hover:-translate-y-0.5 hover:border-info/60 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-info" aria-label="Consultar {{ doing|length }} actividades en ejecución">
-        <p class="text-xs uppercase tracking-wide text-info">En ejecución</p>
-        <p class="text-3xl font-semibold mt-2 tabular-nums">{{ doing|length }}</p>
-        <p class="text-xs opacity-60 mt-1">Ver actividades DOING →</p>
+    <aside class="xl:col-span-4 grid grid-cols-1 grid-rows-4 gap-3 h-full" aria-label="Indicadores de la agenda">
+      <a href="{% url 'agenda:pending' %}" class="rounded-2xl border border-base-300 bg-base-100 px-5 py-5 flex items-center justify-between gap-4 min-h-0 hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition-colors" title="Consultar pendientes generales">
+        <div class="flex items-center gap-4 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-8 shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15h3M8 18h5"/></svg>
+          <div><p class="text-lg font-semibold leading-tight">Pendientes</p><p class="text-sm opacity-65 mt-1">Actividades abiertas</p></div>
+        </div>
+        <p class="text-5xl font-bold tabular-nums">{{ total_open }}</p>
       </a>
-      <article class="col-span-2 rounded-2xl border border-base-300 bg-base-100 p-4">
-        <p class="text-xs uppercase tracking-wide opacity-50">Próximos siete días</p><p class="text-3xl font-semibold mt-1 tabular-nums">{{ upcoming|length }}</p>
-        <div class="mt-3 space-y-2">{% for item in upcoming|slice:':4' %}<div class="border-b border-base-200 pb-2 last:border-0"><div class="flex justify-between gap-2"><p class="font-medium text-sm">{{ item.title }}</p><span class="badge badge-sm badge-outline shrink-0">{{ item.state }}</span></div><p class="text-xs opacity-55 mt-1">{{ item.display_date }} · {{ item.properties.PLAN|default:item.source }}</p></div>{% empty %}<p class="text-sm opacity-60">Sin actividades próximas.</p>{% endfor %}</div>
+      <article class="rounded-2xl border border-error/30 bg-error/5 px-5 py-5 flex items-center justify-between gap-4 min-h-0">
+        <div class="flex items-center gap-4 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-8 shrink-0 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.3 3.9-8.2 14.2A2 2 0 0 0 3.9 21h16.2a2 2 0 0 0 1.8-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div><p class="text-lg font-semibold leading-tight text-error">Vencidas</p><p class="text-sm opacity-65 mt-1">Plazo agotado</p></div>
+        </div>
+        <p class="text-5xl font-bold tabular-nums">{{ overdue|length }}</p>
+      </article>
+      <article class="rounded-2xl border border-warning/30 bg-warning/5 px-5 py-5 flex items-center justify-between gap-4 min-h-0">
+        <div class="flex items-center gap-4 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-8 shrink-0 text-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18m-11 6 2 2 4-4"/></svg>
+          <div><p class="text-lg font-semibold leading-tight">Atención hoy</p><p class="text-sm opacity-65 mt-1">Seleccionadas por prioridad</p></div>
+        </div>
+        <p class="text-5xl font-bold tabular-nums">{{ due_today|length }}</p>
+      </article>
+      <article class="rounded-2xl border border-base-300 bg-base-100 px-5 py-5 flex items-center justify-between gap-4 min-h-0">
+        <div class="flex items-center gap-4 min-w-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-8 shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/><path d="M12 3V1M21 12h2"/></svg>
+          <div><p class="text-lg font-semibold leading-tight">En el radar</p><p class="text-sm opacity-65 mt-1">Hitos próximos · 7 días</p></div>
+        </div>
+        <p class="text-5xl font-bold tabular-nums">{{ upcoming|length }}</p>
       </article>
     </aside>
   </section>
 
-  <section class="rounded-2xl border border-base-300 bg-base-100 p-5 md:p-6">
-    <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="text-xs uppercase tracking-wide opacity-50">Prioridad operativa</p><h2 class="text-xl font-semibold mt-1">Actividades vencidas</h2></div><a class="link link-primary text-sm" href="{% url 'agenda:list' %}?period=day">Abrir agenda</a></div>
-    <div class="mt-4 grid md:grid-cols-2 xl:grid-cols-3 gap-3">{% for item in overdue|slice:':9' %}{% include 'agenda/_task_card.html' %}{% empty %}<div class="md:col-span-2 xl:col-span-3 rounded-xl bg-base-200/50 p-6 text-center text-sm opacity-60">Sin actividades vencidas.</div>{% endfor %}</div>
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start" aria-label="Seguimiento operativo">
+    <article id="agenda-todo-focus" class="rounded-2xl border border-base-300 bg-base-100 p-4 md:p-5 min-w-0" aria-live="polite">
+      <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+        <div><p class="text-xs uppercase tracking-wide opacity-50">Atención selectiva</p><h2 id="agenda-focus-title" class="text-lg font-semibold mt-1 inline-flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18m-11 6 2 2 4-4"/></svg><span>Agenda de hoy</span></h2></div>
+        <span id="agenda-focus-count" class="badge badge-outline">—</span>
+      </div>
+      <div id="agenda-focus-items" class="grid gap-2" aria-label="Actividades que requieren atención en la fecha seleccionada">
+        <p class="text-sm opacity-60">Consultando prioridades…</p>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-base-200">
+        <a id="agenda-focus-list" class="btn btn-xs btn-outline" href="{% url 'agenda:list' %}?period=day&date={{ today|date:'Y-m-d' }}">Abrir día</a>
+        <a id="agenda-focus-pdf" class="btn btn-xs btn-primary" href="{% url 'agenda:pdf' %}?period=day&date={{ today|date:'Y-m-d' }}">PDF del día</a>
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-error/25 bg-base-100 p-4 md:p-5 min-w-0">
+      <div class="flex items-start justify-between gap-2 mb-3"><div><p class="text-xs uppercase tracking-wide opacity-50">Atención prioritaria</p><h2 class="text-lg font-semibold mt-1 inline-flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.3 3.9-8.2 14.2A2 2 0 0 0 3.9 21h16.2a2 2 0 0 0 1.8-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Actividades vencidas</h2></div><span class="badge badge-error badge-outline">{{ overdue|length }}</span></div>
+      <div class="space-y-2">
+        {% for item in overdue|slice:':5' %}
+        <article class="rounded-xl border border-error/20 bg-error/5 p-3 min-w-0">
+          <div class="flex items-center justify-between gap-2"><span class="text-xs font-semibold text-error">{{ item.id }}</span><span class="badge badge-xs badge-outline">{{ item.state }}</span></div>
+          <p class="font-medium text-sm leading-snug mt-1 break-words">{{ item.title }}</p>
+          <p class="text-xs opacity-60 mt-2">{{ item.properties.PLAN|default:item.source }}{% if item.properties.OPERATIVE %} · {{ item.properties.OPERATIVE }}{% endif %}</p>
+          {% if item.deadline_display %}<p class="text-xs text-error mt-1">Venció {{ item.deadline_display }}</p>{% endif %}
+        </article>
+        {% empty %}<p class="text-sm opacity-60 py-3">Sin actividades vencidas.</p>{% endfor %}
+      </div>
+      {% if overdue|length > 5 %}<p class="text-xs opacity-60 mt-3">Se muestran 5 de {{ overdue|length }} actividades.</p>{% endif %}
+    </article>
+
+    <article class="rounded-2xl border border-base-300 bg-base-100 p-4 md:p-5 min-w-0">
+      <div class="flex items-start justify-between gap-2 mb-3"><div><p class="text-xs uppercase tracking-wide opacity-50">Vencimientos e inicios próximos</p><h2 class="text-lg font-semibold mt-1 inline-flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/><path d="M12 3V1M21 12h2"/></svg>En el radar</h2></div><span class="badge badge-outline">{{ upcoming|length }}</span></div>
+      <div class="space-y-2">
+        {% for item in upcoming|slice:':5' %}
+        <article class="rounded-xl bg-base-200/50 border border-base-300/70 p-3 min-w-0">
+          <div class="flex items-center justify-between gap-2"><span class="text-xs font-semibold">{{ item.id }}</span><span class="badge badge-xs badge-outline">{{ item.state }}</span></div>
+          <p class="font-medium text-sm leading-snug mt-1 break-words">{{ item.title }}</p>
+          <p class="text-xs opacity-60 mt-2">{{ item.properties.PLAN|default:item.source }}{% if item.properties.OPERATIVE %} · {{ item.properties.OPERATIVE }}{% endif %}</p>
+          <p class="text-xs mt-1 font-medium">{{ item.next_milestone_label }} · {{ item.next_milestone_date }}</p>
+        </article>
+        {% empty %}<p class="text-sm opacity-60 py-3">Sin hitos en los próximos siete días.</p>{% endfor %}
+      </div>
+      {% if upcoming|length > 5 %}<p class="text-xs opacity-60 mt-3">Se muestran 5 de {{ upcoming|length }} actividades.</p>{% endif %}
+    </article>
   </section>
 </div>
 {% endblock %}
@@ -54,29 +111,128 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const element = document.getElementById('agenda-calendar');
-  if (!element || !window.FullCalendar) return;
+  const itemsElement = document.getElementById('agenda-focus-items');
+  const titleElement = document.getElementById('agenda-focus-title');
+  const countElement = document.getElementById('agenda-focus-count');
+  const dayLink = document.getElementById('agenda-focus-list');
+  const pdfLink = document.getElementById('agenda-focus-pdf');
+  if (!element || !itemsElement || !window.FullCalendar) return;
+
+  const eventsUrl = "{% url 'agenda:calendar-events' %}";
+  const listUrl = "{% url 'agenda:list' %}";
+  const pdfUrl = "{% url 'agenda:pdf' %}";
+  const today = "{{ today|date:'Y-m-d' }}";
+  let requestNumber = 0;
+
+  function text(tag, value, className) {
+    const node = document.createElement(tag);
+    node.textContent = value == null ? '' : String(value);
+    if (className) node.className = className;
+    return node;
+  }
+
+  function setMessage(message) {
+    itemsElement.replaceChildren(text('p', message, 'text-sm opacity-60 py-2'));
+  }
+
+  function formatDate(iso) {
+    return new Intl.DateTimeFormat('es-MX', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    }).format(new Date(iso + 'T12:00:00'));
+  }
+
+  function taskCard(task) {
+    const article = document.createElement('article');
+    article.className = 'rounded-xl border border-base-300 bg-base-200/40 p-3';
+
+    const heading = document.createElement('div');
+    heading.className = 'flex flex-wrap items-start justify-between gap-2';
+    const label = text('p', task.title, 'text-sm font-semibold leading-snug flex-1 min-w-0');
+    heading.appendChild(label);
+    heading.appendChild(text('span', 'Pendiente', 'badge badge-sm badge-outline shrink-0'));
+    article.appendChild(heading);
+
+    const meta = [];
+    if (task.id) meta.push(task.id);
+    if (task.plan) meta.push(task.plan);
+    if (task.priority_label) meta.push(task.priority_label);
+    if (task.operative) meta.push('Operativo ' + task.operative);
+    if (task.monitor) meta.push('Monitor ' + task.monitor);
+    if (meta.length) article.appendChild(text('p', meta.join(' · '), 'text-xs opacity-60 mt-1'));
+
+    const dates = [];
+    if (task.scheduled) dates.push('Inicio ' + task.scheduled.slice(0, 10));
+    if (task.deadline) dates.push('Vence ' + task.deadline.slice(0, 10));
+    if (task.attention) dates.unshift(task.attention);
+    if (dates.length) article.appendChild(text('p', dates.join(' · '), 'text-xs mt-2 font-medium'));
+    return article;
+  }
+
+  async function selectDay(iso) {
+    const sequence = ++requestNumber;
+    titleElement.querySelector('span').textContent = iso === today ? 'Agenda de hoy' : 'Agenda del ' + formatDate(iso);
+    dayLink.href = listUrl + '?period=day&date=' + encodeURIComponent(iso);
+    pdfLink.href = pdfUrl + '?period=day&date=' + encodeURIComponent(iso);
+    countElement.textContent = '…';
+    setMessage('Consultando pendientes…');
+
+    try {
+      const response = await fetch(eventsUrl + '?focus=' + encodeURIComponent(iso), {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Respuesta HTTP ' + response.status);
+      const tasks = await response.json();
+      if (sequence !== requestNumber) return;
+      countElement.textContent = String(tasks.length);
+      if (!tasks.length) {
+        setMessage('Sin actividades que requieran atención en esta fecha.');
+        return;
+      }
+      itemsElement.replaceChildren(...tasks.slice(0, 5).map(taskCard));
+      if (tasks.length > 5) itemsElement.appendChild(text('p', 'Se muestran 5 de ' + tasks.length + '. Abre el día para verlas todas.', 'text-xs opacity-60 mt-1'));
+    } catch (error) {
+      if (sequence !== requestNumber) return;
+      countElement.textContent = '—';
+      setMessage('No fue posible consultar las tareas de esta fecha.');
+      console.error('Agenda:', error);
+    }
+  }
+
   const calendar = new FullCalendar.Calendar(element, {
     initialView: 'dayGridMonth', locale: 'es', firstDay: 1, height: 'auto',
     fixedWeekCount: false, dayMaxEvents: 3, expandRows: true,
     headerToolbar: {left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek'},
     buttonText: {today: 'Hoy', month: 'Mes', week: 'Semana', list: 'Lista'},
-    events: {url: "{% url 'agenda:calendar-events' %}", method: 'GET'},
+    events: {url: eventsUrl, method: 'GET'},
+    dateClick: function(info) {
+      selectDay(info.dateStr.slice(0, 10));
+    },
     eventDidMount: function(info) {
-      const state = info.event.extendedProps.state;
-      if (state === 'DOING') info.el.classList.add('agenda-event-doing');
-      if (state === 'WAITING') info.el.classList.add('agenda-event-waiting');
+      const props = info.event.extendedProps || {};
+      if (props.isTodoSummary) {
+        info.el.classList.add('agenda-event-todo-summary');
+      } else {
+        if (props.state === 'WAITING') info.el.classList.add('agenda-event-waiting');
+      }
     },
     eventClick: function(info) {
       const p = info.event.extendedProps || {};
-      const lines = [info.event.title, 'Fecha: ' + (info.event.startStr || ''),
+      if (p.isTodoSummary) {
+        selectDay(info.event.startStr.slice(0, 10));
+        return;
+      }
+      const lines = [p.fullTitle || info.event.title,
+        'Fecha: ' + (info.event.startStr || ''),
         'Tipo: ' + (p.dateKind || ''), 'Estado: ' + (p.state || ''),
         'ID: ' + (p.taskId || ''), 'Plan: ' + (p.plan || ''),
-        'Responsable: ' + (p.owner || ''), 'Monitor: ' + (p.monitor || ''),
+        'Responsable: ' + (p.owner || ''), 'Operativo: ' + (p.operative || ''),
+        'Monitor: ' + (p.monitor || ''), 'Vence: ' + (p.deadline || ''),
         'Fuente: ' + (p.source || '')];
       window.alert(lines.filter(Boolean).join('\n'));
     }
   });
   calendar.render();
+  selectDay(today);
 });
 </script>
 {% endblock %}
