@@ -1,0 +1,34 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=14mm,headheight=16pt]{geometry}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{spanish}
+\IfFontExistsTF{Arial}{\setmainfont{Arial}}{\setmainfont{TeX Gyre Heros}}
+\usepackage{xcolor}
+\definecolor{oxford}{HTML}{454248}
+\definecolor{beigeLight}{HTML}{F4F0EA}
+\definecolor{muted}{HTML}{77727A}
+\usepackage[most]{tcolorbox}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=oxford,urlcolor=oxford}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{muted}INE TLAXCALA · AGENDA OPERATIVA}
+\fancyhead[R]{\small\color{muted}\today}
+\fancyfoot[C]{\small\color{muted}\thepage}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\begin{document}
+{\color{oxford}\Huge\bfseries @@TITLE@@}\\[2mm]
+{\large\color{muted}@@PERIOD@@}\\[5mm]
+\begin{tcolorbox}[colback=oxford,colframe=oxford,arc=2mm,boxrule=0pt]
+{\color{white}\small Documento generado a partir de las fuentes Org-mode.}
+\end{tcolorbox}
+@@CARDS@@
+\vfill
+{\tiny\color{muted}Documento de consulta. La fuente de verdad de las actividades permanece en los archivos Org-mode.}
+\end{document}

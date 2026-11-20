@@ -1,0 +1,8 @@
+.agenda-shell .fc .fc-toolbar-title { font-size: 1.05rem; font-weight: 700; }
+.agenda-shell .fc .fc-button { border-radius: .6rem; text-transform: capitalize; padding: .35rem .55rem; font-size: .8rem; }
+.agenda-shell .fc .fc-daygrid-event { white-space: normal; }
+.agenda-shell .fc .fc-event-title { font-weight: 600; }
+.agenda-shell .fc .agenda-event-doing { border-left: 3px solid #4f7896; }
+.agenda-shell .fc .agenda-event-waiting { border-left: 3px solid #b28a48; }
+.agenda-shell #agenda-calendar { min-width: 0; }
+@media (max-width: 767px) { .agenda-shell .fc .fc-toolbar { flex-direction: column; gap: .5rem; } .agenda-shell .fc .fc-toolbar-chunk { display: flex; justify-content: center; } }

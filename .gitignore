@@ -22,6 +22,7 @@ src/staticfiles/
 manifest.js
 data/
 lock
+var/agenda/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

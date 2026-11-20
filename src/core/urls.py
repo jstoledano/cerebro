@@ -13,6 +13,7 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(template_name="logout.html"), name="logout"),
     path("admin/", admin.site.urls),
     path("tinymce/", include("tinymce.urls")),
+    path("agenda/", include("apps.agenda.urls")),
     path("art141/", include("apps.art141.urls")),
     path("docs/", include("apps.docs.urls")),
     path("cartografia/", include("apps.pusinex.urls")),
