@@ -14,9 +14,9 @@ from django.views import View
 from apps.agenda.services.data import (
     active_items, attention_reason, dashboard_metrics, deadline_date,
     items_for_range, load_payload, pending_tasks,
-    priority_code, priority_label, stamp_date, todo_items_for_day, PENDING_STATES,
+    priority_code, priority_label, stamp_date, todo_items_for_day, week_bounds, PENDING_STATES,
 )
-from apps.agenda.services.pdf import generate_pdf
+from apps.agenda.services.weekly import get_or_create_weekly_pdf
 
 
 def _payload_or_error():
@@ -91,36 +91,21 @@ class DashboardView(LoginRequiredMixin, View):
             str(item.get("title") or "").casefold(),
         ))
         upcoming = present(metrics["upcoming"])
-        horizon = today + timedelta(days=7)
         for item in upcoming:
-            milestones = []
-            for stamp_key, label in (("scheduled", "Inicia"), ("deadline", "Vence")):
-                value = _stamp_value(item.get(stamp_key))
-                if not value:
-                    continue
-                try:
-                    milestone = date.fromisoformat(value[:10])
-                except ValueError:
-                    continue
-                if today < milestone <= horizon:
-                    milestones.append((milestone, label))
-            if milestones:
-                milestone_date, milestone_label = min(milestones)
-                item["next_milestone_date"] = milestone_date.isoformat()
-                item["next_milestone_label"] = milestone_label
-            else:
-                item["next_milestone_date"] = ""
-                item["next_milestone_label"] = ""
-        upcoming.sort(key=lambda item: (
-            item["next_milestone_date"] or "9999-12-31",
-            item.get("title", "").casefold(),
-        ))
+            item["next_milestone_date"] = item.get("agenda_date") or ""
+            item["next_milestone_label"] = item.get("date_kind") or ""
+        _, week_end = week_bounds(today)
+        radar_start = week_end + timedelta(days=1)
+        radar_end = (date.fromisoformat(upcoming[-1]["next_milestone_date"])
+                     if upcoming else None)
 
         return render(request, "agenda/dashboard.html", {
             "today": today, "payload": payload,
             "total_open": len(metrics["tasks"]),
             "overdue": overdue, "due_today": present(metrics["due_today"]),
             "upcoming": upcoming,
+            "radar_start": radar_start,
+            "radar_end": radar_end,
             "validation": payload.get("validation", {}),
             "generated_at": payload.get("generated_at", ""),
             "source_count": len(payload.get("source_files", [])),
@@ -330,24 +315,26 @@ class AgendaListView(LoginRequiredMixin, View):
 
 
 class AgendaPDFView(LoginRequiredMixin, View):
+    """Servir el PDF semanal existente; generarlo si aun no existe."""
+
     def get(self, request):
-        payload, error = _payload_or_error()
-        if error:
-            return HttpResponse(error, status=503, content_type="text/plain; charset=utf-8")
-        period = request.GET.get("period", "day")
+        period = request.GET.get("period", "week")
+        if period != "week":
+            return HttpResponse(
+                "Solo esta disponible la agenda semanal en PDF.",
+                status=400, content_type="text/plain; charset=utf-8",
+            )
         target = _date_arg(request, default=_today())
-        if period == "week":
-            start = target - timedelta(days=target.weekday())
-            end = start + timedelta(days=6)
-        else:
-            start = end = target
-        items = items_for_range(payload, start, end)
         try:
-            path = generate_pdf(items, start, end, Path(settings.AGENDA_OUTPUT_DIR))
-        except (RuntimeError, OSError) as exc:
-            return HttpResponse(str(exc), status=500, content_type="text/plain; charset=utf-8")
-        return FileResponse(path.open("rb"), as_attachment=True, filename=path.name,
-                            content_type="application/pdf")
+            path = get_or_create_weekly_pdf(target)
+            return FileResponse(
+                path.open("rb"), as_attachment=True, filename=path.name,
+                content_type="application/pdf",
+            )
+        except (RuntimeError, OSError, ValueError) as exc:
+            return HttpResponse(
+                str(exc), status=503, content_type="text/plain; charset=utf-8",
+            )
 
 
 class ICalendarView(LoginRequiredMixin, View):

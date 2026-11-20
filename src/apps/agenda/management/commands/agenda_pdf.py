@@ -1,30 +1,26 @@
-"""Generate a daily or weekly PDF from the latest agenda export."""
-from datetime import date, timedelta
-from pathlib import Path
+"""Generar o reutilizar el PDF institucional de lunes a domingo."""
+from datetime import date
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from apps.agenda.services.data import load_payload, items_for_range
-from apps.agenda.services.pdf import generate_pdf
+from apps.agenda.services.weekly import get_or_create_weekly_pdf
 
 
 class Command(BaseCommand):
-    help = "Genera la agenda PDF diaria o semanal mediante XeLaTeX."
+    help = "Obtiene la agenda semanal (lunes a domingo); la genera si falta."
 
     def add_arguments(self, parser):
-        parser.add_argument("--period", choices=("day", "week"), default="day")
+        parser.add_argument("--period", choices=("week",), default="week")
         parser.add_argument("--date", dest="target_date", default=None)
+        parser.add_argument("--force", action="store_true",
+                            help="Regenerar explicitamente el PDF semanal existente.")
 
     def handle(self, *args, **options):
         try:
-            target = date.fromisoformat(options["target_date"]) if options["target_date"] else timezone.localdate()
-            start = target if options["period"] == "day" else target - timedelta(days=target.weekday())
-            end = start if options["period"] == "day" else start + timedelta(days=6)
-            payload = load_payload()
-            items = items_for_range(payload, start, end)
-            path = generate_pdf(items, start, end, Path(settings.AGENDA_OUTPUT_DIR))
-        except (ValueError, FileNotFoundError, RuntimeError) as exc:
+            target = (date.fromisoformat(options["target_date"])
+                      if options["target_date"] else timezone.localdate())
+            path = get_or_create_weekly_pdf(target, force=options["force"])
+        except (ValueError, FileNotFoundError, OSError, RuntimeError) as exc:
             raise CommandError(str(exc)) from exc
         self.stdout.write(self.style.SUCCESS(str(path)))

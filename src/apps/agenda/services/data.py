@@ -218,13 +218,67 @@ def items_for_range(payload, start, end, include_terminal=False):
 
 
 def dashboard_metrics(payload, today):
-    """Tareas generales, agenda selectiva, vencidas y radar de hitos 1..7 dias."""
+    """Dashboard con radar identico al PDF semanal de lunes a domingo.
+
+    El radar presenta los siguientes cinco hitos despues del domingo de la
+    semana consultada. Reutiliza la misma seleccion y el mismo orden del PDF.
+    """
     tasks = pending_tasks(payload)
     overdue = [item for item in tasks if deadline_date(item) and deadline_date(item) < today]
     due_today = todo_items_for_day(payload, today)
-    horizon = today + timedelta(days=7)
-    upcoming = [item for item in tasks if item not in overdue and any(
-        day is not None and today < day <= horizon
-        for day in (stamp_date(item.get("scheduled")), deadline_date(item))
-    )]
+    _, week_end = week_bounds(today)
+    upcoming = weekly_radar_items(payload, week_end, limit=5)
     return {"tasks": tasks, "overdue": overdue, "due_today": due_today, "upcoming": upcoming}
+
+
+
+def week_bounds(target):
+    """Semana civil institucional: lunes 00:00 a domingo 23:59."""
+    monday = target - timedelta(days=target.weekday())
+    return monday, monday + timedelta(days=6)
+
+
+def weekly_overdue_items(payload, cutoff):
+    """Pendientes vencidos antes de la fecha de generacion del documento."""
+    return sorted(
+        [item for item in pending_tasks(payload)
+         if deadline_date(item) and deadline_date(item) < cutoff],
+        key=lambda item: (
+            deadline_date(item),
+            PRIORITY_ORDER[priority_code(item)],
+            str(item.get("title") or "").casefold(),
+        ),
+    )
+
+
+def weekly_radar_items(payload, week_end, limit=5):
+    """Cinco tareas distintas con el siguiente hito posterior al domingo.
+
+    El horizonte avanza automaticamente cuando faltan tareas en la siguiente
+    semana. Ante una misma fecha, vencimientos preceden a inicios y luego
+    se ordena por prioridad. Se conserva solo el proximo hito de cada tarea.
+    """
+    if limit <= 0:
+        return []
+    candidates = []
+    for item in pending_tasks(payload):
+        milestones = []
+        for key, label, precedence in (
+            ("deadline", "Vence", 0),
+            ("scheduled", "Inicia", 1),
+        ):
+            day = stamp_date(item.get(key))
+            if day is not None and day > week_end:
+                milestones.append((day, precedence, label))
+        if not milestones:
+            continue
+        day, precedence, label = min(milestones)
+        candidates.append((
+            day,
+            precedence,
+            PRIORITY_ORDER[priority_code(item)],
+            str(item.get("title") or "").casefold(),
+            _occurrence(item, day, label),
+        ))
+    candidates.sort(key=lambda row: row[:-1])
+    return [row[-1] for row in candidates[:limit]]
