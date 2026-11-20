@@ -12,7 +12,7 @@
   <header class="rounded-3xl bg-neutral text-neutral-content p-6 md:p-8 shadow-sm">
     <div class="flex flex-wrap items-end justify-between gap-5">
       <div><p class="text-xs tracking-[.18em] opacity-70">SEGUIMIENTO OPERATIVO</p><h1 class="text-3xl md:text-4xl font-bold mt-2">Agenda</h1><p class="mt-2 opacity-75">{{ today|date:'l, d F Y' }}</p></div>
-      <div class="flex flex-wrap gap-2"><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:pending' %}">Todos los pendientes</a><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:list' %}?period=day">Agenda de hoy</a><a class="btn btn-sm btn-primary" href="{% url 'agenda:pdf' %}" title="Abrir la agenda de lunes a domingo; se reutiliza el PDF existente">Agenda semanal · PDF</a></div>
+      <div class="flex flex-wrap gap-2"><a class="btn btn-sm btn-outline text-neutral-content" href="{% url 'agenda:pending' %}">Todos los pendientes</a><a class="btn btn-sm btn-primary" href="{% url 'agenda:pdf' %}" title="Abrir la agenda de lunes a domingo; se reutiliza el PDF existente">Agenda semanal · PDF</a></div>
     </div>
     <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs opacity-70"><span>{{ source_count }} archivos fuente</span><span>{{ total_open }} tareas abiertas</span><span>Actualizada {{ generated_at }}</span></div>
   </header>
@@ -21,7 +21,7 @@
 
   <section class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
     <article class="xl:col-span-8 rounded-2xl border border-base-300 bg-base-100 p-4 md:p-5 shadow-sm min-w-0">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-4"><div><p class="text-xs uppercase tracking-wide opacity-50">Exploración temporal</p><h2 class="text-xl font-semibold mt-1">Calendario de actividades</h2></div><a class="link link-primary text-sm" href="{% url 'agenda:list' %}?period=week">Ver agenda semanal</a></div>
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4"><div><p class="text-xs uppercase tracking-wide opacity-50">Exploración temporal</p><h2 class="text-xl font-semibold mt-1">Calendario de actividades</h2></div></div>
       <div id="agenda-calendar"></div>
     </article>
 
@@ -66,9 +66,6 @@
       <div id="agenda-focus-items" class="grid gap-2" aria-label="Actividades que requieren atención en la fecha seleccionada">
         <p class="text-sm opacity-60">Consultando prioridades…</p>
       </div>
-      <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-base-200">
-        <a id="agenda-focus-list" class="btn btn-xs btn-outline" href="{% url 'agenda:list' %}?period=day&date={{ today|date:'Y-m-d' }}">Abrir día</a>
-      </div>
     </article>
 
     <article class="rounded-2xl border border-error/25 bg-base-100 p-4 md:p-5 min-w-0">
@@ -112,11 +109,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const itemsElement = document.getElementById('agenda-focus-items');
   const titleElement = document.getElementById('agenda-focus-title');
   const countElement = document.getElementById('agenda-focus-count');
-  const dayLink = document.getElementById('agenda-focus-list');
   if (!element || !itemsElement || !window.FullCalendar) return;
 
   const eventsUrl = "{% url 'agenda:calendar-events' %}";
-  const listUrl = "{% url 'agenda:list' %}";
   const today = "{{ today|date:'Y-m-d' }}";
   let requestNumber = 0;
 
@@ -167,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function () {
   async function selectDay(iso) {
     const sequence = ++requestNumber;
     titleElement.querySelector('span').textContent = iso === today ? 'Agenda de hoy' : 'Agenda del ' + formatDate(iso);
-    dayLink.href = listUrl + '?period=day&date=' + encodeURIComponent(iso);
     countElement.textContent = '…';
     setMessage('Consultando pendientes…');
 
@@ -184,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       itemsElement.replaceChildren(...tasks.slice(0, 5).map(taskCard));
-      if (tasks.length > 5) itemsElement.appendChild(text('p', 'Se muestran 5 de ' + tasks.length + '. Abre el día para verlas todas.', 'text-xs opacity-60 mt-1'));
+      if (tasks.length > 5) itemsElement.appendChild(text('p', 'Se muestran 5 de ' + tasks.length + '. Consulta Pendientes generales para ver el resto.', 'text-xs opacity-60 mt-1'));
     } catch (error) {
       if (sequence !== requestNumber) return;
       countElement.textContent = '—';

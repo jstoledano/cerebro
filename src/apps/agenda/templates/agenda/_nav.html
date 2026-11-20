@@ -1,6 +1,5 @@
 <nav class="flex flex-wrap gap-2 mb-6">
   <a class="btn btn-sm {% if request.resolver_match.url_name == 'dashboard' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'agenda:dashboard' %}">Dashboard</a>
-  <a class="btn btn-sm {% if request.resolver_match.url_name == 'list' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'agenda:list' %}">Agenda</a>
   <a class="btn btn-sm {% if request.resolver_match.url_name == 'pending' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'agenda:pending' %}">Pendientes generales</a>
   <a class="btn btn-sm btn-outline" href="{% url 'agenda:ics' %}">ICS</a>
 </nav>
