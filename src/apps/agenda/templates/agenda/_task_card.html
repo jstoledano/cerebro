@@ -1,0 +1,6 @@
+<article class="rounded-xl border border-error/20 bg-error/5 p-4 flex flex-col gap-2">
+  <div class="flex flex-wrap justify-between gap-2"><span class="badge badge-sm {% if item.state == 'DOING' %}badge-info{% elif item.state == 'WAITING' %}badge-warning{% else %}badge-outline{% endif %}">{{ item.state|default:'TODO' }}</span><span class="text-xs opacity-60">{{ item.id }}</span></div>
+  <h3 class="font-semibold text-sm leading-snug">{{ item.title }}</h3>
+  <p class="text-xs opacity-60">{{ item.properties.PLAN|default:item.source }}{% if item.properties.OWNER %} · {{ item.properties.OWNER }}{% endif %}{% if item.properties.MONITOR %} · Monitor {{ item.properties.MONITOR }}{% endif %}</p>
+  {% if item.deadline_display %}<p class="text-xs font-medium text-error">Vence {{ item.deadline_display }}</p>{% endif %}
+</article>

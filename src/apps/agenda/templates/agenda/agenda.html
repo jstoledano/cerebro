@@ -1,0 +1,24 @@
+{% extends 'cerebro/base.html' %}
+{% block title %}Agenda operativa{% endblock %}
+{% block content %}
+<div class="space-y-5 agenda-shell">
+  <header class="flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs uppercase tracking-widest opacity-50">Consulta operativa</p><h1 class="text-3xl font-bold mt-1">Agenda</h1><p class="text-sm opacity-60 mt-1">{{ start|date:'d/m/Y' }}{% if end != start %} – {{ end|date:'d/m/Y' }}{% endif %} · {{ item_count }} actividades</p></div><div class="flex flex-wrap gap-2"><a class="btn btn-sm {% if period == 'day' %}btn-primary{% else %}btn-outline{% endif %}" href="?period=day&date={{ start|date:'Y-m-d' }}">Día</a><a class="btn btn-sm {% if period == 'week' %}btn-primary{% else %}btn-outline{% endif %}" href="?period=week&date={{ start|date:'Y-m-d' }}">Semana</a><a class="btn btn-sm btn-outline" href="{% url 'agenda:pdf' %}?date={{ start|date:'Y-m-d' }}">PDF semanal</a></div></header>
+  {% include 'agenda/_nav.html' %}
+  {% for day, items in groups %}
+  <section class="rounded-2xl border border-base-300 bg-base-100 overflow-hidden shadow-sm">
+    <header class="bg-neutral text-neutral-content px-5 py-3 flex justify-between items-center"><h2 class="font-semibold">{{ day|date:'l, d F Y' }}</h2><span class="text-xs opacity-70">{{ items|length }} actividades</span></header>
+    <div class="space-y-3 p-4 md:p-5">
+      {% for item in items %}
+      <article class="rounded-xl border border-base-300 bg-base-100 p-4 md:p-5 shadow-sm flex flex-col gap-3">
+        <div class="flex justify-between gap-2"><div class="flex flex-wrap gap-2"><span class="badge badge-sm badge-outline">{% if item.kind == 'task' %}TODO{% else %}EVENTO{% endif %}</span><span class="badge badge-sm badge-ghost">{{ item.priority_label }}</span></div><span class="text-xs opacity-55">{{ item.id }}</span></div>
+        <h3 class="text-base md:text-lg font-semibold leading-snug">{{ item.title }}</h3>
+        <div class="text-sm opacity-65">{{ item.date_kind }} · {{ item.properties.PLAN|default:item.source }}{% if item.properties.OWNER %} · {{ item.properties.OWNER }}{% endif %}{% if item.properties.MONITOR %} · Monitor {{ item.properties.MONITOR }}{% endif %}</div>
+        {% if item.body %}<p class="text-sm whitespace-pre-line opacity-80">{{ item.body }}</p>{% endif %}
+        {% if item.deadline_display %}<p class="text-sm text-error font-medium">Vence: {{ item.deadline_display }}</p>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% empty %}<div class="rounded-2xl border border-base-300 p-8 text-center opacity-60">No hay actividades para este periodo.</div>{% endfor %}
+</div>
+{% endblock %}

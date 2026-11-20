@@ -4,7 +4,7 @@
 {% active request '^/$' as home_active %}
 {% active request '^/(cecyrd|pusinex|kpi|vozmac)(/|$)' as indicadores_active %}
 {% active request '^/(docs|pmml)(/|$)' as docs_active %}
-{% active request '^/pas(/|$)' as pas_active %}
+{% active request '^/agenda(/|$)' as agenda_active %}
 {% active request '^/ideas(/|$)' as ideas_active %}
 {% active request '^/cartografia(/|$)' as cartografia_active %}
 
@@ -131,9 +131,9 @@
 </li>
 <li>
 
-  <a class="flex items-center gap-2 {{ pas_active }} {% if pas_active %}is-active{% endif %}"
-     href="{% url 'pas:index' %}"
-     {% if pas_active %}aria-current="page"{% endif %}>
+  <a class="flex items-center gap-2 {{ agenda_active }} {% if agenda_active %}is-active{% endif %}"
+     href="{% url 'agenda:dashboard' %}"
+     {% if agenda_active %}aria-current="page"{% endif %}>
 
     <svg xmlns="http://www.w3.org/2000/svg"
          width="24"
@@ -156,7 +156,7 @@
 
     </svg>
 
-    Planes
+    Agenda
 
   </a>
 

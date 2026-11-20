@@ -19,6 +19,12 @@ env = environ.Env(
 # Leer el archivo .env desde la raíz
 environ.Env.read_env(BASE_DIR / ".env")
 
+AGENDA_PATH = Path(env("AGENDA_PATH")) if env("AGENDA_PATH", default="") else None
+AGENDA_OUTPUT_DIR = Path(env("AGENDA_OUTPUT_DIR", default=str(BASE_DIR / "var" / "agenda")))
+AGENDA_EMACS_COMMAND = env("AGENDA_EMACS_COMMAND", default="emacs")
+AGENDA_XELATEX_COMMAND = env("AGENDA_XELATEX_COMMAND", default="xelatex")
+AGENDA_FILES = env.list("AGENDA_FILES", default=[])
+
 SECRET_KEY = env("SECRET_KEY")
 
 DEBUG = env("DEBUG", default=False)
@@ -74,6 +80,7 @@ LOCAL_APPS = [
     "apps.pmml.config.PmmlConfig",
     "apps.cecyrd.config.CecyrdConfig",
     "apps.art141.config.Art141Config",
+    "apps.agenda.config.AgendaConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
