@@ -4,7 +4,6 @@ from urllib.parse import urlencode
 from pathlib import Path
 
 from django.conf import settings
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -64,7 +63,7 @@ def _calendar_stamps(item):
     return [(stamp, "Evento") for stamp in (item.get("timestamps") or [])]
 
 
-class DashboardView(LoginRequiredMixin, View):
+class DashboardView(View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -112,7 +111,7 @@ class DashboardView(LoginRequiredMixin, View):
         })
 
 
-class PendingTasksView(LoginRequiredMixin, View):
+class PendingTasksView(View):
     """Inventario general, consultable y filtrable, sin sobrecargar el dashboard."""
     def get(self, request):
         payload, error = _payload_or_error()
@@ -177,7 +176,7 @@ class PendingTasksView(LoginRequiredMixin, View):
         })
 
 
-class CalendarEventsView(LoginRequiredMixin, View):
+class CalendarEventsView(View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -285,7 +284,7 @@ class CalendarEventsView(LoginRequiredMixin, View):
         return JsonResponse(events, safe=False)
 
 
-class AgendaListView(LoginRequiredMixin, View):
+class AgendaListView(View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -314,7 +313,7 @@ class AgendaListView(LoginRequiredMixin, View):
         })
 
 
-class AgendaPDFView(LoginRequiredMixin, View):
+class AgendaPDFView(View):
     """Servir el PDF semanal existente; generarlo si aun no existe."""
 
     def get(self, request):
@@ -337,7 +336,7 @@ class AgendaPDFView(LoginRequiredMixin, View):
             )
 
 
-class ICalendarView(LoginRequiredMixin, View):
+class ICalendarView(View):
     def get(self, request):
         path = Path(settings.AGENDA_OUTPUT_DIR) / "agenda.ics"
         if not path.is_file():
