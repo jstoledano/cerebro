@@ -1,14 +1,19 @@
 """Vistas de consulta de la agenda Org-mode."""
+import json
+import subprocess
 from datetime import date, datetime, timedelta
 from urllib.parse import urlencode
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 from apps.agenda.services.data import (
     active_items, attention_reason, dashboard_metrics, deadline_date,
@@ -16,6 +21,9 @@ from apps.agenda.services.data import (
     priority_code, priority_label, stamp_date, todo_items_for_day, week_bounds, PENDING_STATES,
 )
 from apps.agenda.services.weekly import get_or_create_weekly_pdf
+from apps.agenda.services.indicators import project_indicators
+from apps.agenda.services.tasks import task_detail
+from apps.agenda.services.org_writer import change_task_state, StateChangeError
 
 
 def _payload_or_error():
@@ -63,7 +71,7 @@ def _calendar_stamps(item):
     return [(stamp, "Evento") for stamp in (item.get("timestamps") or [])]
 
 
-class DashboardView(View):
+class DashboardView(LoginRequiredMixin, View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -108,10 +116,12 @@ class DashboardView(View):
             "validation": payload.get("validation", {}),
             "generated_at": payload.get("generated_at", ""),
             "source_count": len(payload.get("source_files", [])),
+            "project_indicators": project_indicators(payload, today),
+            "can_edit_agenda": bool(request.user.is_authenticated and request.user.is_staff),
         })
 
 
-class PendingTasksView(View):
+class PendingTasksView(LoginRequiredMixin, View):
     """Inventario general, consultable y filtrable, sin sobrecargar el dashboard."""
     def get(self, request):
         payload, error = _payload_or_error()
@@ -119,6 +129,7 @@ class PendingTasksView(View):
             return render(request, "agenda/unavailable.html", {"error": error})
         today = _today()
         all_items = pending_tasks(payload)
+        radar_ids = {item.get("id") for item in dashboard_metrics(payload, today)["upcoming"]}
         q = request.GET.get("q", "").strip()[:120]
         plan = request.GET.get("plan", "").strip()[:40]
         priority = request.GET.get("priority", "").strip().upper()
@@ -155,7 +166,7 @@ class PendingTasksView(View):
                 rank, label = 0, "Vencida"
             elif attention_reason(item, today):
                 rank, label = 1, "Atencion hoy"
-            elif any(d and today < d <= today + timedelta(days=7) for d in (start, due)):
+            elif original.get("id") in radar_ids:
                 rank, label = 2, "En el radar"
             else:
                 rank, label = 3, "Pendiente"
@@ -173,10 +184,11 @@ class PendingTasksView(View):
             "item_count": len(selected), "total_count": len(all_items),
             "q": q, "plan": plan, "priority": priority,
             "plans": all_plans, "page_query": page_query,
+            "can_edit_agenda": bool(request.user.is_authenticated and request.user.is_staff),
         })
 
 
-class CalendarEventsView(View):
+class CalendarEventsView(LoginRequiredMixin, View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -284,7 +296,7 @@ class CalendarEventsView(View):
         return JsonResponse(events, safe=False)
 
 
-class AgendaListView(View):
+class AgendaListView(LoginRequiredMixin, View):
     def get(self, request):
         payload, error = _payload_or_error()
         if error:
@@ -313,7 +325,7 @@ class AgendaListView(View):
         })
 
 
-class AgendaPDFView(View):
+class AgendaPDFView(LoginRequiredMixin, View):
     """Servir el PDF semanal existente; generarlo si aun no existe."""
 
     def get(self, request):
@@ -336,7 +348,7 @@ class AgendaPDFView(View):
             )
 
 
-class ICalendarView(View):
+class ICalendarView(LoginRequiredMixin, View):
     def get(self, request):
         path = Path(settings.AGENDA_OUTPUT_DIR) / "agenda.ics"
         if not path.is_file():
@@ -346,3 +358,45 @@ class ICalendarView(View):
             )
         return FileResponse(path.open("rb"), as_attachment=True, filename="agenda.ics",
                             content_type="text/calendar; charset=utf-8")
+
+
+class TaskDetailView(View):
+    """Ficha publica, con propiedades explicitamente permitidas."""
+    def get(self, request):
+        task_id = request.GET.get('id', '').strip()[:120]
+        if not task_id:
+            return JsonResponse({'error': 'Indica el ID de la actividad.'}, status=400)
+        payload, error = _payload_or_error()
+        if error:
+            return JsonResponse({'error': error}, status=503)
+        matches = [item for item in payload['items'] if item.get('kind') == 'task' and item.get('id') == task_id]
+        if len(matches) != 1:
+            return JsonResponse({'error': 'Actividad inexistente o ID duplicado.'}, status=404)
+        data = task_detail(matches[0])
+        data['can_edit'] = bool(request.user.is_authenticated and request.user.is_staff)
+        return JsonResponse(data)
+
+
+@method_decorator(csrf_protect, name='dispatch')
+class TaskStateView(View):
+    """Endpoint de escritura: solo personal autorizado, nota obligatoria."""
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Se requiere iniciar sesion.'}, status=401)
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'Se requieren permisos de personal.'}, status=403)
+        if len(request.body) > 12000:
+            return JsonResponse({'error': 'Solicitud demasiado grande.'}, status=413)
+        try:
+            data = json.loads(request.body)
+            if not isinstance(data, dict):
+                raise ValueError('El cuerpo debe ser un objeto JSON.')
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({'error': 'JSON invalido.'}, status=400)
+        try:
+            result = change_task_state(data.get('id', ''), data.get('state', ''), data.get('note', ''))
+        except StateChangeError as exc:
+            return JsonResponse({'error': str(exc)}, status=409)
+        except (OSError, subprocess.SubprocessError) as exc:
+            return JsonResponse({'error': 'Error de sistema al actualizar la actividad.'}, status=503)
+        return JsonResponse({'ok': True, **result})
