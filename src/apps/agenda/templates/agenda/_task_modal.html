@@ -1,0 +1,21 @@
+<dialog id="agenda-task-modal" class="modal" aria-labelledby="agenda-modal-title">
+  <div class="modal-box w-11/12 max-w-3xl max-h-[90vh] overflow-y-auto">
+    <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3" aria-label="Cerrar">✕</button></form>
+    <p class="text-xs uppercase tracking-wide opacity-60 mb-1">Ficha de actividad <span id="agenda-modal-id" class="font-mono"></span></p>
+    <h2 id="agenda-modal-title" class="text-xl md:text-2xl font-bold pr-8 break-words">Actividad</h2>
+    <div id="agenda-modal-meta" class="flex flex-wrap gap-2 mt-3"></div>
+    <div id="agenda-modal-properties" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 text-sm"></div>
+    <div id="agenda-modal-body-wrap" class="mt-5 hidden"><h3 class="text-sm font-semibold mb-2">Descripción</h3><div id="agenda-modal-body" class="whitespace-pre-wrap break-words text-sm bg-base-200 rounded-xl p-4"></div></div>
+    <div id="agenda-state-form-wrap" class="mt-6 pt-5 border-t border-base-300 hidden">
+      <h3 class="font-semibold">Cambiar estado</h3>
+      <p class="text-xs opacity-60 mt-1">La nota se registrará en LOGBOOK y el cambio se sincronizará mediante Git.</p>
+      <form id="agenda-state-form" class="space-y-3 mt-3">
+        <label class="form-control block"><span class="label-text block mb-1">Nuevo estado</span><select id="agenda-state-select" class="select select-bordered w-full" required><option value="DONE">DONE · Concluida</option><option value="TODO">TODO · Pendiente</option></select></label>
+        <label class="form-control block"><span class="label-text block mb-1">Nota de LOGBOOK (obligatoria)</span><textarea id="agenda-state-note" rows="3" minlength="3" maxlength="4000" class="textarea textarea-bordered w-full" required placeholder="Describe la actuación y la evidencia que respalda el cambio."></textarea></label>
+        <button id="agenda-state-submit" class="btn btn-primary" type="submit">Guardar y sincronizar</button>
+      </form>
+      <p id="agenda-state-result" role="status" aria-live="polite" class="text-sm mt-3"></p>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button aria-label="Cerrar ficha">Cerrar</button></form>
+</dialog>
