@@ -63,13 +63,13 @@
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
     <!-- Map Column -->
     <div class="lg:col-span-8">
-      <div id="map" class="w-full h-[600px] rounded-box border border-base-300 relative z-[1]"></div>
+      <div id="map" class="w-full h-[480px] lg:h-full lg:min-h-[720px] rounded-box border border-base-300 relative z-[1]"></div>
     </div>
 
     <!-- Sidebar Card -->
     <div class="lg:col-span-4">
-      <div class="card bg-base-100 card-border shadow-md border border-base-200 h-[600px]">
-        <div class="card-body flex flex-col justify-between">
+      <div class="card bg-base-100 card-border shadow-md border border-base-200 h-full">
+        <div class="card-body flex flex-col justify-between gap-5">
           <!-- Stats Section -->
           <div class="space-y-0">
             <div class="stat px-4 py-3">
@@ -105,6 +105,17 @@
 
           <!-- Actions Section -->
           <div class="card-actions flex flex-col gap-3">
+            {% if perms.pusinex.change_zore %}
+            <a
+              id="pusinex-cargar-zore-are"
+              href="{% url 'pusinex:zore_are_carga' distrito=distrito.pk %}"
+              class="btn btn-outline btn-primary w-full gap-2"
+              title="Cargar un CSV con las asignaciones de ZORE y ARE"
+            >
+              Subir definición de ZORE y ARE
+            </a>
+            {% endif %}
+
             {% if district_package.exists %}
             <a href="{{ district_package.download_url }}" class="btn btn-secondary w-full gap-2 px-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
@@ -406,7 +417,7 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="{% static 'pusinex/zore_are.js' %}"></script>
+<script src="{% static 'pusinex/zore_are.js' %}?v=20261124-zore-restaurada"></script>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
@@ -497,10 +508,12 @@ const capaDistrito = L.geoJSON(distritoData, {
           "Distrito": capaDistrito,
           "Municipios": capaMunicipios
       };
-            window.PusinexZoreAre.mount({
-        map: map, overlays: overlayMaps,
+      window.PusinexZoreAre.mount({
+        map: map,
+        overlays: overlayMaps,
         endpoint: "{% url 'pusinex:zore_are_api' %}",
-        nivel: "distrito", pk: "{{ distrito.pk }}",
+        nivel: "distrito",
+        pk: "{{ distrito.pk }}",
         tab: true
       });
       L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);

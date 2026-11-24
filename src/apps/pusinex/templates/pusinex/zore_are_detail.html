@@ -52,7 +52,7 @@
     </div>
   </div>
   <div class="border rounded-box border-base-300 p-5 bg-base-100">
-    <h2 class="font-bold text-xl mb-4">ZORE y ARE relacionadas</h2>
+    <h2 class="font-bold text-xl mb-4">{% if tipo_grupo == "zore" %}Descripción de la ZORE{% else %}Asignación y cobertura del ARE{% endif %}</h2>
     <div id="zore-are-listado" class="text-sm">Cargando relaciones…</div>
   </div>
   {% if tipo_grupo == 'zore' %}
@@ -70,7 +70,7 @@
 {% endblock content %}
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="{% static 'pusinex/zore_are.js' %}?v=20261123-colindancias-2"></script>
+<script src="{% static 'pusinex/zore_are.js' %}?v=20261124-are-zore-carga"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const map = L.map('map', {doubleClickZoom:false});

@@ -224,8 +224,32 @@ def _datos(nivel, pk):
         if not a.pop("casillas_disponibles"):
             a["casillas_ln"] = None
 
+    # Una ARE puede atravesar limites de distritos locales. El diagnostico
+    # considera TODAS sus secciones, aun cuando el expediente actual filtre
+    # por municipio o distrito local.
+    are_ids = {r.are_id for r in seleccionadas}
+    locales_por_are = defaultdict(set)
+    if are_ids:
+        for are_id, local_id in SeccionAre.objects.filter(
+            are_id__in=are_ids, seccion__activa=True
+        ).values_list("are_id", "seccion__distrito_l_id"):
+            locales_por_are[are_id].add(local_id)
+    are_por_id = {r.are_id: r.are for r in seleccionadas}
+    alertas_multilocal = [
+        {
+            "are_id": are_id,
+            "numero": are_por_id[are_id].numero,
+            "distrito": are_por_id[are_id].distrito_id,
+            "url": reverse("pusinex:are", args=[are_id]),
+            "distritos_locales": sorted(locales),
+        }
+        for are_id, locales in sorted(locales_por_are.items())
+        if len(locales) > 1
+    ]
+
     return {
         "tipo": nivel, "id": pk,
+        "alertas_are_multilocal": alertas_multilocal,
         "geojson": geojson,
         "secciones": secciones_datos,
         "zores": sorted(zores.values(), key=lambda z: (z["distrito"], z["numero"])),
@@ -243,7 +267,13 @@ def asignaciones_geojson(request):
     if pk < 1:
         raise Http404("Identificador invalido")
     # No se incluyen nombres, correos ni telefonos en el JSON.
-    return JsonResponse(_datos(nivel, pk), json_dumps_params={"ensure_ascii": False})
+    datos = _datos(nivel, pk)
+    datos["puede_importar"] = bool(
+        nivel == "distrito"
+        and request.user.is_authenticated
+        and request.user.has_perm("pusinex.change_zore")
+    )
+    return JsonResponse(datos, json_dumps_params={"ensure_ascii": False})
 
 
 @require_GET

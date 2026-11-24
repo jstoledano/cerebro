@@ -132,46 +132,229 @@
     }
   }
 
-  function vistaResumen(elemento, datos) {
+  function textoCabecera(datos) {
+    if (datos.tipo === "are" && datos.ares[0]) {
+      return "ARE " + numero(datos.ares[0].numero);
+    }
+    if (datos.tipo === "zore" && datos.zores[0]) {
+      return "ZORE " + numero(datos.zores[0].numero);
+    }
+    return "ZORE y ARE";
+  }
+
+  function cuadroSeccion(sec) {
+    const fila = document.createElement("li");
+    fila.className = "flex flex-wrap items-center gap-2 border-b border-base-200 py-2";
+    fila.append(enlace(sec.url, "Sección " + String(sec.numero).padStart(4, "0")));
+    if (sec.compartida) {
+      const compartida = document.createElement("span");
+      compartida.className = "badge badge-outline badge-sm";
+      compartida.textContent = "Compartida";
+      fila.append(compartida);
+    }
+    const cifras = document.createElement("span");
+    cifras.className = "text-xs opacity-70";
+    cifras.textContent = "PE " + formato(sec.padron) + " · LN " + formato(sec.lista_nominal);
+    fila.append(cifras);
+    return fila;
+  }
+
+  function tablaCoberturaLocal(elemento, secciones) {
+    if (!secciones.length) return;
+    const heading = document.createElement("h3");
+    heading.className = "text-lg font-semibold mt-6 mb-2";
+    heading.textContent = "Secciones y ARE por distrito local";
+    elemento.append(heading);
+    const envoltura = document.createElement("div");
+    envoltura.className = "overflow-x-auto";
+    const tabla = document.createElement("table");
+    tabla.className = "table table-zebra table-sm w-full";
+    const thead = document.createElement("thead");
+    const cab = document.createElement("tr");
+    ["Distrito local", "Sección", "Padrón", "Lista nominal", "ARE", "Casillas LN"].forEach(t => {
+      const th = document.createElement("th"); th.textContent = t; cab.append(th);
+    });
+    thead.append(cab); tabla.append(thead);
+    const tbody = document.createElement("tbody");
+    const grupos = new Map();
+    secciones.slice().sort((a,b) => a.distrito_local-b.distrito_local || a.numero-b.numero).forEach(sec => {
+      const clave = sec.distrito_local;
+      if (!grupos.has(clave)) grupos.set(clave, []);
+      grupos.get(clave).push(sec);
+    });
+    for (const [local, grupo] of grupos) {
+      let primeraLocal = true;
+      const numeroFilas = grupo.reduce((total, sec) => total + Math.max(1, (sec.ares || []).length), 0);
+      grupo.forEach(sec => {
+        const areas = (sec.ares && sec.ares.length) ? sec.ares : [null];
+        areas.forEach((area, indice) => {
+          const tr = document.createElement("tr");
+          if (primeraLocal) {
+            const td = document.createElement("td");
+            td.rowSpan = numeroFilas; td.className = "align-top font-semibold whitespace-nowrap";
+            const url = sec.distrito_local_url || ("/cartografia/distrito-local/" + local);
+            td.append(enlace(url, "DL " + numero(local)));
+            tr.append(td); primeraLocal = false;
+          }
+          if (indice === 0) {
+            const td = document.createElement("td");
+            td.rowSpan = areas.length; td.className = "align-top whitespace-nowrap";
+            td.append(enlace(sec.url, String(sec.numero).padStart(4, "0")));
+            if (sec.compartida) {
+              const label = document.createElement("div");
+              label.className = "badge badge-outline badge-xs mt-1";
+              label.textContent = "Compartida"; td.append(label);
+            }
+            tr.append(td);
+            [sec.padron, sec.lista_nominal].forEach(valor => {
+              const t = document.createElement("td");
+              t.rowSpan = areas.length; t.className = "align-top tabular-nums";
+              t.textContent = formato(valor); tr.append(t);
+            });
+          }
+          const celdaArea = document.createElement("td");
+          if (area) celdaArea.append(enlace(area.url, "ARE " + numero(area.numero)));
+          else celdaArea.textContent = "—";
+          tr.append(celdaArea);
+          const casillas = document.createElement("td");
+          casillas.className = "tabular-nums";
+          casillas.textContent = area ? formato(area.casillas_ln) : "—";
+          tr.append(casillas);
+          tbody.append(tr);
+        });
+      });
+    }
+    tabla.append(tbody); envoltura.append(tabla); elemento.append(envoltura);
+  }
+
+  function vistaResumen(elemento, datos, contextoZore = null) {
     elemento.innerHTML = "";
     if (!datos.zores.length) {
-      elemento.textContent = "No hay asignaciones ZORE/ARE cargadas para este ámbito.";
+      elemento.textContent = "Sin asignaciones ZORE/ARE cargadas para este ámbito.";
       return;
     }
-    const areas = new Map(datos.ares.map(a => [a.id, a]));
-    const intro = document.createElement("p");
-    intro.className = "text-sm text-base-content/70 mb-4";
-    intro.textContent = datos.zores.length + " ZORE · " + datos.ares.length +
-      " ARE · " + datos.secciones.length + " secciones asignadas.";
-    elemento.append(intro);
-    datos.zores.forEach(z => {
+    // En el expediente ARE, el listado corresponde a sus propias secciones.
+    // La ZORE es el nivel superior y se consulta mediante un acceso destacado.
+    if (datos.tipo === "are") {
+      const area = datos.ares[0];
+      const zona = (contextoZore && contextoZore.zores[0]) || datos.zores[0];
+      const gridAre = document.createElement("div");
+      gridAre.className = "grid grid-cols-1 lg:grid-cols-2 gap-6";
+
+      const columnaSecciones = document.createElement("section");
+      const hSecciones = document.createElement("h3");
+      hSecciones.className = "font-bold mb-3";
+      hSecciones.textContent = "Secciones asignadas (" + datos.secciones.length + ")";
+      columnaSecciones.append(hSecciones);
+      const listaSecciones = document.createElement("ul");
+      listaSecciones.className = "text-sm";
+      datos.secciones.slice().sort((a, b) => a.numero - b.numero)
+        .forEach(sec => listaSecciones.append(cuadroSeccion(sec)));
+      columnaSecciones.append(listaSecciones);
+      tablaCoberturaLocal(columnaSecciones, datos.secciones);
+
+      const columnaZore = document.createElement("section");
+      const tituloZore = document.createElement("h3");
+      tituloZore.className = "font-bold mb-3";
+      tituloZore.textContent = "ZORE de pertenencia";
+      columnaZore.append(tituloZore);
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "rounded-box border border-base-300 bg-base-200/40 p-5 space-y-3";
+      if (zona) {
+        const distrito = document.createElement("p");
+        distrito.className = "text-sm opacity-70";
+        distrito.textContent = "Distrito federal " + numero(zona.distrito);
+        const identificador = document.createElement("p");
+        identificador.className = "font-bold text-3xl";
+        identificador.textContent = "ZORE " + numero(zona.numero);
+        const cifras = document.createElement("p");
+        cifras.className = "text-sm opacity-75";
+        cifras.textContent = formato(zona.areas.length) + " ARE · " +
+          formato(zona.secciones) + " secciones";
+        const acceso = enlace(zona.url, "Abrir expediente ZORE " + numero(zona.numero));
+        acceso.className = "btn btn-primary w-full mt-2";
+        tarjeta.append(distrito, identificador, cifras, acceso);
+      } else {
+        tarjeta.textContent = "Sin ZORE asociada.";
+      }
+      columnaZore.append(tarjeta);
+      gridAre.append(columnaSecciones, columnaZore);
+      elemento.append(gridAre);
+      return;
+    }
+    const contexto = contextoZore || datos;
+    const aresContexto = new Map(contexto.ares.map(a => [a.id, a]));
+    const secciones = datos.secciones;
+    const zonas = datos.zores;
+    const encabezado = document.createElement("p");
+    encabezado.className = "font-semibold mb-3";
+    encabezado.textContent = datos.tipo === "zore" || datos.tipo === "are"
+      ? textoCabecera(datos) + " · " + secciones.length + " secciones"
+      : zonas.length + " ZORE · " + datos.ares.length + " ARE · " + secciones.length + " secciones";
+    elemento.append(encabezado);
+
+    zonas.forEach(z => {
       const details = document.createElement("details");
-      details.className = "border-b border-base-300 py-2";
+      details.className = "border border-base-300 rounded-lg mb-3 px-4 py-3";
+      details.open = datos.tipo === "zore" || datos.tipo === "are";
       const summary = document.createElement("summary");
       summary.className = "cursor-pointer font-medium";
-      summary.textContent = "Distrito " + numero(z.distrito) + " · ZORE " + numero(z.numero) +
-        " · " + z.areas.length + " ARE · " + z.secciones + " secciones";
+      const areaTotal = datos.tipo === "are" && contexto.zores[0]
+        ? contexto.zores[0].areas.length : z.areas.length;
+      summary.textContent = (datos.tipo === "are" ? textoCabecera(datos) :
+        "Distrito " + numero(z.distrito) + " · ZORE " + numero(z.numero)) +
+        " · " + areaTotal + " ARE · " + z.secciones + " secciones" +
+        " · PE " + formato(z.padron) + " · LN " + formato(z.lista_nominal);
       details.append(summary);
-      const zonaInfo = document.createElement("p");
-      zonaInfo.className = "text-sm my-2";
-      zonaInfo.append(enlace(z.url, "Abrir expediente ZORE " + numero(z.numero)),
-        " · Padrón " + formato(z.padron) + " · LN " + formato(z.lista_nominal));
-      details.append(zonaInfo);
-      const ul = document.createElement("ul");
-      ul.className = "ml-5 list-disc text-sm space-y-1 pb-2";
-      z.areas.forEach(id => {
-        const a = areas.get(id);
+      if (datos.tipo !== "zore" && datos.tipo !== "are") {
+        const acceso = document.createElement("p");
+        acceso.className = "text-sm mt-2";
+        acceso.append(enlace(z.url, "Ver ZORE " + numero(z.numero)));
+        details.append(acceso);
+      }
+
+      const grid = document.createElement("div");
+      grid.className = "grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4";
+      const columnaSecciones = document.createElement("section");
+      const hS = document.createElement("h3");
+      hS.className = "font-bold mb-2";
+      hS.textContent = "Secciones (" + secciones.filter(s => s.zore.id === z.id).length + ")";
+      columnaSecciones.append(hS);
+      const listaSecciones = document.createElement("ul");
+      listaSecciones.className = "text-sm";
+      secciones.filter(s => s.zore.id === z.id).sort((a,b) => a.numero-b.numero).forEach(sec => {
+        listaSecciones.append(cuadroSeccion(sec));
+      });
+      columnaSecciones.append(listaSecciones);
+
+      const columnaAres = document.createElement("section");
+      const hA = document.createElement("h3");
+      hA.className = "font-bold mb-2";
+      const ids = datos.tipo === "are" && contexto.zores[0]
+        ? contexto.zores[0].areas : z.areas;
+      hA.textContent = "ARE (" + ids.length + ")";
+      columnaAres.append(hA);
+      const listaAres = document.createElement("ul");
+      listaAres.className = "text-sm";
+      ids.forEach(id => {
+        const a = aresContexto.get(id);
         if (!a) return;
         const li = document.createElement("li");
-        const muestraColor = document.createElement("span");
-        muestraColor.setAttribute("aria-hidden", "true");
-        muestraColor.className = "inline-block w-3 h-3 rounded-sm border border-base-300 mr-2";
-        muestraColor.style.backgroundColor = color(a.numero);
-        li.append(muestraColor, enlace(a.url, "ARE " + numero(a.numero)), " · " +
-          a.secciones + " sección(es)");
-        ul.append(li);
+        li.className = "flex items-center gap-2 border-b border-base-200 py-2";
+        const muestra = document.createElement("span");
+        muestra.className = "inline-block w-3 h-3 rounded-sm";
+        muestra.style.backgroundColor = color(a.numero);
+        li.append(muestra, enlace(a.url, "ARE " + numero(a.numero)));
+        const cantidad = document.createElement("span");
+        cantidad.className = "text-xs opacity-70";
+        cantidad.textContent = a.secciones + " sección(es)";
+        li.append(cantidad);
+        listaAres.append(li);
       });
-      details.append(ul);
+      columnaAres.append(listaAres);
+      grid.append(columnaSecciones, columnaAres);
+      details.append(grid);
+      tablaCoberturaLocal(details, secciones.filter(s => s.zore.id === z.id));
       elemento.append(details);
     });
   }
@@ -253,6 +436,37 @@
 
   }
 
+  function mostrarAlertaMultilocal(datos) {
+    const existentes = document.querySelector('[data-zore-alerta-multilocal="1"]');
+    if (existentes) existentes.remove();
+    const afectadas = datos.alertas_are_multilocal || [];
+    if (!afectadas.length) return;
+    const contenido = document.querySelector('main section');
+    if (!contenido) return;
+    const aviso = document.createElement("div");
+    aviso.setAttribute("data-zore-alerta-multilocal", "1");
+    aviso.setAttribute("role", "status");
+    aviso.className = "alert alert-warning flex flex-wrap gap-2 my-5";
+    const titulo = document.createElement("strong");
+    titulo.textContent = "¡ATENCIÓN! " + afectadas.length +
+      (afectadas.length === 1 ? " ARE comprende" : " ARE comprenden") +
+      " secciones de distintos distritos locales.";
+    aviso.append(titulo);
+    const detalles = document.createElement("span");
+    detalles.className = "flex flex-wrap gap-2 text-sm";
+    afectadas.forEach(a => {
+      detalles.append(enlace(a.url, "D" + numero(a.distrito) + " · ARE " + numero(a.numero)),
+        " (DL " + a.distritos_locales.map(numero).join(", ") + ") ");
+    });
+    aviso.append(detalles);
+    const primerMapa = contenido.querySelector('#map');
+    if (primerMapa) {
+      const fila = primerMapa.closest('.grid');
+      if (fila && fila.parentNode) fila.parentNode.insertBefore(aviso, fila);
+      else contenido.prepend(aviso);
+    } else contenido.prepend(aviso);
+  }
+
   function mount(config) {
     const {map, overlays, endpoint, nivel, pk, tab, card, autoEnable, autoFocus, resumenId, statsId} = config;
     const z = L.layerGroup();
@@ -332,7 +546,10 @@
     }
     if (resumenId) {
       const div = document.getElementById(resumenId);
-      if (div) cargar().then(datos => vistaResumen(div, datos)).catch(() => {
+      if (div) cargar().then(async datos => {
+        const contexto = nivel === "are" ? await cargarZore() : null;
+        vistaResumen(div, datos, contexto);
+      }).catch(() => {
         div.textContent = "No fue posible cargar el listado.";
       });
     }
@@ -342,6 +559,7 @@
         div.textContent = "No fue posible consultar las estadísticas.";
       });
     }
+    cargar().then(mostrarAlertaMultilocal).catch(error => console.error(error));
     if (autoEnable === "zore") z.addTo(map);
     if (autoEnable === "are") a.addTo(map);
     if (autoFocus || autoEnable) cargar().then(datos => {
