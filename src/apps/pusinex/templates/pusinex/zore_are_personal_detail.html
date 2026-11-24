@@ -1,0 +1,108 @@
+{% extends 'cerebro/base.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Expediente de {{ tipo_personal|upper }} - Cartografía{% endblock %}
+{% block content %}
+<section class="space-y-7">
+  <nav class="text-sm breadcrumbs text-base-content/60" aria-label="Ruta de navegación">
+    <ul>
+      <li><a href="{% url 'pusinex:index' %}">Cartografía</a></li>
+      <li><a href="{% url 'pusinex:distrito' pk=distrito %}">Distrito {{ distrito|stringformat:'02d' }}</a></li>
+      <li><a href="{{ padre.url }}">{{ padre.label }}</a></li>
+      <li>Personal</li>
+    </ul>
+  </nav>
+
+  <div class="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-widest text-base-content/60">Personal de capacitación y asistencia electoral</p>
+      <h1 class="text-3xl md:text-4xl font-extrabold mt-2">
+        {% if tipo_personal == 'supervisor' %}Expediente de Supervisor/a Electoral{% else %}Expediente de CAE{% endif %}
+      </h1>
+      <p class="mt-2 text-base-content/70">Distrito {{ distrito|stringformat:'02d' }} · {{ padre.label }} · Información de apoyo</p>
+    </div>
+    <a href="{{ padre.url }}" class="btn btn-outline btn-sm">Volver a {{ padre.label }}</a>
+  </div>
+
+  {% if demo %}
+  <div class="alert border-2 border-warning bg-warning/10 text-base-content" role="status">
+    <div>
+      <strong class="block font-bold">MODO DEMOSTRACIÓN · PERSONA FICTICIA</strong>
+      <span class="text-sm">Todos los nombres, correos, teléfonos e identificadores de esta ficha son inventados. Se generan para mostrar el diseño; no corresponden a personal contratado ni se guardan en la base de datos.</span>
+    </div>
+  </div>
+  {% elif not autorizado %}
+  <div class="alert bg-base-200 border border-base-300" role="status">
+    <div>
+      <strong class="block">Datos personales restringidos</strong>
+      <span class="text-sm">La ficha de personal requiere autorización. Puede consultar la <a class="link link-primary" href="?demo=1">vista demostrativa con datos ficticios</a>.</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-7 card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body">
+        <div class="flex flex-wrap items-center gap-5">
+          <div class="avatar placeholder">
+            <div class="bg-base-200 text-base-content/60 rounded-full w-24 h-24 border border-base-300 flex items-center justify-center" aria-label="Silueta sin fotografía">
+              <svg xmlns="http://www.w3.org/2000/svg" width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            </div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm uppercase tracking-wide font-bold text-base-content/60">{% if tipo_personal == 'supervisor' %}Supervisor Electoral · SE{% else %}Capacitador-Asistente Electoral · CAE{% endif %}</div>
+            <h2 class="text-2xl font-bold mt-1">{% if personal and personal.nombre %}{{ personal.nombre }}{% else %}Sin datos de personal capturados{% endif %}</h2>
+            {% if demo %}<span class="badge badge-warning badge-outline mt-2">Identidad ficticia</span>{% endif %}
+            {% if personal and personal.identificador %}<p class="font-mono text-xs mt-2 text-base-content/60">{{ personal.identificador }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="divider my-2">Datos de contacto</div>
+        <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div><dt class="text-xs uppercase tracking-wider text-base-content/60 font-semibold">Correo electrónico</dt><dd class="mt-1 break-words">{% if personal and personal.correo %}{{ personal.correo }}{% else %}Restringido o pendiente{% endif %}</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-base-content/60 font-semibold">Teléfono</dt><dd class="mt-1">{% if personal and personal.telefono %}{{ personal.telefono }}{% else %}Restringido o pendiente{% endif %}</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-base-content/60 font-semibold">Adscripción operativa</dt><dd class="mt-1">Junta Distrital {{ distrito|stringformat:'02d' }} · Tlaxcala</dd></div>
+          <div><dt class="text-xs uppercase tracking-wider text-base-content/60 font-semibold">Ámbito de responsabilidad</dt><dd class="mt-1"><a class="link link-primary" href="{{ padre.url }}">{{ padre.label }}</a></dd></div>
+        </dl>
+        {% if demo %}<p class="text-xs text-base-content/60 mt-3">La fotografía y los datos complementarios se muestran como espacios de diseño. Las futuras autorizaciones de acceso determinarán los datos personales que se incorporen.</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="lg:col-span-5 card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Cobertura asociada</h2>
+        <p class="text-xs text-base-content/60">Datos calculados a partir de las asignaciones ZORE/ARE cargadas en PUSINEX.</p>
+        {% for etiqueta, valor in metricas %}
+        <div class="flex justify-between gap-4 py-3 border-b border-base-200"><span>{{ etiqueta }}</span><strong class="text-lg">{% if valor is None %}Pendiente{% else %}{{ valor|intcomma }}{% endif %}</strong></div>
+        {% endfor %}
+        {% if tipo_personal == 'cae' %}<p class="text-xs text-base-content/60">La lista nominal por ARE es una estimación basada en casillas asignadas. Las secciones compartidas mantienen su geometría íntegra.</p>{% endif %}
+        <div class="card-actions mt-3"><a class="btn btn-primary btn-sm" href="{{ padre.url }}">Abrir expediente {{ padre.label }}</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 border border-base-300">
+    <div class="card-body">
+      <div class="flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-center">
+        <h2 class="card-title">{% if tipo_personal == 'supervisor' %}Áreas de responsabilidad de la ZORE{% else %}Secciones electorales del ARE{% endif %}</h2>
+        <span class="text-sm text-base-content/60">{{ referencias|length }} registros vinculados</span>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        {% for referencia in referencias %}
+          <a href="{{ referencia.url }}" class="badge badge-lg badge-outline hover:badge-primary py-4 px-4">{{ referencia.label }}</a>
+        {% empty %}
+          <p class="text-base-content/60">Sin relaciones cargadas.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if not demo %}
+  <div class="flex flex-wrap gap-2">
+    <a class="btn btn-outline" href="?demo=1">Mostrar una ficha con datos ficticios</a>
+  </div>
+  {% else %}
+  <p class="text-xs text-base-content/60">Vista demostrativa para presentación institucional. Información sin valor administrativo, contractual o normativo.</p>
+  {% endif %}
+</section>
+{% endblock content %}

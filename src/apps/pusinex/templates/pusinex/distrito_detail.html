@@ -406,6 +406,7 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'pusinex/zore_are.js' %}"></script>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
@@ -496,6 +497,12 @@ const capaDistrito = L.geoJSON(distritoData, {
           "Distrito": capaDistrito,
           "Municipios": capaMunicipios
       };
+            window.PusinexZoreAre.mount({
+        map: map, overlays: overlayMaps,
+        endpoint: "{% url 'pusinex:zore_are_api' %}",
+        nivel: "distrito", pk: "{{ distrito.pk }}",
+        tab: true
+      });
       L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
       map.fitBounds(capaDistrito.getBounds());

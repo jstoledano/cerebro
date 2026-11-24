@@ -37,3 +37,6 @@ admin.site.register(Distrito)
 admin.site.register(DistritoLocal)
 admin.site.register(Municipio)
 admin.site.register(Seccion, SeccionAdmin)
+
+# Administracion reservada de ZORE/ARE
+from . import zore_are_admin  # noqa: F401

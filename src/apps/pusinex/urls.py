@@ -22,9 +22,22 @@ from apps.pusinex.views import (
     VNM2026Index,
 )
 
+from .zore_are_views import ZoreDetail, AreDetail, asignaciones_geojson
+from .zore_are_personal import supervisor_detail, cae_detail
+
+from .distrito_local_views import DistritoLocalDetail
+from .zore_are_views import colindancias_geojson
+
 app_name = "pusinex"
 
 urlpatterns = [
+    path("distrito-local/<int:pk>", DistritoLocalDetail.as_view(), name="distrito_local"),
+    path("zore-are/colindancias/", colindancias_geojson, name="zore_are_colindancias"),
+    path("zore-are/datos/", asignaciones_geojson, name="zore_are_api"),
+    path("zore/<int:pk>", ZoreDetail.as_view(), name="zore"),
+    path("zore/<int:pk>/supervisor/", supervisor_detail, name="zore_supervisor"),
+    path("are/<int:pk>/cae/", cae_detail, name="are_cae"),
+    path("are/<int:pk>", AreDetail.as_view(), name="are"),
     path(
         "vnm2026/",
         VNM2026Index.as_view(),
