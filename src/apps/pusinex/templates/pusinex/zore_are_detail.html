@@ -1,0 +1,98 @@
+{% extends 'cerebro/base.html' %}
+{% load static %}
+{% block title %}Expediente {{ tipo_grupo|upper }} {{ grupo.numero }} - Cartografía{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock head %}
+{% block content %}
+<section class="space-y-6">
+  <div class="text-sm breadcrumbs text-base-content/60"><ul>
+    <li><a href="{% url 'pusinex:index' %}">Cartografía</a></li>
+    <li><a href="{% url 'pusinex:distrito' pk=grupo.distrito_id %}">Distrito {{ grupo.distrito_id|stringformat:'02d' }}</a></li>
+    {% if tipo_grupo == 'are' %}<li><a href="{% url 'pusinex:zore' pk=grupo.zore_id %}">ZORE {{ grupo.zore.numero|stringformat:'02d' }}</a></li>{% endif %}
+    <li>{{ tipo_grupo|upper }} {{ grupo.numero }}</li>
+  </ul></div>
+  <div>
+    <h1 class="text-4xl font-bold">Expediente {{ tipo_grupo|upper }} {{ grupo.numero|stringformat:'02d' }}</h1>
+    <p class="mt-2 text-base-content/70">Representación informativa sobre el Marco Geográfico Electoral · Distrito {{ grupo.distrito_id|stringformat:'02d' }}</p>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-8">
+      <div id="map" class="w-full h-[600px] rounded-box border border-base-300 relative z-[1]"></div>
+    </div>
+    <div class="lg:col-span-4">
+      <div class="card bg-base-100 border border-base-300 h-[600px] overflow-auto">
+        <div class="card-body">
+          <h2 class="card-title">Cobertura y estadísticas</h2>
+          <div id="zore-are-estadisticas" class="text-sm text-base-content/70">Cargando asignaciones…</div>
+          <div class="divider">Personal asociado</div>
+          {% if tipo_grupo == 'zore' %}
+            <p class="text-sm text-base-content/70">Responsable operativo de la ZORE · Supervisor/a Electoral.</p>
+            <a class="btn btn-outline btn-sm w-full mt-2" href="{% url 'pusinex:zore_supervisor' pk=grupo.pk %}?demo=1">Ver expediente de Supervisor (demostración)</a>
+            {% if ver_personal %}<a class="link link-primary text-xs mt-2" href="{% url 'pusinex:zore_supervisor' pk=grupo.pk %}">Consultar datos autorizados</a>{% endif %}
+          {% else %}
+            <p class="text-sm text-base-content/70">Responsable operativo del ARE · Capacitador/a-Asistente Electoral.</p>
+            <a class="btn btn-outline btn-sm w-full mt-2" href="{% url 'pusinex:are_cae' pk=grupo.pk %}?demo=1">Ver expediente CAE (demostración)</a>
+            {% if ver_personal %}<a class="link link-primary text-xs mt-2" href="{% url 'pusinex:are_cae' pk=grupo.pk %}">Consultar datos autorizados</a>{% endif %}
+          {% endif %}
+          {% if ver_personal %}
+            <div class="divider">Datos de personal · Acceso restringido</div>
+            {% if tipo_grupo == 'zore' %}
+              <p><strong>Supervisor/a</strong> {{ grupo.supervisor_nombre|default:'Pendiente' }}</p>
+              {% if grupo.supervisor_correo %}<p><strong>Correo</strong> {{ grupo.supervisor_correo }}</p>{% endif %}
+              {% if grupo.supervisor_telefono %}<p><strong>Teléfono</strong> {{ grupo.supervisor_telefono }}</p>{% endif %}
+            {% else %}
+              <p><strong>CAE</strong> {{ grupo.cae_nombre|default:'Pendiente' }}</p>
+              {% if grupo.cae_correo %}<p><strong>Correo</strong> {{ grupo.cae_correo }}</p>{% endif %}
+              {% if grupo.cae_telefono %}<p><strong>Teléfono</strong> {{ grupo.cae_telefono }}</p>{% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="border rounded-box border-base-300 p-5 bg-base-100">
+    <h2 class="font-bold text-xl mb-4">{% if tipo_grupo == "zore" %}Descripción de la ZORE{% else %}Asignación y cobertura del ARE{% endif %}</h2>
+    <div id="zore-are-listado" class="text-sm">Cargando relaciones…</div>
+  </div>
+  {% if tipo_grupo == 'zore' %}
+  <div class="border rounded-box border-base-300 p-5 bg-base-100">
+    <h2 class="font-bold text-xl">Cobertura territorial</h2>
+    <div id="zore-cobertura" class="mt-3">Cargando municipios y distritos locales…</div>
+  </div>
+  {% endif %}
+  <div class="border rounded-box border-base-300 p-5 bg-base-100">
+    <h2 class="font-bold text-xl">Colindancias geográficas</h2>
+    <div id="zore-are-colindancias" class="mt-3">Calculando colindancias…</div>
+  </div>
+  <p class="text-sm text-base-content/60">Las capas son informativas. Las franjas de secciones compartidas son una convención gráfica y no representan fracciones territoriales.</p>
+</section>
+{% endblock content %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'pusinex/zore_are.js' %}?v=20261124-are-zore-carga"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const map = L.map('map', {doubleClickZoom:false});
+  L.tileLayer('https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key={{ carto_basemaps_api_key|escapejs }}', {
+    maxZoom:20,
+    attribution:'&copy; OpenStreetMap contributors, &copy; CARTO'
+  }).addTo(map);
+  map.setView([19.31,-98.24], 10);
+  const capas = {};
+  window.PusinexZoreAre.mount({
+    map:map, overlays:capas, endpoint:"{% url 'pusinex:zore_are_api' %}",
+    nivel:"{{ tipo_grupo }}", pk:"{{ grupo.pk }}", autoFocus:true,
+    autoEnable:"are",
+    resumenId:"zore-are-listado", statsId:"zore-are-estadisticas"
+  });
+  window.PusinexZoreAre.montarComplementos({
+    map:map, overlays:capas, endpoint:"{% url 'pusinex:zore_are_api' %}",
+    colindanciasEndpoint:"{% url 'pusinex:zore_are_colindancias' %}",
+    nivel:"{{ tipo_grupo }}", pk:"{{ grupo.pk }}",
+    coberturaId:"zore-cobertura", colindanciasId:"zore-are-colindancias"
+  });
+  L.control.layers(null, capas, {collapsed:false}).addTo(map);
+});
+</script>
+{% endblock scripts %}

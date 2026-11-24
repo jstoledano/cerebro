@@ -1,0 +1,43 @@
+{% extends 'cerebro/base.html' %}
+{% block title %}Carga ZORE y ARE · Distrito {{ distrito.distrito|stringformat:'02d' }}{% endblock %}
+{% block content %}
+<section class="space-y-6 max-w-4xl mx-auto">
+  <div class="breadcrumbs text-sm"><ul>
+    <li><a href="{% url 'pusinex:index' %}">Cartografía</a></li>
+    <li><a href="{% url 'pusinex:distrito' pk=distrito.pk %}">Distrito federal {{ distrito.distrito|stringformat:'02d' }}</a></li>
+    <li>Cargar ZORE y ARE</li>
+  </ul></div>
+  <div>
+    <h1 class="text-3xl font-bold">Subir definición de ZORE y ARE</h1>
+    <p class="mt-2 text-base-content/70">Distrito federal {{ distrito.distrito|stringformat:'02d' }} · Carga informativa sobre el Marco Geográfico Electoral.</p>
+  </div>
+  {% if error %}<div role="alert" class="alert alert-error"><span>{{ error }}</span></div>{% endif %}
+  {% if resultado %}
+  <div role="status" class="alert {% if aplicado %}alert-success{% else %}alert-info{% endif %}">
+    <span>{% if aplicado %}Se sustituyeron las asignaciones del distrito.{% else %}Simulación terminada sin modificar los datos.{% endif %}</span>
+  </div>
+  <div class="mockup-code bg-base-200 text-base-content overflow-auto"><pre class="px-4 whitespace-pre-wrap">{{ resultado }}</pre>{% if diagnostico %}<pre class="px-4 whitespace-pre-wrap">{{ diagnostico }}</pre>{% endif %}</div>
+  {% endif %}
+  <div class="card bg-base-100 border border-base-300 shadow-sm">
+    <form class="card-body gap-5" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div>
+        <h2 class="card-title">Archivo CSV de la VOD</h2>
+        <p class="text-sm opacity-70 mt-1">Encabezado: <code>seccion,zore,are,casillas_ln</code>. El distrito se obtiene de la sección. Se requiere el conjunto completo de secciones activas del distrito.</p>
+      </div>
+      <input class="file-input file-input-bordered w-full" type="file" name="archivo" accept=".csv,text/csv" required>
+      <div class="flex flex-wrap gap-3">
+        <button class="btn btn-outline btn-primary" name="accion" value="simular" type="submit">Simular importación</button>
+      </div>
+      <div class="divider">Aplicar asignaciones</div>
+      <p class="text-sm">La operación sustituirá las ZORE y ARE del distrito federal {{ distrito.distrito|stringformat:'02d' }}. Los demás distritos conservarán sus asignaciones.</p>
+      <label class="label cursor-pointer justify-start gap-3">
+        <input type="checkbox" name="confirmar" value="si" class="checkbox checkbox-error">
+        <span class="label-text">Confirmo que deseo reemplazar las asignaciones actuales de este distrito.</span>
+      </label>
+      <button class="btn btn-error self-start" name="accion" value="aplicar" type="submit">Aplicar CSV al distrito</button>
+    </form>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'pusinex:distrito' pk=distrito.pk %}">Volver al expediente distrital</a>
+</section>
+{% endblock content %}

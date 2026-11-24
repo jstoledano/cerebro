@@ -463,3 +463,6 @@ class CambioMGE(models.Model):
             f"{self.capa} {self.clave} "
             f"- {self.tipo}"
         )
+
+# Modelos informativos ZORE y ARE
+from .zore_models import Zore, Are, SeccionAre
