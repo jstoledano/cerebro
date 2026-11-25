@@ -198,12 +198,11 @@
 
           <div class="card-actions flex flex-col gap-3 mt-auto">
 
+            <button class="btn btn-neutral w-full gap-2 px-6" onclick="modal_pusi.showModal()">
+              🗺️ Ver PSI (Plano de la sección)
+            </button>
+
             {% if es_urbana %}
-
-              <button class="btn btn-neutral w-full gap-2 px-6" onclick="modal_pusi.showModal()">
-                🗺️ Ver PUSI (Plano Urbano)
-              </button>
-
               {% if ultimo_pusinex and ultimo_pusinex.archivo %}
                 <button class="btn btn-primary w-full gap-2 px-6" onclick="modal_pusinex.showModal()">
                   🏠 Ver PUSINEX (Números Ext.)
@@ -218,7 +217,7 @@
 
             {% else %}
               <div class="alert bg-base-200 text-sm py-3 font-medium opacity-80 justify-center">
-                🌾 Sección Rural (No aplica PUSI / PUSINEX)
+                🌾 Sección rural. PUSINEX solo está disponible para secciones urbanas.
               </div>
             {% endif %}
 
@@ -463,11 +462,10 @@
 </dialog>
 {% endif %}
 
-{% if es_urbana %}
 <dialog id="modal_pusi" class="modal modal-bottom sm:modal-middle">
   <div class="modal-box w-[95vw] max-w-none h-[90vh] flex flex-col p-4 bg-base-100 overflow-hidden select-none">
     <div class="flex justify-between items-center mb-2 flex-shrink-0">
-      <h3 class="font-bold text-lg text-neutral">Plano Urbano (PUSI) - Sección {{ seccion.seccion|stringformat:"04d" }}</h3>
+      <h3 class="font-bold text-lg text-neutral">Plano de la sección (PSI) - Sección {{ seccion.seccion|stringformat:"04d" }}</h3>
       <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost text-base-content hover:bg-base-300">✕</button></form>
     </div>
     <div class="flex-grow w-full border border-base-300 rounded-box overflow-hidden bg-base-200">
@@ -476,7 +474,6 @@
   </div>
   <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm"><button>close</button></form>
 </dialog>
-{% endif %}
 
 {% if es_urbana and ultimo_pusinex and ultimo_pusinex.archivo %}
 <dialog id="modal_pusinex" class="modal modal-bottom sm:modal-middle">
@@ -706,3 +703,4 @@ L.tileLayer(
   );
 </script>
 {% endblock scripts %}
+
